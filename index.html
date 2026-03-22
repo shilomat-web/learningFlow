@@ -1321,26 +1321,28 @@ if(CU){
 }
 
 // ═══════════════════════════════════════════
-// AI CHAT — Strict RAG / Context Injection
-// Powered by Google Gemini 1.5 Flash (FREE)
+// AI CHAT — Strict RAG + Function Calling
+// Powered by Google Gemini 2.0 Flash (FREE)
 // ═══════════════════════════════════════════
 
 // ── CONFIG ──
-// Get a FREE key (no credit card) at: https://aistudio.google.com/app/apikey
+// Free key (no credit card): https://aistudio.google.com/app/apikey
 const AI_API_KEY = localStorage.getItem('ai_api_key') || '';
-const AI_MODEL   = 'gemini-1.5-flash';
+// Use v1 + gemini-2.0-flash-exp which is available on the free tier
+const AI_MODEL   = 'gemini-2.0-flash-exp';
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${AI_MODEL}:generateContent`;
 
 let aiOpen    = false;
-let aiHistory = []; // {role:'user'|'model', parts:[{text}]}
+let aiHistory = [];   // {role:'user'|'model', parts:[{text}]}
 let aiTyping  = false;
+let pendingToolCall = null; // stores a pending action awaiting confirmation
 
 // ── PANEL TOGGLE ──
 function toggleAI(){
   aiOpen = !aiOpen;
   document.getElementById('ai-panel').classList.toggle('open', aiOpen);
   if(aiOpen && !AI_API_KEY){
-    const key = prompt('הכנס Google Gemini API Key\n(השג חינם — ללא כרטיס אשראי — בכתובת:\naistudio.google.com/app/apikey)');
+    const key = prompt('הכנס Google Gemini API Key\n(השג חינם — ללא כרטיס אשראי:\naistudio.google.com/app/apikey)');
     if(key && key.length > 10){
       localStorage.setItem('ai_api_key', key);
       location.reload();
@@ -1352,7 +1354,6 @@ function toggleAI(){
   }
 }
 
-// ── CHIP SHORTCUT ──
 function askChip(q){
   document.getElementById('ai-input').value = q;
   sendAI();
@@ -1360,17 +1361,15 @@ function askChip(q){
 
 // ═══════════════════════════════════════════
 // RAG CONTEXT BUILDER
-// Builds a complete, structured snapshot of
-// ALL user data — injected into every prompt.
-// The model is FORBIDDEN from using anything else.
+// Full snapshot of user data injected into
+// every prompt. Model forbidden from using
+// any external knowledge.
 // ═══════════════════════════════════════════
 function buildContext(){
   if(!CU || !S) return 'אין נתונים זמינים.';
-
   const lines = [];
   const td = today();
 
-  // ── 1. SUBJECTS & SUBTOPICS (full tree) ──
   lines.push('=== נושאים ותת-נושאים ===');
   if(!S.subjects.length){
     lines.push('אין נושאים.');
@@ -1378,11 +1377,11 @@ function buildContext(){
     S.subjects.forEach(subj => {
       const {total, done} = countNodes(subj);
       const pct = total ? Math.round(done/total*100) : 0;
-      lines.push(`נושא: ${subj.name} | התקדמות: ${done}/${total} (${pct}%)`);
+      lines.push(`נושא: "${subj.name}" (id:${subj.id}) | התקדמות: ${done}/${total} (${pct}%)`);
       function dumpNode(node, depth){
         (node.subtopics||[]).forEach(c=>{
           const prefix = '  '.repeat(depth) + (c.done ? '✓' : '○');
-          lines.push(`${prefix} ${c.name}`);
+          lines.push(`${prefix} "${c.name}" (id:${c.id})`);
           dumpNode(c, depth+1);
         });
       }
@@ -1390,7 +1389,6 @@ function buildContext(){
     });
   }
 
-  // ── 2. TASKS ──
   lines.push('\n=== משימות ===');
   if(!S.tasks.length){
     lines.push('אין משימות.');
@@ -1402,97 +1400,66 @@ function buildContext(){
     if(daily.length){
       lines.push('יומיות:');
       daily.forEach(t=>{
-        const s = S.subjects.find(s=>s.id===t.subjId);
-        const due = t.dueDate ? ` | יעד: ${fmtDate(t.dueDate)}${t.dueTime?' '+t.dueTime:''}` : '';
-        lines.push(`  ${t.done?'✓':'○'} ${t.name}${s?' ('+s.name+')':''}${due}`);
+        const s=S.subjects.find(s=>s.id===t.subjId);
+        const due=t.dueDate?` | יעד: ${fmtDate(t.dueDate)}${t.dueTime?' '+t.dueTime:''}`:'';
+        lines.push(`  ${t.done?'✓':'○'} "${t.name}" (id:${t.id})${s?' ('+s.name+')':''}${due}`);
       });
     }
     if(monthly.length){
       lines.push('חודשיות:');
       monthly.forEach(t=>{
-        const s = S.subjects.find(s=>s.id===t.subjId);
-        const due = t.dueDate ? ` | יעד: ${fmtDate(t.dueDate)}` : '';
-        lines.push(`  ${t.done?'✓':'○'} ${t.name}${s?' ('+s.name+')':''}${due}`);
+        const s=S.subjects.find(s=>s.id===t.subjId);
+        lines.push(`  ${t.done?'✓':'○'} "${t.name}" (id:${t.id})${s?' ('+s.name+')':''}`);
       });
     }
   }
 
-  // ── 3. EXAMS ──
   lines.push('\n=== מבחנים ===');
   if(!S.exams.length){
     lines.push('אין מבחנים.');
   } else {
-    const upcoming = S.exams.filter(e=>e.date>=td).sort((a,b)=>a.date.localeCompare(b.date));
-    const past     = S.exams.filter(e=>e.date<td).sort((a,b)=>b.date.localeCompare(a.date));
-    if(upcoming.length){
-      lines.push('קרובים:');
-      upcoming.forEach(e=>{
-        const s = S.subjects.find(s=>s.id===e.subjId);
-        const days = daysUntil(e.date);
-        const prep = e.prep ? ` | הכנה: ${{red:'חלש',amber:'בינוני',green:'מוכן'}[e.prep]||'?'}` : '';
-        lines.push(`  📅 ${e.name}${s?' ('+s.name+')':''} | תאריך: ${fmtDate(e.date)}${e.time?' '+e.time:''} | בעוד ${days} ימים${prep}`);
-      });
-    }
-    if(past.length){
-      lines.push('שעברו:');
-      past.forEach(e=>{
-        const s = S.subjects.find(s=>s.id===e.subjId);
-        const score = e.score!==null ? ` | ציון: ${e.score}` : ' | ציון: לא הוזן';
-        lines.push(`  📝 ${e.name}${s?' ('+s.name+')':''} | תאריך: ${fmtDate(e.date)}${score}`);
-      });
-    }
+    const upcoming=S.exams.filter(e=>e.date>=td).sort((a,b)=>a.date.localeCompare(b.date));
+    const past=S.exams.filter(e=>e.date<td).sort((a,b)=>b.date.localeCompare(a.date));
+    if(upcoming.length){ lines.push('קרובים:'); upcoming.forEach(e=>{const s=S.subjects.find(s=>s.id===e.subjId);const prep=e.prep?` | הכנה: ${{red:'חלש',amber:'בינוני',green:'מוכן'}[e.prep]||'?'}`:'';lines.push(`  📅 "${e.name}" (id:${e.id})${s?' ('+s.name+')':''} | ${fmtDate(e.date)} | בעוד ${daysUntil(e.date)} ימים${prep}`);}); }
+    if(past.length){ lines.push('שעברו:'); past.forEach(e=>{const s=S.subjects.find(s=>s.id===e.subjId);const score=e.score!==null?` | ציון: ${e.score}`:'| ציון: לא הוזן';lines.push(`  📝 "${e.name}" (id:${e.id})${s?' ('+s.name+')':''} | ${fmtDate(e.date)} ${score}`);}); }
   }
 
-  // ── 4. STUDY TIME LOGS ──
   lines.push('\n=== זמן לימוד ===');
   if(!S.logs.length){
     lines.push('אין רשומות זמן לימוד.');
   } else {
-    const total = S.logs.reduce((s,l)=>s+l.minutes,0);
-    lines.push(`סה"כ זמן לימוד: ${fmtMins(total)}`);
-    // Per subject
-    const bySubj = {};
-    S.logs.forEach(l=>{ bySubj[l.subjId]=(bySubj[l.subjId]||0)+l.minutes; });
+    const total=S.logs.reduce((s,l)=>s+l.minutes,0);
+    lines.push(`סה"כ: ${fmtMins(total)}`);
+    const bySubj={};
+    S.logs.forEach(l=>{bySubj[l.subjId]=(bySubj[l.subjId]||0)+l.minutes;});
     lines.push('לפי נושא:');
-    Object.entries(bySubj).sort((a,b)=>b[1]-a[1]).forEach(([sid,m])=>{
-      const s=S.subjects.find(s=>s.id===sid);
-      lines.push(`  ${s?s.name:'לא ידוע'}: ${fmtMins(m)}`);
-    });
-    // Today
-    const todayMins = S.logs.filter(l=>l.date===td).reduce((s,l)=>s+l.minutes,0);
+    Object.entries(bySubj).sort((a,b)=>b[1]-a[1]).forEach(([sid,m])=>{const s=S.subjects.find(s=>s.id===sid);lines.push(`  ${s?s.name:'?'}: ${fmtMins(m)}`);});
+    const todayMins=S.logs.filter(l=>l.date===td).reduce((s,l)=>s+l.minutes,0);
     lines.push(`היום: ${fmtMins(todayMins)}`);
-    // Last 5 sessions
-    lines.push('5 רשומות אחרונות:');
-    [...S.logs].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5).forEach(l=>{
-      const s=S.subjects.find(s=>s.id===l.subjId);
-      lines.push(`  ${fmtDate(l.date)} | ${s?s.name:'?'} | ${fmtMins(l.minutes)}${l.desc?' | '+l.desc:''}`);
-    });
   }
 
-  // ── 5. OVERALL STATS ──
   lines.push('\n=== סטטיסטיקות כלליות ===');
   let totSub=0,doneSub=0;
-  S.subjects.forEach(s=>{ const c=countNodes(s); totSub+=c.total; doneSub+=c.done; });
-  const overallPct = totSub ? Math.round(doneSub/totSub*100) : 0;
+  S.subjects.forEach(s=>{const c=countNodes(s);totSub+=c.total;doneSub+=c.done;});
+  const overallPct=totSub?Math.round(doneSub/totSub*100):0;
   lines.push(`התקדמות כוללת: ${doneSub}/${totSub} תת-נושאים (${overallPct}%)`);
   lines.push(`תאריך היום: ${fmtDate(td)}`);
   lines.push(`שם משתמש: ${CU.name}`);
-
   return lines.join('\n');
 }
 
-// ── SYSTEM PROMPT — strict RAG ──
 function buildSystemPrompt(){
   const context = buildContext();
   return `אתה עוזר לימודים אישי חכם. תפקידך לעזור לסטודנט על סמך נתוני האפליקציה שלו בלבד.
 
-## כללים קריטיים — חובה לפעול לפיהם תמיד:
+## כללים קריטיים:
 1. ענה רק על בסיס המידע שמופיע ב"נתוני האפליקציה" למטה.
 2. אם שאלה אינה קשורה לנתוני האפליקציה — השב: "אני יכול לענות רק על שאלות לגבי הנתונים שלך באפליקציה."
 3. אם המידע הספציפי לא נמצא בנתונים — השב: "המידע הזה אינו קיים בנתוני האפליקציה שלך."
 4. אל תמציא, אל תשער, אל תשתמש בשום ידע חיצוני.
 5. ענה בעברית, בצורה קצרה וברורה.
-6. אתה יכול לנתח את הנתונים, לחשב סכומים, ולהצביע על תבניות — אבל רק מהמידע שניתן לך.
+6. כשמשתמש מבקש למחוק נושא, תת-נושא, משימה או מבחן — השתמש ב-tool המתאים.
+7. לפני כל מחיקה: תאר בדיוק מה תימחק ובקש אישור מהמשתמש.
 
 ## נתוני האפליקציה של המשתמש:
 ${context}
@@ -1504,13 +1471,205 @@ ${context}
 - "אני יכול לענות רק על שאלות לגבי הנתונים שלך באפליקציה." (לשאלות חיצוניות)`;
 }
 
-// ── SEND MESSAGE — Gemini API ──
+// ═══════════════════════════════════════════
+// FUNCTION CALLING — TOOL DEFINITIONS
+// ═══════════════════════════════════════════
+const AI_TOOLS = [{
+  functionDeclarations: [
+    {
+      name: 'delete_subject',
+      description: 'מוחק נושא שלם (כולל כל תת-הנושאים שלו) מהאפליקציה. השתמש רק לאחר אישור המשתמש.',
+      parameters: {
+        type: 'OBJECT',
+        properties: {
+          subject_id:   { type: 'STRING', description: 'ה-ID של הנושא למחיקה' },
+          subject_name: { type: 'STRING', description: 'שם הנושא (לאישור)' }
+        },
+        required: ['subject_id', 'subject_name']
+      }
+    },
+    {
+      name: 'delete_subtopic',
+      description: 'מוחק תת-נושא (ותת-נושאיו) מנושא מסוים. השתמש רק לאחר אישור המשתמש.',
+      parameters: {
+        type: 'OBJECT',
+        properties: {
+          subject_id:    { type: 'STRING', description: 'ה-ID של הנושא האב' },
+          subtopic_id:   { type: 'STRING', description: 'ה-ID של תת-הנושא למחיקה' },
+          subtopic_name: { type: 'STRING', description: 'שם תת-הנושא (לאישור)' }
+        },
+        required: ['subject_id', 'subtopic_id', 'subtopic_name']
+      }
+    },
+    {
+      name: 'delete_task',
+      description: 'מוחק משימה מהרשימה. השתמש רק לאחר אישור המשתמש.',
+      parameters: {
+        type: 'OBJECT',
+        properties: {
+          task_id:   { type: 'STRING', description: 'ה-ID של המשימה' },
+          task_name: { type: 'STRING', description: 'שם המשימה (לאישור)' }
+        },
+        required: ['task_id', 'task_name']
+      }
+    },
+    {
+      name: 'delete_exam',
+      description: 'מוחק מבחן. השתמש רק לאחר אישור המשתמש.',
+      parameters: {
+        type: 'OBJECT',
+        properties: {
+          exam_id:   { type: 'STRING', description: 'ה-ID של המבחן' },
+          exam_name: { type: 'STRING', description: 'שם המבחן (לאישור)' }
+        },
+        required: ['exam_id', 'exam_name']
+      }
+    },
+    {
+      name: 'mark_subtopic_done',
+      description: 'מסמן תת-נושא כהושלם.',
+      parameters: {
+        type: 'OBJECT',
+        properties: {
+          subject_id:    { type: 'STRING', description: 'ה-ID של הנושא האב' },
+          subtopic_id:   { type: 'STRING', description: 'ה-ID של תת-הנושא' },
+          subtopic_name: { type: 'STRING', description: 'שם תת-הנושא' }
+        },
+        required: ['subject_id', 'subtopic_id', 'subtopic_name']
+      }
+    }
+  ]
+}];
+
+// ═══════════════════════════════════════════
+// TOOL EXECUTION ENGINE
+// ═══════════════════════════════════════════
+
+// Find a subtopic by id anywhere in a subject's tree
+function findSubtopicById(node, targetId, path=[]){
+  for(let i=0;i<(node.subtopics||[]).length;i++){
+    const c=node.subtopics[i];
+    if(c.id===targetId) return {node:c, parent:node, index:i, path:[...path,i]};
+    const found=findSubtopicById(c, targetId, [...path,i]);
+    if(found) return found;
+  }
+  return null;
+}
+
+// Execute a confirmed tool call
+function executeTool(name, args){
+  switch(name){
+    case 'delete_subject': {
+      const idx = S.subjects.findIndex(s=>s.id===args.subject_id);
+      if(idx===-1) return `❌ נושא לא נמצא: ${args.subject_name}`;
+      S.subjects.splice(idx,1);
+      // cascade: remove related tasks/exams/logs
+      S.tasks  = S.tasks.filter(t=>t.subjId!==args.subject_id);
+      S.exams  = S.exams.filter(e=>e.subjId!==args.subject_id);
+      S.logs   = S.logs.filter(l=>l.subjId!==args.subject_id);
+      save(); renderSubjects(); renderDash();
+      return `✅ הנושא "${args.subject_name}" נמחק בהצלחה (כולל כל תת-הנושאים, המשימות והמבחנים הקשורים).`;
+    }
+    case 'delete_subtopic': {
+      const subj = S.subjects.find(s=>s.id===args.subject_id);
+      if(!subj) return `❌ נושא לא נמצא.`;
+      const found = findSubtopicById(subj, args.subtopic_id);
+      if(!found) return `❌ תת-נושא לא נמצא: ${args.subtopic_name}`;
+      found.parent.subtopics.splice(found.index,1);
+      save(); renderSubjects(); renderDash();
+      return `✅ תת-הנושא "${args.subtopic_name}" נמחק בהצלחה.`;
+    }
+    case 'delete_task': {
+      const idx = S.tasks.findIndex(t=>t.id===args.task_id);
+      if(idx===-1) return `❌ משימה לא נמצאה: ${args.task_name}`;
+      S.tasks.splice(idx,1);
+      save(); renderTasks(); renderDash();
+      return `✅ המשימה "${args.task_name}" נמחקה בהצלחה.`;
+    }
+    case 'delete_exam': {
+      const idx = S.exams.findIndex(e=>e.id===args.exam_id);
+      if(idx===-1) return `❌ מבחן לא נמצא: ${args.exam_name}`;
+      S.exams.splice(idx,1);
+      save(); renderExams(); renderDash();
+      return `✅ המבחן "${args.exam_name}" נמחק בהצלחה.`;
+    }
+    case 'mark_subtopic_done': {
+      const subj = S.subjects.find(s=>s.id===args.subject_id);
+      if(!subj) return `❌ נושא לא נמצא.`;
+      const found = findSubtopicById(subj, args.subtopic_id);
+      if(!found) return `❌ תת-נושא לא נמצא: ${args.subtopic_name}`;
+      found.node.done = true;
+      save(); renderSubjects(); renderDash();
+      return `✅ תת-הנושא "${args.subtopic_name}" סומן כהושלם.`;
+    }
+    default:
+      return `❌ פעולה לא מוכרת: ${name}`;
+  }
+}
+
+// Render a confirmation card in the chat
+function showConfirmCard(toolName, args, confirmText){
+  const msgs = document.getElementById('ai-messages');
+  const card = document.createElement('div');
+  card.className = 'ai-msg bot';
+  card.style.cssText = 'border:2px solid #f39c12;background:#fef9ee;padding:14px';
+  card.innerHTML = `
+    <div style="font-weight:600;color:#b45309;margin-bottom:8px">⚠️ אישור פעולה</div>
+    <div style="font-size:13px;margin-bottom:12px">${confirmText}</div>
+    <div style="display:flex;gap:8px">
+      <button onclick="confirmAction(true,this)" style="flex:1;padding:8px;background:#e74c3c;color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:13px">כן, מחק</button>
+      <button onclick="confirmAction(false,this)" style="flex:1;padding:8px;background:#e8e8e5;color:#333;border:none;border-radius:8px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:13px">ביטול</button>
+    </div>`;
+  msgs.appendChild(card);
+  msgs.scrollTop = msgs.scrollHeight;
+  pendingToolCall = { toolName, args, card };
+}
+
+function confirmAction(confirmed, btn){
+  if(!pendingToolCall) return;
+  const {toolName, args, card} = pendingToolCall;
+  pendingToolCall = null;
+  // Disable buttons
+  card.querySelectorAll('button').forEach(b=>b.disabled=true);
+  if(confirmed){
+    const result = executeTool(toolName, args);
+    // Replace card with result
+    card.innerHTML = `<div style="font-size:13px">${result}</div>`;
+    card.style.cssText = '';
+    card.className = 'ai-msg bot';
+    // Add to history
+    aiHistory.push({role:'model', parts:[{text: result}]});
+  } else {
+    card.remove();
+    addAIMsg('הפעולה בוטלה.', 'bot');
+    aiHistory.push({role:'model', parts:[{text:'הפעולה בוטלה על ידי המשתמש.'}]});
+  }
+}
+
+// ── Human-readable confirmation text per tool ──
+function buildConfirmText(name, args){
+  switch(name){
+    case 'delete_subject':
+      return `האם למחוק את הנושא <strong>"${args.subject_name}"</strong> וכל תת-הנושאים, המשימות והמבחנים הקשורים? פעולה זו אינה הפיכה.`;
+    case 'delete_subtopic':
+      return `האם למחוק את תת-הנושא <strong>"${args.subtopic_name}"</strong>? פעולה זו אינה הפיכה.`;
+    case 'delete_task':
+      return `האם למחוק את המשימה <strong>"${args.task_name}"</strong>?`;
+    case 'delete_exam':
+      return `האם למחוק את המבחן <strong>"${args.exam_name}"</strong>?`;
+    default:
+      return `אישור לפעולה: ${name}`;
+  }
+}
+
+// ═══════════════════════════════════════════
+// SEND MESSAGE — Gemini with Function Calling
+// ═══════════════════════════════════════════
 async function sendAI(){
   if(aiTyping) return;
   const input = document.getElementById('ai-input');
   const q = input.value.trim();
   if(!q) return;
-
   if(!AI_API_KEY){ toggleAI(); return; }
 
   input.value = '';
@@ -1521,60 +1680,82 @@ async function sendAI(){
   aiTyping = true;
   document.getElementById('ai-send-btn').disabled = true;
 
-  // Gemini history format: [{role:'user'|'model', parts:[{text}]}]
   aiHistory.push({role:'user', parts:[{text: q}]});
 
   try {
-    const systemInstruction = buildSystemPrompt();
-
     const response = await fetch(`${GEMINI_URL}?key=${AI_API_KEY}`, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
-        system_instruction: { parts:[{text: systemInstruction}] },
+        system_instruction: { parts:[{text: buildSystemPrompt()}] },
         contents: aiHistory.slice(-10),
+        tools: AI_TOOLS,
         generationConfig: {
           maxOutputTokens: 600,
-          temperature: 0.1,       // low temp = more precise, less creative
+          temperature: 0.1,
           topP: 0.8,
           topK: 10
         },
         safetySettings: [
-          {category:'HARM_CATEGORY_HARASSMENT',       threshold:'BLOCK_NONE'},
-          {category:'HARM_CATEGORY_HATE_SPEECH',      threshold:'BLOCK_NONE'},
-          {category:'HARM_CATEGORY_SEXUALLY_EXPLICIT',threshold:'BLOCK_NONE'},
-          {category:'HARM_CATEGORY_DANGEROUS_CONTENT',threshold:'BLOCK_NONE'}
+          {category:'HARM_CATEGORY_HARASSMENT',        threshold:'BLOCK_NONE'},
+          {category:'HARM_CATEGORY_HATE_SPEECH',       threshold:'BLOCK_NONE'},
+          {category:'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold:'BLOCK_NONE'},
+          {category:'HARM_CATEGORY_DANGEROUS_CONTENT', threshold:'BLOCK_NONE'}
         ]
       })
     });
 
     if(!response.ok){
       const err = await response.json().catch(()=>({}));
-      const msg = err.error?.message || `HTTP ${response.status}`;
-      throw new Error(msg);
+      throw new Error(err.error?.message || `HTTP ${response.status}`);
     }
 
     const data = await response.json();
-    const answer = data.candidates?.[0]?.content?.parts?.[0]?.text
-                || data.candidates?.[0]?.content?.parts?.[0]?.text
-                || 'לא קיבלתי תשובה.';
+    const candidate = data.candidates?.[0];
+    const parts = candidate?.content?.parts || [];
 
     thinkingEl.remove();
-    addAIMsg(answer, 'bot');
-    aiHistory.push({role:'model', parts:[{text: answer}]});
 
-    // Keep history bounded
+    // Check for function call in response
+    const funcPart = parts.find(p => p.functionCall);
+    const textPart = parts.find(p => p.text);
+
+    if(funcPart){
+      const {name, args} = funcPart.functionCall;
+      // Show any text the model added before the tool call
+      if(textPart && textPart.text.trim()){
+        addAIMsg(textPart.text, 'bot');
+        aiHistory.push({role:'model', parts:[{text: textPart.text}]});
+      }
+      // Destructive actions require confirmation; mark_subtopic_done is safe
+      if(name === 'mark_subtopic_done'){
+        const result = executeTool(name, args);
+        addAIMsg(result, 'bot');
+        aiHistory.push({role:'model', parts:[{text: result}]});
+      } else {
+        showConfirmCard(name, args, buildConfirmText(name, args));
+        // Don't push to history yet — will push after confirm/cancel
+      }
+    } else if(textPart){
+      addAIMsg(textPart.text, 'bot');
+      aiHistory.push({role:'model', parts:[{text: textPart.text}]});
+    } else {
+      addAIMsg('לא קיבלתי תשובה מהמודל.', 'bot');
+    }
+
     if(aiHistory.length > 20) aiHistory = aiHistory.slice(-20);
 
   } catch(e) {
     thinkingEl.remove();
     let msg = `שגיאה: ${e.message}`;
     if(e.message.includes('API_KEY_INVALID') || e.message.includes('400'))
-      msg = 'API Key שגוי — בדוק שהעתקת נכון מ-AI Studio.';
+      msg = '❌ API Key שגוי — בדוק שהעתקת נכון מ-AI Studio.';
+    if(e.message.includes('404') || e.message.includes('not found'))
+      msg = '❌ שגיאת מודל — נסה לרענן את הדף.';
     if(e.message.includes('429') || e.message.includes('RESOURCE_EXHAUSTED'))
-      msg = 'חרגת ממגבלת הקריאות — נסה שוב בעוד דקה.';
+      msg = '⏳ חרגת ממגבלת הקריאות — נסה שוב בעוד דקה.';
     if(e.message.includes('Failed to fetch'))
-      msg = 'שגיאת רשת — בדוק חיבור לאינטרנט.';
+      msg = '🌐 שגיאת רשת — בדוק חיבור לאינטרנט.';
     addAIMsg(msg, 'bot');
     aiHistory.pop();
   } finally {
