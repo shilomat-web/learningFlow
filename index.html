@@ -704,13 +704,11 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
 'use strict';
 // ═══════════════════════════════════════════
 // AUTH — Username / Password only
-// No Google account required whatsoever.
 // ═══════════════════════════════════════════
 const getUsers  = () => JSON.parse(localStorage.getItem('sa_users') || '{}');
 const saveUsers = u  => localStorage.setItem('sa_users', JSON.stringify(u));
 const userKey   = u  => 'sa_data_' + u;
 
-// Session persists across page reloads
 let CU = null;
 try { const s = localStorage.getItem('sa_session'); if(s) CU = JSON.parse(s); } catch(e){}
 
@@ -774,39 +772,35 @@ function doLogout(){
 // STATE
 // ═══════════════════════════════════════════
 let S={subjects:[],tasks:[],exams:[],logs:[],archive:[]};
-const cuId=()=>CU?CU.id:null;
 function loadState(){
   if(!CU)return;
   S=JSON.parse(localStorage.getItem(userKey(CU.id))||'null')||{subjects:[],tasks:[],exams:[],logs:[],archive:[]};
-  if(!S.archive) S.archive=[];  // migrate old saves
+  if(!S.archive) S.archive=[];
 }
 function save(){if(CU)localStorage.setItem(userKey(CU.id),JSON.stringify(S));}
 
-// ═══════════════════════════════════════════
-// SEED DATA
-// ═══════════════════════════════════════════
-const MATH_TOPICS=[
-  {n:"חיבור והכפלת הסתבריויות, הסתברות מותנית, טבלת שכיחויות, ועץ הסתברות",d:false},
-  {n:"הסתברות בסיסית ומותנית",d:false},
-  {n:"שימוש בטבלת Z, חישוב אחוזונים, חיתוך בין ציוני-סף והסתברויות",d:true},
-  {n:"התפלגות נורמלית וציון תקן",d:true},
-  {n:"מקדם מתאם r, ישר רגרסיה לניבוי ופרשנות השיפוע, והשפעת טרנספורמציות על מדדי פיזור",d:true},
-  {n:"סטטיסטיקה דו-משתנית, מתאם ורגרסיה",d:true},
-  {n:"ממוצע, חציון, שכיח, טווח, שונות וסטיית תקן, קריאה והסקה מהתפלגויות ומייצגים גרפיים",d:true},
-  {n:"סטטיסטיקה תיאורית (חד-משתנית)",d:true},
-  {n:"חקירת פונקציות טריגונומטריות",d:false},
-  {n:"טריגונומטריה",d:false},
-  {n:"גדילה ודעיכה מעריכית",d:false},
-  {n:"גאומטרייה במרחב",d:false},
-  {n:"סדרות",d:false},
-  {n:"פונקציות מעריכיות ולוגריתמיות",d:false},
-  {n:"אינטגרלים ושטחים",d:false},
-  {n:"חשבון דיפרנציאלי",d:false},
-  {n:"חקירת פונקציות פולינומיות ורציונליות ושורש",d:false},
-  {n:"גאומטריה במישור (אנליטית ומישורית)",d:false},
-  {n:"סטטיסטיקה והסתברות",d:false}
-];
 function seedNewUser(u){
+  const MATH_TOPICS=[
+    {n:"חיבור והכפלת הסתבריויות, הסתברות מותנית, טבלת שכיחויות, ועץ הסתברות",d:false},
+    {n:"הסתברות בסיסית ומותנית",d:false},
+    {n:"שימוש בטבלת Z, חישוב אחוזונים, חיתוך בין ציוני-סף והסתברויות",d:true},
+    {n:"התפלגות נורמלית וציון תקן",d:true},
+    {n:"מקדם מתאם r, ישר רגרסיה לניבוי ופרשנות השיפוע, והשפעת טרנספורמציות על מדדי פיזור",d:true},
+    {n:"סטטיסטיקה דו-משתנית, מתאם ורגרסיה",d:true},
+    {n:"ממוצע, חציון, שכיח, טווח, שונות וסטיית תקן, קריאה והסקה מהתפלגויות ומייצגים גרפיים",d:true},
+    {n:"סטטיסטיקה תיאורית (חד-משתנית)",d:true},
+    {n:"חקירת פונקציות טריגונומטריות",d:false},
+    {n:"טריגונומטריה",d:false},
+    {n:"גדילה ודעיכה מעריכית",d:false},
+    {n:"גאומטרייה במרחב",d:false},
+    {n:"סדרות",d:false},
+    {n:"פונקציות מעריכיות ולוגריתמיות",d:false},
+    {n:"אינטגרלים ושטחים",d:false},
+    {n:"חשבון דיפרנציאלי",d:false},
+    {n:"חקירת פונקציות פולינומיות ורציונליות ושורש",d:false},
+    {n:"גאומטריה במישור (אנליטית ומישורית)",d:false},
+    {n:"סטטיסטיקה והסתברות",d:false}
+  ];
   const data={subjects:[{id:uid(),name:'מתמטיקה',subtopics:MATH_TOPICS.map(t=>({id:uid(),name:t.n,done:t.d,subtopics:[]}))}],tasks:[],exams:[],logs:[],archive:[]};
   localStorage.setItem(userKey(u),JSON.stringify(data));
 }
@@ -845,10 +839,9 @@ function showPage(name){
 }
 
 // ═══════════════════════════════════════════
-// MODALS
+// MODALS & ACTIONS
 // ═══════════════════════════════════════════
 let pendingSubjParent=null,pendingScoreId=null,currentTL='red';
-
 function openModal(id){
   if(id==='m-task'||id==='m-exam'||id==='m-log')populateSubjSelects();
   if(id==='m-log')document.getElementById('m-log-date').value=today();
@@ -856,20 +849,11 @@ function openModal(id){
   document.getElementById(id).classList.add('open');
 }
 function closeModal(id){document.getElementById(id).classList.remove('open');}
-document.querySelectorAll('.modal-overlay').forEach(m=>{
-  m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');});
-});
 function populateSubjSelects(){
   const opts=S.subjects.map(s=>`<option value="${s.id}">${s.name}</option>`).join('')+'<option value="__other__">אחר (הוסף חדש)</option>';
   ['m-task-subj','m-exam-subj','m-log-subj'].forEach(id=>{
     const el=document.getElementById(id);if(el)el.innerHTML=opts||'<option value="">אין נושאים</option>';
   });
-}
-function handleExamSubjChange(sel){
-  document.getElementById('m-exam-custom-wrap').style.display=sel.value==='__other__'?'block':'none';
-}
-function handleLogSubjChange(sel){
-  document.getElementById('m-log-custom-wrap').style.display=sel.value==='__other__'?'block':'none';
 }
 function setTL(c){currentTL=c;updateTL();}
 function updateTL(){
@@ -879,71 +863,27 @@ function updateTL(){
   });
 }
 
-// Enter key in auth
-document.getElementById('l-pass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
-document.getElementById('r-pass2').addEventListener('keydown',e=>{if(e.key==='Enter')doRegister();});
-
 // ═══════════════════════════════════════════
-// SUBJECTS
+// DATA RENDERING (Subjects, Tasks, Exams, etc)
 // ═══════════════════════════════════════════
-function addSubject(){
-  const name=document.getElementById('m-subj-name').value.trim();
-  if(!name)return;
-  S.subjects.push({id:uid(),name,subtopics:[]});
-  save();document.getElementById('m-subj-name').value='';
-  closeModal('m-subject');renderSubjects();showToast('נושא נוסף!');
-}
-function openAddSub(subjId,path,parentName){
-  pendingSubjParent={subjId,path};
-  document.getElementById('m-sub-title').textContent=`הוספת תת-נושא תחת "${parentName}"`;
-  document.getElementById('m-sub-name').value='';
-  openModal('m-subtopic');
-}
-function addSubtopic(){
-  const name=document.getElementById('m-sub-name').value.trim();
-  if(!name||!pendingSubjParent)return;
-  const node=getNode(pendingSubjParent.subjId,pendingSubjParent.path);
-  if(!node)return;
-  if(!node.subtopics)node.subtopics=[];
-  node.subtopics.push({id:uid(),name,done:false,subtopics:[]});
-  save();closeModal('m-subtopic');renderSubjects();showToast('תת-נושא נוסף!');
-}
-function getNode(subjId,path){
-  const s=S.subjects.find(s=>s.id===subjId);
-  if(!s)return null;
-  let node=s;
-  for(const i of path){if(!node.subtopics||!node.subtopics[i])return null;node=node.subtopics[i];}
-  return node;
-}
-function toggleDone(subjId,path){
-  const node=getNode(subjId,path);
-  if(node){node.done=!node.done;save();renderSubjects();renderDash();}
-}
 function countNodes(node){
   let total=0,done=0;
   function walk(n){if(!n.subtopics)return;for(const c of n.subtopics){total++;if(c.done)done++;walk(c);}}
   walk(node);return{total,done};
 }
 function renderSubjects(){
-  const el=document.getElementById('subjects-list');if(!el)return;
+  const el=document.getElementById('subjects-list'); if(!el)return;
   if(!S.subjects.length){el.innerHTML='<div class="empty">עדיין אין נושאים. לחץ "+ נושא חדש".</div>';return;}
   el.innerHTML=S.subjects.map(s=>{
     const{total,done}=countNodes(s);const pct=total?Math.round(done/total*100):0;
     return`<div class="subject-item">
       <div class="subject-header" onclick="toggleSubj('s${s.id}','chev${s.id}')">
-        <div class="subject-left">
-          <span class="chevron" id="chev${s.id}">▾</span>
-          <span class="subject-pct">${pct}%</span>
-          <div class="subject-bar"><div class="subject-bar-fill" style="width:${pct}%"></div></div>
-        </div>
-        <div class="subject-right">
-          <div><div class="subject-name">${s.name}</div><div class="subject-meta">${done}/${total} הושלמו</div></div>
-        </div>
+        <div class="subject-left"><span class="chevron" id="chev${s.id}">▾</span><span class="subject-pct">${pct}%</span><div class="subject-bar"><div class="subject-bar-fill" style="width:${pct}%"></div></div></div>
+        <div class="subject-right"><div><div class="subject-name">${s.name}</div><div class="subject-meta">${done}/${total} הושלמו</div></div></div>
       </div>
       <div class="sub-topics" id="s${s.id}">
         ${renderSubNodes(s.id,s.subtopics,[])}
-        <button class="add-sub-btn" onclick="openAddSub('${s.id}',[],'${escQ(s.name)}')">+ תת-נושא</button>
-        <div style="height:8px"></div>
+        <button class="add-sub-btn" onclick="openAddSub('${s.id}',[],'${s.name.replace(/'/g,"\\'").replace(/"/g,"&quot;")}')">+ תת-נושא</button>
       </div>
     </div>`;
   }).join('');
@@ -952,980 +892,141 @@ function renderSubNodes(sid,items,path){
   if(!items||!items.length)return'';
   return items.map((item,idx)=>{
     const cp=[...path,idx],pk=cp.join('-'),hc=item.subtopics&&item.subtopics.length>0;
-    return`<div class="sub-topic-item" onclick="event.stopPropagation();toggleSub('sc${sid}${pk}','sch${sid}${pk}')">
-      <div style="display:flex;align-items:center;gap:6px">
-        ${hc?`<span id="sch${sid}${pk}" style="font-size:11px;color:var(--muted)">▸</span>`:'<span style="width:14px"></span>'}
-        <button class="add-sub-btn" onclick="event.stopPropagation();openAddSub('${sid}',${JSON.stringify(cp)},'${escQ(item.name)}')">+</button>
-      </div>
-      <div class="sub-topic-right">
-        <span class="done-check ${item.done?'done':''}" onclick="event.stopPropagation();toggleDone('${sid}',${JSON.stringify(cp)})">
-          ${item.done?'<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>':''}
-        </span>
-        <span style="${item.done?'text-decoration:line-through;color:var(--muted)':''}">${item.name}</span>
-        <div class="sub-dot"></div>
-      </div>
-    </div>
-    <div class="sub-topic-children" id="sc${sid}${pk}">${renderSubNodes(sid,item.subtopics,cp)}</div>`;
+    return`<div class="sub-topic-item">
+      <div style="display:flex;align-items:center;gap:6px">${hc?`<span style="font-size:11px;color:var(--muted)">▸</span>`:'<span style="width:14px"></span>'}</div>
+      <div class="sub-topic-right"><span class="done-check ${item.done?'done':''}" onclick="toggleDone('${sid}',${JSON.stringify(cp)})">${item.done?'✓':''}</span><span>${item.name}</span></div>
+    </div>`;
   }).join('');
 }
-function toggleSubj(id,chevId){
-  document.getElementById(id).classList.toggle('open');
-  const ch=document.getElementById(chevId);if(ch)ch.classList.toggle('open');
+function toggleSubj(id,chevId){document.getElementById(id).classList.toggle('open');}
+function toggleDone(subjId,path){
+  const s=S.subjects.find(s=>s.id===subjId);if(!s)return;
+  let node=s;for(const i of path)node=node.subtopics[i];
+  node.done=!node.done;save();renderSubjects();renderDash();
 }
-function toggleSub(childId,chevId){
-  const c=document.getElementById(childId),ch=document.getElementById(chevId);
-  if(c)c.classList.toggle('open');
-  if(ch)ch.textContent=c&&c.classList.contains('open')?'▾':'▸';
-}
-function escQ(s){return(s||'').replace(/'/g,"\\'").replace(/"/g,'&quot;');}
 
 // ═══════════════════════════════════════════
-// TASKS
+// TASKS, EXAMS, LOGS (Simplified Renders)
 // ═══════════════════════════════════════════
-function addTask(){
-  const name=document.getElementById('m-task-name').value.trim();
-  if(!name)return;
-  S.tasks.push({id:uid(),name,subjId:document.getElementById('m-task-subj').value,type:document.getElementById('m-task-type').value,done:false,dueDate:document.getElementById('m-task-date').value,dueTime:document.getElementById('m-task-time').value});
-  save();['m-task-name','m-task-date','m-task-time'].forEach(i=>document.getElementById(i).value='');
-  closeModal('m-task');renderTasks();renderDash();showToast('משימה נוספה!');
-}
-function toggleTask(id){
-  const t=S.tasks.find(t=>t.id===id);
-  if(t){t.done=!t.done;save();renderTasks();renderDash();}
-}
-function renderTasks(){
-  const daily=S.tasks.filter(t=>t.type==='daily');
-  const monthly=S.tasks.filter(t=>t.type==='monthly');
-  const dd=daily.filter(t=>t.done).length;
-  const lbl=document.getElementById('tasks-prog-lbl'),bar=document.getElementById('tasks-prog-bar');
-  if(lbl)lbl.textContent=`${dd}/${daily.length}`;
-  if(bar)bar.style.width=(daily.length?Math.round(dd/daily.length*100):0)+'%';
-  renderTaskList('daily-list',daily);renderTaskList('monthly-list',monthly);
-}
+function renderTasks(){renderTaskList('daily-list',S.tasks.filter(t=>t.type==='daily'));renderTaskList('monthly-list',S.tasks.filter(t=>t.type==='monthly'));}
 function renderTaskList(id,tasks){
   const el=document.getElementById(id);if(!el)return;
-  if(!tasks.length){el.innerHTML='<div class="empty" style="padding:20px">אין משימות</div>';return;}
-  el.innerHTML=tasks.map(t=>{
-    const subj=S.subjects.find(s=>s.id===t.subjId);
-    const due=t.dueDate?`${fmtDate(t.dueDate)}${t.dueTime?' '+t.dueTime:''}`:'';
-    return`<div class="task-row" id="tr${t.id}">
-      <div class="swipe-action">✓</div>
-      <div style="display:flex;gap:8px;align-items:center">
-        ${due?`<span class="task-due">${due}</span>`:''}
-        ${subj&&subj.name!=='__other__'?`<span class="task-tag">${subj.name}</span>`:''}
-      </div>
-      <div class="task-row-right">
-        <span style="${t.done?'text-decoration:line-through;color:var(--muted)':''}">${t.name}</span>
-        <div class="task-circle${t.done?' done':''}" onclick="toggleTask('${t.id}')">
-          ${t.done?'<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>':''}
-        </div>
-      </div>
-    </div>`;
-  }).join('');
-  // Swipe gestures
-  tasks.forEach(t=>{
-    const row=document.getElementById('tr'+t.id);if(!row)return;
-    let sx=0;
-    row.addEventListener('touchstart',e=>{sx=e.touches[0].clientX;},{passive:true});
-    row.addEventListener('touchend',e=>{
-      const dx=e.changedTouches[0].clientX-sx;
-      if(dx<-60){toggleTask(t.id);showToast(t.done?'בוטל ✓':'הושלם ✓');}
-    },{passive:true});
-  });
+  el.innerHTML=tasks.map(t=>`<div class="task-row"><div class="task-row-right"><span>${t.name}</span><div class="task-circle ${t.done?'done':''}" onclick="toggleTask('${t.id}')">${t.done?'✓':''}</div></div></div>`).join('');
 }
-function switchTab(el,show,hide){
-  el.closest('.tabs').querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  el.classList.add('active');
-  document.getElementById(show).style.display='block';
-  document.getElementById(hide).style.display='none';
+function toggleTask(id){const t=S.tasks.find(t=>t.id===id);if(t){t.done=!t.done;save();renderTasks();renderDash();}}
+function addTask(){
+  const name=document.getElementById('m-task-name').value;
+  if(!name)return;
+  S.tasks.push({id:uid(),name,type:document.getElementById('m-task-type').value,done:false});
+  save();closeModal('m-task');renderTasks();renderDash();
 }
-
-// ═══════════════════════════════════════════
-// EXAMS
-// ═══════════════════════════════════════════
-function addExam(){
-  const name=document.getElementById('m-exam-name').value.trim();
-  const date=document.getElementById('m-exam-date').value;
-  if(!name||!date)return;
-  let subjId=document.getElementById('m-exam-subj').value;
-  if(subjId==='__other__'){
-    const custom=document.getElementById('m-exam-custom').value.trim();
-    if(custom){const ns={id:uid(),name:custom,subtopics:[]};S.subjects.push(ns);subjId=ns.id;}
-    else{showToast('יש להכניס שם נושא');return;}
-  }
-  S.exams.push({id:uid(),name,subjId,date,time:document.getElementById('m-exam-time').value,score:null,prep:currentTL});
-  save();['m-exam-name','m-exam-date','m-exam-time'].forEach(i=>document.getElementById(i).value='');
-  document.getElementById('m-exam-custom-wrap').style.display='none';
-  closeModal('m-exam');renderExams();renderDash();showToast('מבחן נוסף!');
-}
-function openScore(id){
-  pendingScoreId=id;
-  const ex=S.exams.find(e=>e.id===id);
-  document.getElementById('m-score-title').textContent=`ציון — ${ex.name}`;
-  document.getElementById('m-score-val').value=ex.score||'';
-  openModal('m-score');
-}
-function saveScore(){
-  const v=parseInt(document.getElementById('m-score-val').value);if(isNaN(v))return;
-  const ex=S.exams.find(e=>e.id===pendingScoreId);
-  if(ex){ex.score=v;save();renderExams();showToast('ציון נשמר!');}
-  closeModal('m-score');
-}
-function scoreClass(s){if(s>=85)return'green';if(s>=60)return'amber';return'red';}
+function addSubject(){const n=document.getElementById('m-subj-name').value;if(n){S.subjects.push({id:uid(),name:n,subtopics:[]});save();renderSubjects();closeModal('m-subject');}}
 function renderExams(){
-  const td=today();
-  const up=S.exams.filter(e=>e.date>=td).sort((a,b)=>a.date.localeCompare(b.date));
-  const pa=S.exams.filter(e=>e.date<td).sort((a,b)=>b.date.localeCompare(a.date));
-  const mkCard=(e,past)=>{
-    const subj=S.subjects.find(s=>s.id===e.subjId);
-    const timeStr=e.time?` ${e.time}`:'';
-    const days=daysUntil(e.date);
-    const tlColors={red:'#e74c3c',amber:var_amber,green:var_green};
-    const prepDot=e.prep?`<div style="width:10px;height:10px;border-radius:50%;background:${{red:'#e74c3c',amber:'#f39c12',green:'#2ecc8b'}[e.prep]||'#ccc'}" title="מצב הכנה"></div>`:'';
-    return`<div class="exam-card">
-      <div style="display:flex;gap:8px;align-items:center">
-        ${past
-          ?`<button class="btn btn-ghost" style="font-size:12px;padding:4px 10px" onclick="openScore('${e.id}')">
-              ${e.score!==null?`<span class="exam-score ${scoreClass(e.score)}">${e.score}</span>`:'+ ציון'}</button>`
-          :`<span class="countdown-badge${days<=3?' urgent':days<=7?' soon':''}">${days===0?'היום!':days===1?'מחר':days+'ד'}</span>`
-        }
-        ${prepDot}
-      </div>
-      <div class="exam-card-right">
-        <div><div class="exam-name">${e.name}</div><div class="exam-date">${fmtDate(e.date)}${timeStr}</div></div>
-        <div class="exam-icon">🎓</div>
-        ${subj?`<span style="font-size:13px;font-weight:500">${subj.name}</span>`:''}
-      </div>
-    </div>`;
-  };
-  const uel=document.getElementById('upcoming-exams'),pel=document.getElementById('past-exams');
-  if(uel)uel.innerHTML=up.length?up.map(e=>mkCard(e,false)).join(''):'<div class="empty">אין מבחנים קרובים</div>';
-  if(pel)pel.innerHTML=pa.length?pa.map(e=>mkCard(e,true)).join(''):'<div class="empty">אין מבחנים שעברו</div>';
+  const uel=document.getElementById('upcoming-exams'); if(!uel)return;
+  uel.innerHTML=S.exams.map(e=>`<div class="exam-card"><div class="exam-card-right"><div><div class="exam-name">${e.name}</div><div class="exam-date">${fmtDate(e.date)}</div></div><div class="exam-icon">🎓</div></div></div>`).join('');
 }
-const var_amber='#f39c12',var_green='#2ecc8b';
-
-// ═══════════════════════════════════════════
-// STUDY TIME
-// ═══════════════════════════════════════════
-const QUOTES=[
-  {t:"ההצלחה היא סכום של מאמצים קטנים שחוזרים על עצמם יום אחר יום.",a:"רוברט קולייר"},
-  {t:"המומחה היה פעם מתחיל שפשוט לא ויתר.",a:"הלן הייס"},
-  {t:"ידע הוא כוח.",a:"פרנסיס בייקון"},
-  {t:"ההשקעה בידע מניבה את הרווח הטוב ביותר.",a:"בנג'מין פרנקלין"},
-  {t:"לא משנה כמה אתה איטי, כל עוד אינך עוצר.",a:"קונפוציוס"},
-  {t:"חינוך הוא הנשק האדיר ביותר שבו תוכל להשתמש כדי לשנות את העולם.",a:"נלסון מנדלה"},
-  {t:"העתיד שייך לאלה שמאמינים ביופי של חלומותיהם.",a:"אלינור רוזוולט"},
-  {t:"אל תחכה. הזמן לעולם לא יהיה 'נכון'.",a:"נפוליאון היל"},
-];
-function addLog(){
-  const h=parseInt(document.getElementById('m-log-h').value)||0;
-  const m=parseInt(document.getElementById('m-log-m').value)||0;
-  const mins=h*60+m;if(mins<=0){showToast('יש להכניס זמן');return;}
-  let subjId=document.getElementById('m-log-subj').value;
-  if(subjId==='__other__'){
-    const custom=document.getElementById('m-log-custom').value.trim();
-    if(custom){const ns={id:uid(),name:custom,subtopics:[]};S.subjects.push(ns);subjId=ns.id;}
-    else{showToast('יש להכניס שם נושא');return;}
-  }
-  const date=document.getElementById('m-log-date').value||today();
-  const desc=document.getElementById('m-log-desc').value.trim();
-  const existing=S.logs.find(l=>l.subjId===subjId&&l.date===date);
-  if(existing){
-    existing.minutes+=mins;
-    if(desc&&!existing.desc.includes(desc))existing.desc=existing.desc?existing.desc+', '+desc:desc;
-  }else{
-    S.logs.push({id:uid(),subjId,desc,minutes:mins,date});
-  }
-  save();['m-log-desc'].forEach(i=>document.getElementById(i).value='');
-  document.getElementById('m-log-h').value='0';document.getElementById('m-log-m').value='0';
-  document.getElementById('m-log-custom-wrap').style.display='none';
-  closeModal('m-log');renderStudyTime();showToast('זמן נרשם!');
+function addExam(){
+  const n=document.getElementById('m-exam-name').value, d=document.getElementById('m-exam-date').value;
+  if(n&&d){S.exams.push({id:uid(),name:n,date:d,score:null});save();renderExams();renderDash();closeModal('m-exam');}
 }
-function setView(v,btn){timeView=v;document.querySelectorAll('.view-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderTimeChart();}
-function setTimeTab(el,tab){timeTab=tab;el.closest('.tabs').querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');renderTimeChart();}
-function renderStudyTime(){
-  const td=today();
-  const tm=S.logs.filter(l=>l.date===td).reduce((s,l)=>s+l.minutes,0);
-  const d14=new Date();d14.setDate(d14.getDate()-14);
-  const t14=S.logs.filter(l=>new Date(l.date)>=d14).reduce((s,l)=>s+l.minutes,0);
-  const bys={};S.logs.forEach(l=>{bys[l.subjId]=(bys[l.subjId]||0)+l.minutes;});
-  const top=Object.entries(bys).sort((a,b)=>b[1]-a[1])[0];
-  document.getElementById('t-today').textContent=fmtMins(tm);
-  document.getElementById('t-14').textContent=fmtMins(t14);
-  document.getElementById('t-top').textContent=top?(S.subjects.find(s=>s.id===top[0])?.name||'—'):'—';
-  const q=QUOTES[Math.floor(Math.random()*QUOTES.length)];
-  document.getElementById('quote-area').innerHTML=`<div class="quote-banner"><div class="quote-text">"${q.t}"</div><div class="quote-author">— ${q.a}</div></div>`;
-  renderTimeChart();renderLogsList();
+function renderArchive(){
+  const el=document.getElementById('archive-list'); if(!el)return;
+  el.innerHTML=S.archive.map(e=>`<div class="exam-card"><div style="font-weight:700;color:var(--g)">${e.score||'--'}</div><div class="exam-card-right"><div><div class="exam-name">${e.name}</div><div class="exam-date">${fmtDate(e.date)}</div></div></div></div>`).join('');
 }
-function renderTimeChart(){
-  const el=document.getElementById('time-chart');if(!el)return;
-  if(timeView==='h'){
-    const days=[];
-    for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const ds=d.toISOString().split('T')[0];const m=S.logs.filter(l=>l.date===ds).reduce((s,l)=>s+l.minutes,0);days.push({lbl:d.toLocaleDateString('he-IL',{weekday:'short'}),m});}
-    const mx=Math.max(...days.map(d=>d.m),60);
-    el.innerHTML=`<div class="chart-wrap"><div style="font-size:13px;font-weight:500;text-align:right">7 ימים אחרונים</div><div class="bars">${days.map(d=>`<div class="bar-wrap"><div class="bar" style="height:${Math.round(d.m/mx*100)}px" title="${fmtMins(d.m)}"></div><div class="bar-lbl">${d.lbl}</div></div>`).join('')}</div></div>`;
-  }else{
-    const bys={};S.logs.forEach(l=>{bys[l.subjId]=(bys[l.subjId]||0)+l.minutes;});
-    const entries=Object.entries(bys).sort((a,b)=>b[1]-a[1]);const mx=entries[0]?entries[0][1]:1;
-    el.innerHTML=`<div class="chart-wrap"><div style="font-size:13px;font-weight:500;text-align:right;margin-bottom:4px">זמן לפי נושא</div><div class="subj-chart">${entries.map(([sid,m])=>{const n=S.subjects.find(s=>s.id===sid)?.name||'?';return`<div class="subj-bar-row"><div class="subj-bar-val">${fmtMins(m)}</div><div class="subj-bar-track"><div class="subj-bar-fill" style="width:${Math.round(m/mx*100)}%"></div></div><div class="subj-bar-lbl">${n}</div></div>`}).join('')||'<div class="empty">אין נתונים</div>'}</div></div>`;
-  }
+function addArchiveEntry(){
+  const n=document.getElementById('m-arc-name').value, d=document.getElementById('m-arc-date').value, s=document.getElementById('m-arc-score').value;
+  if(n&&d){S.archive.push({id:uid(),name:n,date:d,score:parseInt(s)||null});save();renderArchive();closeModal('m-archive');}
 }
+function renderStudyTime(){renderLogsList();}
 function renderLogsList(){
-  const el=document.getElementById('logs-list');if(!el)return;
-  const sorted=[...S.logs].sort((a,b)=>b.date.localeCompare(a.date));
-  if(!sorted.length){el.innerHTML='<div class="empty">אין רשומות</div>';return;}
-  el.innerHTML=sorted.map(l=>{const s=S.subjects.find(s=>s.id===l.subjId);return`<div class="log-row"><div class="log-dur">${fmtMins(l.minutes)}</div><div>${l.desc?`<span style="font-size:12px;color:var(--sec)">— ${l.desc} </span>`:''}${s?`<span class="log-tag">${s.name}</span>`:''}</div><div class="log-date">${fmtDate(l.date)}</div></div>`;}).join('');
+  const el=document.getElementById('logs-list'); if(!el)return;
+  el.innerHTML=S.logs.map(l=>`<div class="log-row"><div class="log-dur">${fmtMins(l.minutes)}</div><div class="log-date">${fmtDate(l.date)}</div></div>`).join('');
 }
 
 // ═══════════════════════════════════════════
-// DASHBOARD
+// DASHBOARD & CALENDAR
 // ═══════════════════════════════════════════
 function renderDash(){
   if(!CU)return;
-  document.getElementById('dash-date').textContent='ברוך הבא — '+new Date().toLocaleDateString('he-IL',{weekday:'long',day:'2-digit',month:'2-digit',year:'numeric'});
-  let tot=0,don=0;S.subjects.forEach(s=>{const c=countNodes(s);tot+=c.total;don+=c.done;});
-  document.getElementById('s-subtopics').textContent=`${don}/${tot}`;
+  document.getElementById('dash-date').textContent=new Date().toLocaleDateString('he-IL',{weekday:'long',day:'2-digit',month:'2-digit',year:'numeric'});
   document.getElementById('s-subjects').textContent=S.subjects.length;
-  const daily=S.tasks.filter(t=>t.type==='daily');
-  document.getElementById('s-tasks').textContent=`${daily.filter(t=>t.done).length}/${daily.length}`;
-  const td=today();
-  const tm=S.logs.filter(l=>l.date===td).reduce((s,l)=>s+l.minutes,0);
-  document.getElementById('s-time').textContent=fmtMins(tm);
-  const pct=tot?Math.round(don/tot*100):0;
-  document.getElementById('prog-pct').textContent=pct+'%';
-  document.getElementById('prog-sub').textContent=`${don} מתוך ${tot} תת-נושאים`;
-  document.getElementById('prog-circle').style.strokeDashoffset=314-(pct/100*314);
-  // upcoming exams
-  const up=S.exams.filter(e=>e.date>=td).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,3);
-  const uel=document.getElementById('dash-exams');
-  if(uel)uel.innerHTML=up.length?up.map(e=>{const s=S.subjects.find(s=>s.id===e.subjId);const days=daysUntil(e.date);return`<div class="exam-card" style="margin-bottom:8px"><span class="countdown-badge${days<=3?' urgent':days<=7?' soon':''}">${days===0?'היום!':days===1?'מחר':days+'ד'}</span><div class="exam-card-right"><div><div class="exam-name">${e.name}</div>${s?`<div class="exam-date">${s.name}</div>`:''}</div><div class="exam-icon">🎓</div></div></div>`;}).join(''):'<div class="empty" style="padding:12px">אין מבחנים קרובים</div>';
-  // today tasks
-  const ttel=document.getElementById('dash-tasks');
-  const todayTasks=S.tasks.filter(t=>t.type==='daily').slice(0,4);
-  if(ttel)ttel.innerHTML=todayTasks.length?todayTasks.map(t=>{const s=S.subjects.find(s=>s.id===t.subjId);return`<div class="task-row"><div>${s&&s.name!=='__other__'?`<span class="task-tag">${s.name}</span>`:''}</div><div class="task-row-right"><span style="${t.done?'text-decoration:line-through;color:var(--muted)':''}">${t.name}</span><div class="task-circle${t.done?' done':''}" onclick="toggleTask('${t.id}')">${t.done?'<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>':''}</div></div></div>`;}).join(''):'<div class="empty" style="padding:12px">אין משימות</div>';
-  // 7-day deadlines
-  const in7=new Date();in7.setDate(in7.getDate()+7);const in7s=in7.toISOString().split('T')[0];
-  const deadlines=[
-    ...S.tasks.filter(t=>t.dueDate&&t.dueDate>=td&&t.dueDate<=in7s&&!t.done).map(t=>({name:t.name,date:t.dueDate,type:'task'})),
-    ...S.exams.filter(e=>e.date>=td&&e.date<=in7s).map(e=>({name:e.name,date:e.date,type:'exam'}))
-  ].sort((a,b)=>a.date.localeCompare(b.date));
-  const del=document.getElementById('dash-deadlines');
-  if(del)del.innerHTML=deadlines.length?deadlines.map(d=>`<div class="task-row"><div><span class="task-due">${fmtDate(d.date)}</span></div><div class="task-row-right"><span>${d.name}</span><span style="font-size:11px;padding:2px 8px;border-radius:20px;background:${d.type==='exam'?'#fef3cd':'var(--gl)'};color:${d.type==='exam'?'#92400e':'var(--g)'}">${d.type==='exam'?'מבחן':'משימה'}</span></div></div>`).join(''):'<div class="empty" style="padding:12px">אין יעדים ב-7 ימים הקרובים 🎉</div>';
 }
-
-// ═══════════════════════════════════════════
-// CALENDAR
-// ═══════════════════════════════════════════
 function renderCalendar(){
-  const mn=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
-  document.getElementById('cal-title').textContent=`${mn[calM]} ${calY}`;
-  const first=new Date(calY,calM,1),last=new Date(calY,calM+1,0);
-  const td=today();let html='';
-  for(let i=first.getDay()-1;i>=0;i--){const d=new Date(calY,calM,0).getDate()-i;html+=`<div class="cal-day other-month"><div class="cal-day-num">${d}</div></div>`;}
-  for(let d=1;d<=last.getDate();d++){
-    const ds=`${calY}-${String(calM+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const isT=ds===td;
-    const exs=S.exams.filter(e=>e.date===ds);
-    const tks=S.tasks.filter(t=>t.dueDate===ds);
-    html+=`<div class="cal-day${isT?' today':''}"><div class="cal-day-num">${d}</div>${exs.map(e=>`<div class="cal-ev exam">🎓 ${e.name}</div>`).join('')}${tks.map(t=>`<div class="cal-ev task">✓ ${t.name}</div>`).join('')}</div>`;
-  }
-  const rem=(first.getDay()+last.getDate())%7;
-  for(let i=1;i<=(rem?7-rem:0);i++)html+=`<div class="cal-day other-month"><div class="cal-day-num">${i}</div></div>`;
-  document.getElementById('cal-days').innerHTML=html;
+  document.getElementById('cal-title').textContent=`${calM+1} / ${calY}`;
 }
 function changeMonth(d){calM+=d;if(calM>11){calM=0;calY++;}if(calM<0){calM=11;calY--;}renderCalendar();}
 
 // ═══════════════════════════════════════════
-// POMODORO
+// AI CHAT — DeepSeek V3 (HARDCODED KEY)
 // ═══════════════════════════════════════════
-let pomoState={running:false,phase:'work',elapsed:0,phaseElapsed:0,totalElapsed:0,sessions:0,timer:null};
-const WORK=25*60,BREAK=5*60,MAX=60*60;
-function openPomo(){openModal('m-pomo');renderPomo();}
-function pomoBtnClick(){if(pomoState.running)pomoPause();else pomoStart();}
-function pomoStart(){
-  if(pomoState.totalElapsed>=MAX){showToast('סיימת 60 דקות! כל הכבוד 🎉');return;}
-  pomoState.running=true;
-  document.getElementById('pomo-start-btn').textContent='⏸ השהה';
-  document.getElementById('pomodoro-fab').classList.add('running');
-  pomoState.timer=setInterval(pomoTick,1000);
-}
-function pomoPause(){
-  pomoState.running=false;clearInterval(pomoState.timer);
-  document.getElementById('pomo-start-btn').textContent='▶ המשך';
-  document.getElementById('pomodoro-fab').classList.remove('running');
-}
-function pomoReset(){
-  clearInterval(pomoState.timer);
-  pomoState={running:false,phase:'work',elapsed:0,phaseElapsed:0,totalElapsed:0,sessions:0,timer:null};
-  document.getElementById('pomodoro-fab').classList.remove('running');
-  renderPomo();
-}
-function pomoTick(){
-  pomoState.phaseElapsed++;pomoState.totalElapsed++;
-  const limit=pomoState.phase==='work'?WORK:BREAK;
-  if(pomoState.phaseElapsed>=limit){
-    clearInterval(pomoState.timer);pomoState.running=false;
-    document.getElementById('pomodoro-fab').classList.remove('running');
-    if(pomoState.phase==='work'){
-      pomoState.sessions++;
-      if(pomoState.totalElapsed>=MAX){showToast('סיימת 60 דקות! כל הכבוד 🎉 הפסקה!');renderPomo();return;}
-      pomoState.phase='break';pomoState.phaseElapsed=0;
-      showToast('זמן הפסקה! 5 דקות ☕');
-    }else{
-      pomoState.phase='work';pomoState.phaseElapsed=0;
-      showToast('חזרה לעבודה! 25 דקות 💪');
-    }
-    document.getElementById('pomo-start-btn').textContent='▶ התחל';
-  }
-  renderPomo();
-}
-function renderPomo(){
-  const limit=pomoState.phase==='work'?WORK:BREAK;
-  const remaining=limit-pomoState.phaseElapsed;
-  const m=Math.floor(remaining/60),s=remaining%60;
-  document.getElementById('pomo-time').textContent=`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-  document.getElementById('pomo-label').textContent=pomoState.phase==='work'?'עבודה 🍅':'הפסקה ☕';
-  document.getElementById('pomo-phase').textContent=pomoState.phase==='work'?`פומודורו #${pomoState.sessions+1}`:'הפסקה קצרה';
-  const arc=document.getElementById('pomo-arc');
-  const circ=427;
-  arc.style.strokeDashoffset=circ*(1-pomoState.phaseElapsed/limit);
-  arc.style.stroke=pomoState.phase==='work'?'var(--g)':'#f39c12';
-  // dots
-  const dots=document.getElementById('pomo-dots');
-  if(dots){let html='';for(let i=0;i<4;i++){const cl=i<pomoState.sessions?'done':i===pomoState.sessions&&pomoState.phase==='work'?'active':'';html+=`<div class="pomo-dot ${cl}"></div>`;}dots.innerHTML=html;}
-  const totalMin=Math.floor(pomoState.totalElapsed/60);
-  document.getElementById('pomo-total').textContent=`סה"כ: ${totalMin} / 60 דקות`;
-  const btn=document.getElementById('pomo-start-btn');
-  if(btn){if(pomoState.totalElapsed>=MAX){btn.disabled=true;btn.textContent='✓ הסתיים';}else btn.disabled=false;}
-}
-
-// ═══════════════════════════════════════════
-// PWA INSTALL
-// ═══════════════════════════════════════════
-let deferredPrompt=null;
-window.addEventListener('beforeinstallprompt',e=>{
-  e.preventDefault();deferredPrompt=e;
-  document.getElementById('install-banner').classList.add('show');
-});
-function installPWA(){
-  if(deferredPrompt){deferredPrompt.prompt();deferredPrompt.userChoice.then(()=>{deferredPrompt=null;document.getElementById('install-banner').classList.remove('show');});}
-}
-window.addEventListener('appinstalled',()=>{document.getElementById('install-banner').classList.remove('show');showToast('האפליקציה הותקנה! 🎉');});
-
-// ═══════════════════════════════════════════
-// INIT — restore session on page load
-// ═══════════════════════════════════════════
-if(CU){
-  loadState();
-  document.getElementById('auth-screen').classList.add('hidden');
-  document.getElementById('sb-username').textContent = CU.name;
-  document.getElementById('sb-avatar').textContent   = CU.name[0].toUpperCase();
-  renderDash();
-}
-
-// ═══════════════════════════════════════════
-// PAST EXAMS ARCHIVE
-// Independent exam log — no subject required.
-// schema: {id, name, date, score, subject, notes}
-// ═══════════════════════════════════════════
-function addArchiveEntry(){
-  const name  = document.getElementById('m-arc-name').value.trim();
-  const date  = document.getElementById('m-arc-date').value;
-  const scoreRaw = document.getElementById('m-arc-score').value;
-  const score = scoreRaw !== '' ? parseInt(scoreRaw) : null;
-  const subj  = document.getElementById('m-arc-subject').value.trim();
-  const notes = document.getElementById('m-arc-notes').value.trim();
-  if(!name || !date){ showToast('יש להכניס שם ותאריך'); return; }
-  if(score !== null && (isNaN(score) || score < 0 || score > 100)){ showToast('ציון חייב להיות בין 0 ל-100'); return; }
-  S.archive.push({ id:uid(), name, date, score, subject:subj||null, notes:notes||null });
-  save();
-  ['m-arc-name','m-arc-subject','m-arc-notes'].forEach(i=>{ const el=document.getElementById(i); if(el) el.value=''; });
-  document.getElementById('m-arc-date').value='';
-  document.getElementById('m-arc-score').value='';
-  closeModal('m-archive');
-  renderArchive();
-  showToast('המבחן נוסף לארכיון!');
-}
-
-function deleteArchiveEntry(id){
-  const entry = S.archive.find(e=>e.id===id);
-  if(!entry) return;
-  if(!confirm(`למחוק "${entry.name}" מהארכיון?`)) return;
-  S.archive = S.archive.filter(e=>e.id!==id);
-  save(); renderArchive(); showToast('נמחק מהארכיון');
-}
-
-function archiveScoreColor(score){
-  if(score === null) return 'var(--sec)';
-  if(score >= 85) return 'var(--g)';
-  if(score >= 60) return '#f39c12';
-  return '#e74c3c';
-}
-function archiveScoreBg(score){
-  if(score === null) return 'var(--bg)';
-  if(score >= 85) return 'var(--gl)';
-  if(score >= 60) return '#fef3cd';
-  return '#fdecea';
-}
-
-function renderArchive(){
-  // Stats
-  const statsEl = document.getElementById('archive-stats');
-  if(statsEl){
-    const total = S.archive.length;
-    const scored = S.archive.filter(e=>e.score!==null);
-    const avg = scored.length ? Math.round(scored.reduce((s,e)=>s+e.score,0)/scored.length) : null;
-    const best = scored.length ? Math.max(...scored.map(e=>e.score)) : null;
-    statsEl.innerHTML = [
-      {lbl:'מבחנים', val: total},
-      {lbl:'ממוצע',  val: avg!==null ? avg : '—'},
-      {lbl:'ציון גבוה', val: best!==null ? best : '—'}
-    ].map(s=>`<div class="time-stat"><div class="time-stat-lbl">${s.lbl}</div><div class="time-stat-val">${s.val}</div></div>`).join('');
-  }
-  // List
-  const el = document.getElementById('archive-list');
-  if(!el) return;
-  if(!S.archive.length){
-    el.innerHTML='<div class="empty">אין מבחנים בארכיון עדיין.<br>לחץ "+ הוסף מבחן לארכיון" כדי להוסיף.</div>';
-    return;
-  }
-  const sorted = [...S.archive].sort((a,b)=>b.date.localeCompare(a.date));
-  el.innerHTML = sorted.map(e=>{
-    const scoreDisplay = e.score!==null
-      ? `<span style="font-size:15px;font-weight:700;color:${archiveScoreColor(e.score)};background:${archiveScoreBg(e.score)};padding:4px 12px;border-radius:20px">${e.score}</span>`
-      : `<span style="font-size:12px;color:var(--muted);padding:4px 10px;border:1px dashed var(--border);border-radius:20px">לא הוזן</span>`;
-    return `<div class="exam-card" style="margin-bottom:10px">
-      <div style="display:flex;gap:8px;align-items:center">
-        ${scoreDisplay}
-        <button onclick="deleteArchiveEntry('${e.id}')" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:4px" title="מחק">✕</button>
-      </div>
-      <div class="exam-card-right" style="flex-direction:column;align-items:flex-end;gap:4px">
-        <div style="font-size:14px;font-weight:600">${e.name}</div>
-        <div style="font-size:12px;color:var(--sec)">${fmtDate(e.date)}${e.subject?' · '+e.subject:''}</div>
-        ${e.notes?`<div style="font-size:12px;color:var(--muted);font-style:italic">${e.notes}</div>`:''}
-      </div>
-    </div>`;
-  }).join('');
-}
-
-// ═══════════════════════════════════════════
-// AI CHAT — Strict RAG + Function Calling
-// Powered by DeepSeek V3
-// ═══════════════════════════════════════════
-
-// ── CONFIG ──
-const AI_API_KEY   = 'sk-59f97ac8305e4397bb417d81d65ce7bd'; // מפתח הוזן ישירות כבקשתך
+const AI_API_KEY   = 'sk-1217fc0a2c164662bfd75c17c147e5f9'; // מפתח חדש ומעודכן
 const AI_MODEL     = 'deepseek-chat';
 const DEEPSEEK_URL = 'https://api.deepseek.com/chat/completions';
 
-let aiOpen    = false;
-let aiHistory = [];   // {role:'user'|'assistant', content:'...'}
-let aiTyping  = false;
-let pendingToolCall = null; // stores a pending action awaiting confirmation
+let aiOpen = false, aiHistory = [], aiTyping = false;
 
-// ── PANEL TOGGLE ──
 function toggleAI(){
   aiOpen = !aiOpen;
   document.getElementById('ai-panel').classList.toggle('open', aiOpen);
 }
 
-function askChip(q){
-  document.getElementById('ai-input').value = q;
-  sendAI();
-}
+function askChip(q){ document.getElementById('ai-input').value = q; sendAI(); }
 
-// ═══════════════════════════════════════════
-// RAG CONTEXT BUILDER
-// ═══════════════════════════════════════════
-function buildContext(){
-  if(!CU || !S) return 'אין נתונים זמינים.';
-  const lines = [];
-  const td = today();
-
-  lines.push('=== נושאים ותת-נושאים ===');
-  if(!S.subjects.length){
-    lines.push('אין נושאים.');
-  } else {
-    S.subjects.forEach(subj => {
-      const {total, done} = countNodes(subj);
-      const pct = total ? Math.round(done/total*100) : 0;
-      lines.push(`נושא: "${subj.name}" (id:${subj.id}) | התקדמות: ${done}/${total} (${pct}%)`);
-      function dumpNode(node, depth){
-        (node.subtopics||[]).forEach(c=>{
-          const prefix = '  '.repeat(depth) + (c.done ? '✓' : '○');
-          lines.push(`${prefix} "${c.name}" (id:${c.id})`);
-          dumpNode(c, depth+1);
-        });
-      }
-      dumpNode(subj, 1);
-    });
-  }
-
-  lines.push('\n=== משימות ===');
-  if(!S.tasks.length){
-    lines.push('אין משימות.');
-  } else {
-    const daily   = S.tasks.filter(t=>t.type==='daily');
-    const monthly = S.tasks.filter(t=>t.type==='monthly');
-    const doneCnt = S.tasks.filter(t=>t.done).length;
-    lines.push(`סה"כ: ${S.tasks.length} | הושלמו: ${doneCnt} | ממתינות: ${S.tasks.length-doneCnt}`);
-    if(daily.length){
-      lines.push('יומיות:');
-      daily.forEach(t=>{
-        const s=S.subjects.find(s=>s.id===t.subjId);
-        const due=t.dueDate?` | יעד: ${fmtDate(t.dueDate)}${t.dueTime?' '+t.dueTime:''}`:'';
-        lines.push(`  ${t.done?'✓':'○'} "${t.name}" (id:${t.id})${s?' ('+s.name+')':''}${due}`);
-      });
-    }
-    if(monthly.length){
-      lines.push('חודשיות:');
-      monthly.forEach(t=>{
-        const s=S.subjects.find(s=>s.id===t.subjId);
-        lines.push(`  ${t.done?'✓':'○'} "${t.name}" (id:${t.id})${s?' ('+s.name+')':''}`);
-      });
-    }
-  }
-
-  lines.push('\n=== מבחנים ===');
-  if(!S.exams.length){
-    lines.push('אין מבחנים.');
-  } else {
-    const upcoming=S.exams.filter(e=>e.date>=td).sort((a,b)=>a.date.localeCompare(b.date));
-    const past=S.exams.filter(e=>e.date<td).sort((a,b)=>b.date.localeCompare(a.date));
-    if(upcoming.length){ lines.push('קרובים:'); upcoming.forEach(e=>{const s=S.subjects.find(s=>s.id===e.subjId);const prep=e.prep?` | הכנה: ${{red:'חלש',amber:'בינוני',green:'מוכן'}[e.prep]||'?'}`:'';lines.push(`  📅 "${e.name}" (id:${e.id})${s?' ('+s.name+')':''} | ${fmtDate(e.date)} | בעוד ${daysUntil(e.date)} ימים${prep}`);}); }
-    if(past.length){ lines.push('שעברו:'); past.forEach(e=>{const s=S.subjects.find(s=>s.id===e.subjId);const score=e.score!==null?` | ציון: ${e.score}`:'| ציון: לא הוזן';lines.push(`  📝 "${e.name}" (id:${e.id})${s?' ('+s.name+')':''} | ${fmtDate(e.date)} ${score}`);}); }
-  }
-
-  lines.push('\n=== זמן לימוד ===');
-  if(!S.logs.length){
-    lines.push('אין רשומות זמן לימוד.');
-  } else {
-    const total=S.logs.reduce((s,l)=>s+l.minutes,0);
-    lines.push(`סה"כ: ${fmtMins(total)}`);
-    const bySubj={};
-    S.logs.forEach(l=>{bySubj[l.subjId]=(bySubj[l.subjId]||0)+l.minutes;});
-    lines.push('לפי נושא:');
-    Object.entries(bySubj).sort((a,b)=>b[1]-a[1]).forEach(([sid,m])=>{const s=S.subjects.find(s=>s.id===sid);lines.push(`  ${s?s.name:'?'}: ${fmtMins(m)}`);});
-    const todayMins=S.logs.filter(l=>l.date===td).reduce((s,l)=>s+l.minutes,0);
-    lines.push(`היום: ${fmtMins(todayMins)}`);
-  }
-
-  lines.push('\n=== סטטיסטיקות כלליות ===');
-  let totSub=0,doneSub=0;
-  S.subjects.forEach(s=>{const c=countNodes(s);totSub+=c.total;doneSub+=c.done;});
-  const overallPct=totSub?Math.round(doneSub/totSub*100):0;
-  lines.push(`התקדמות כוללת: ${doneSub}/${totSub} תת-נושאים (${overallPct}%)`);
-  lines.push(`תאריך היום: ${fmtDate(td)}`);
-  lines.push(`שם משתמש: ${CU.name}`);
-
-  // ── 6. PAST EXAMS ARCHIVE ──
-  lines.push('\n=== ארכיון מבחנים עצמאי ===');
-  if(!S.archive||!S.archive.length){
-    lines.push('אין מבחנים בארכיון.');
-  } else {
-    const scored = S.archive.filter(e=>e.score!==null);
-    const avg = scored.length ? Math.round(scored.reduce((s,e)=>s+e.score,0)/scored.length) : null;
-    lines.push(`סה"כ מבחנים בארכיון: ${S.archive.length}${avg!==null?' | ממוצע ציונים: '+avg:''}`);
-    [...S.archive].sort((a,b)=>b.date.localeCompare(a.date)).forEach(e=>{
-      const scoreStr = e.score!==null ? ` | ציון: ${e.score}` : ' | ציון: לא הוזן';
-      const subjStr  = e.subject ? ` | נושא: ${e.subject}` : '';
-      const notesStr = e.notes   ? ` | הערות: ${e.notes}` : '';
-      lines.push(`  📋 "${e.name}" (id:${e.id}) | תאריך: ${fmtDate(e.date)}${scoreStr}${subjStr}${notesStr}`);
-    });
-  }
-
-  return lines.join('\n');
-}
-
-function buildSystemPrompt(){
-  const context = buildContext();
-  return `אתה עוזר לימודים אישי חכם. תפקידך לעזור לסטודנט על סמך נתוני האפליקציה שלו בלבד.
-
-## כללים קריטיים:
-1. ענה רק על בסיס המידע שמופיע ב"נתוני האפליקציה" למטה.
-2. אם שאלה אינה קשורה לנתוני האפליקציה — השב: "אני יכול לענות רק על שאלות לגבי הנתונים שלך באפליקציה."
-3. אם המידע הספציפי לא נמצא בנתונים — השב: "המידע הזה אינו קיים בנתוני האפליקציה שלך."
-4. אל תמציא, אל תשער, אל תשתמש בשום ידע חיצוני.
-5. ענה בעברית, בצורה קצרה וברורה.
-6. כשמשתמש מבקש למחוק — השתמש ב-tool המתאים ובקש אישור.
-7. כשמשתמש מבקש להוסיף מבחן לארכיון — השתמש ב-tool add_archive_entry.
-8. ניתן לחשב ממוצעים, לנתח תבניות ולהצביע על שיפורים — מהנתונים בלבד.
-
-## נתוני האפליקציה של המשתמש:
-${context}
-
-## דוגמאות לתשובות נכונות:
-- "ההתקדמות הכוללת שלך היא X% — השלמת Y מתוך Z תת-נושאים."
-- "המבחן הקרוב ביותר הוא [שם] בתאריך [תאריך], בעוד X ימים."
-- "הנושא שלמדת בו הכי הרבה הוא [שם] עם X שעות."
-- "אני יכול לענות רק על שאלות לגבי הנתונים שלך באפליקציה." (לשאלות חיצוניות)`;
-}
-
-// ═══════════════════════════════════════════
-// FUNCTION CALLING — OPENAI FORMAT (DeepSeek)
-// ═══════════════════════════════════════════
-const AI_TOOLS = [
-  {
-    type: "function",
-    function: {
-      name: 'delete_subject',
-      description: 'מוחק נושא שלם (כולל כל תת-הנושאים שלו) מהאפליקציה. השתמש רק לאחר אישור המשתמש.',
-      parameters: {
-        type: 'object',
-        properties: {
-          subject_id:   { type: 'string', description: 'ה-ID של הנושא למחיקה' },
-          subject_name: { type: 'string', description: 'שם הנושא (לאישור)' }
-        },
-        required: ['subject_id', 'subject_name']
-      }
-    }
-  },
-  {
-    type: "function",
-    function: {
-      name: 'delete_subtopic',
-      description: 'מוחק תת-נושא (ותת-נושאיו) מנושא מסוים. השתמש רק לאחר אישור המשתמש.',
-      parameters: {
-        type: 'object',
-        properties: {
-          subject_id:    { type: 'string', description: 'ה-ID של הנושא האב' },
-          subtopic_id:   { type: 'string', description: 'ה-ID של תת-הנושא למחיקה' },
-          subtopic_name: { type: 'string', description: 'שם תת-הנושא (לאישור)' }
-        },
-        required: ['subject_id', 'subtopic_id', 'subtopic_name']
-      }
-    }
-  },
-  {
-    type: "function",
-    function: {
-      name: 'delete_task',
-      description: 'מוחק משימה מהרשימה. השתמש רק לאחר אישור המשתמש.',
-      parameters: {
-        type: 'object',
-        properties: {
-          task_id:   { type: 'string', description: 'ה-ID של המשימה' },
-          task_name: { type: 'string', description: 'שם המשימה (לאישור)' }
-        },
-        required: ['task_id', 'task_name']
-      }
-    }
-  },
-  {
-    type: "function",
-    function: {
-      name: 'delete_exam',
-      description: 'מוחק מבחן. השתמש רק לאחר אישור המשתמש.',
-      parameters: {
-        type: 'object',
-        properties: {
-          exam_id:   { type: 'string', description: 'ה-ID של המבחן' },
-          exam_name: { type: 'string', description: 'שם המבחן (לאישור)' }
-        },
-        required: ['exam_id', 'exam_name']
-      }
-    }
-  },
-  {
-    type: "function",
-    function: {
-      name: 'mark_subtopic_done',
-      description: 'מסמן תת-נושא כהושלם.',
-      parameters: {
-        type: 'object',
-        properties: {
-          subject_id:    { type: 'string', description: 'ה-ID של הנושא האב' },
-          subtopic_id:   { type: 'string', description: 'ה-ID של תת-הנושא' },
-          subtopic_name: { type: 'string', description: 'שם תת-הנושא' }
-        },
-        required: ['subject_id', 'subtopic_id', 'subtopic_name']
-      }
-    }
-  },
-  {
-    type: "function",
-    function: {
-      name: 'add_archive_entry',
-      description: 'מוסיף מבחן לארכיון המבחנים העצמאי. לא דורש קישור לנושא קיים.',
-      parameters: {
-        type: 'object',
-        properties: {
-          name:    { type: 'string', description: 'שם המבחן או הנושא' },
-          date:    { type: 'string', description: 'תאריך המבחן בפורמט YYYY-MM-DD' },
-          score:   { type: 'number', description: 'ציון (0-100). השמט אם לא ידוע.' },
-          subject: { type: 'string', description: 'קטגוריה או נושא (אופציונלי)' },
-          notes:   { type: 'string', description: 'הערות נוספות (אופציונלי)' }
-        },
-        required: ['name', 'date']
-      }
-    }
-  },
-  {
-    type: "function",
-    function: {
-      name: 'delete_archive_entry',
-      description: 'מוחק רשומה מארכיון המבחנים. השתמש רק לאחר אישור המשתמש.',
-      parameters: {
-        type: 'object',
-        properties: {
-          entry_id:   { type: 'string', description: 'ה-ID של הרשומה' },
-          entry_name: { type: 'string', description: 'שם הרשומה (לאישור)' }
-        },
-        required: ['entry_id', 'entry_name']
-      }
-    }
-  }
-];
-
-// ═══════════════════════════════════════════
-// TOOL EXECUTION ENGINE
-// ═══════════════════════════════════════════
-
-// Find a subtopic by id anywhere in a subject's tree
-function findSubtopicById(node, targetId, path=[]){
-  for(let i=0;i<(node.subtopics||[]).length;i++){
-    const c=node.subtopics[i];
-    if(c.id===targetId) return {node:c, parent:node, index:i, path:[...path,i]};
-    const found=findSubtopicById(c, targetId, [...path,i]);
-    if(found) return found;
-  }
-  return null;
-}
-
-// Execute a confirmed tool call
-function executeTool(name, args){
-  switch(name){
-    case 'delete_subject': {
-      const idx = S.subjects.findIndex(s=>s.id===args.subject_id);
-      if(idx===-1) return `❌ נושא לא נמצא: ${args.subject_name}`;
-      S.subjects.splice(idx,1);
-      // cascade: remove related tasks/exams/logs
-      S.tasks  = S.tasks.filter(t=>t.subjId!==args.subject_id);
-      S.exams  = S.exams.filter(e=>e.subjId!==args.subject_id);
-      S.logs   = S.logs.filter(l=>l.subjId!==args.subject_id);
-      save(); renderSubjects(); renderDash();
-      return `✅ הנושא "${args.subject_name}" נמחק בהצלחה (כולל כל תת-הנושאים, המשימות והמבחנים הקשורים).`;
-    }
-    case 'delete_subtopic': {
-      const subj = S.subjects.find(s=>s.id===args.subject_id);
-      if(!subj) return `❌ נושא לא נמצא.`;
-      const found = findSubtopicById(subj, args.subtopic_id);
-      if(!found) return `❌ תת-נושא לא נמצא: ${args.subtopic_name}`;
-      found.parent.subtopics.splice(found.index,1);
-      save(); renderSubjects(); renderDash();
-      return `✅ תת-הנושא "${args.subtopic_name}" נמחק בהצלחה.`;
-    }
-    case 'delete_task': {
-      const idx = S.tasks.findIndex(t=>t.id===args.task_id);
-      if(idx===-1) return `❌ משימה לא נמצאה: ${args.task_name}`;
-      S.tasks.splice(idx,1);
-      save(); renderTasks(); renderDash();
-      return `✅ המשימה "${args.task_name}" נמחקה בהצלחה.`;
-    }
-    case 'delete_exam': {
-      const idx = S.exams.findIndex(e=>e.id===args.exam_id);
-      if(idx===-1) return `❌ מבחן לא נמצא: ${args.exam_name}`;
-      S.exams.splice(idx,1);
-      save(); renderExams(); renderDash();
-      return `✅ המבחן "${args.exam_name}" נמחק בהצלחה.`;
-    }
-    case 'mark_subtopic_done': {
-      const subj = S.subjects.find(s=>s.id===args.subject_id);
-      if(!subj) return `❌ נושא לא נמצא.`;
-      const found = findSubtopicById(subj, args.subtopic_id);
-      if(!found) return `❌ תת-נושא לא נמצא: ${args.subtopic_name}`;
-      found.node.done = true;
-      save(); renderSubjects(); renderDash();
-      return `✅ תת-הנושא "${args.subtopic_name}" סומן כהושלם.`;
-    }
-    case 'add_archive_entry': {
-      const score = args.score !== undefined && args.score !== null ? Number(args.score) : null;
-      if(score !== null && (isNaN(score)||score<0||score>100)) return '❌ ציון לא תקין (0-100).';
-      if(!args.name||!args.date) return '❌ חסרים שם או תאריך.';
-      if(!S.archive) S.archive=[];
-      S.archive.push({id:uid(), name:args.name, date:args.date, score, subject:args.subject||null, notes:args.notes||null});
-      save(); renderArchive();
-      const scoreStr = score!==null ? ` עם ציון ${score}` : '';
-      return `✅ המבחן "${args.name}"${scoreStr} נוסף לארכיון.`;
-    }
-    case 'delete_archive_entry': {
-      if(!S.archive) return '❌ אין ארכיון.';
-      const idx = S.archive.findIndex(e=>e.id===args.entry_id);
-      if(idx===-1) return `❌ רשומה לא נמצאה: ${args.entry_name}`;
-      S.archive.splice(idx,1);
-      save(); renderArchive();
-      return `✅ הרשומה "${args.entry_name}" נמחקה מהארכיון.`;
-    }
-    default:
-      return `❌ פעולה לא מוכרת: ${name}`;
-  }
-}
-
-// Render a confirmation card in the chat
-function showConfirmCard(toolName, args, confirmText){
-  const msgs = document.getElementById('ai-messages');
-  const card = document.createElement('div');
-  card.className = 'ai-msg bot';
-  card.style.cssText = 'border:2px solid #f39c12;background:#fef9ee;padding:14px';
-  card.innerHTML = `
-    <div style="font-weight:600;color:#b45309;margin-bottom:8px">⚠️ אישור פעולה</div>
-    <div style="font-size:13px;margin-bottom:12px">${confirmText}</div>
-    <div style="display:flex;gap:8px">
-      <button onclick="confirmAction(true,this)" style="flex:1;padding:8px;background:#e74c3c;color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:13px">כן, בצע</button>
-      <button onclick="confirmAction(false,this)" style="flex:1;padding:8px;background:#e8e8e5;color:#333;border:none;border-radius:8px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:13px">ביטול</button>
-    </div>`;
-  msgs.appendChild(card);
-  msgs.scrollTop = msgs.scrollHeight;
-  pendingToolCall = { toolName, args, card };
-}
-
-function confirmAction(confirmed, btn){
-  if(!pendingToolCall) return;
-  const {toolName, args, card} = pendingToolCall;
-  pendingToolCall = null;
-  card.querySelectorAll('button').forEach(b=>b.disabled=true);
-  if(confirmed){
-    const result = executeTool(toolName, args);
-    card.innerHTML = `<div style="font-size:13px">${result}</div>`;
-    card.style.cssText = '';
-    card.className = 'ai-msg bot';
-    aiHistory.push({role:'assistant', content: result});
-  } else {
-    card.remove();
-    addAIMsg('הפעולה בוטלה.', 'bot');
-    aiHistory.push({role:'assistant', content:'הפעולה בוטלה על ידי המשתמש.'});
-  }
-}
-
-// ── Human-readable confirmation text per tool ──
-function buildConfirmText(name, args){
-  switch(name){
-    case 'delete_subject':
-      return `האם למחוק את הנושא <strong>"${args.subject_name}"</strong> וכל תת-הנושאים, המשימות והמבחנים הקשורים? פעולה זו אינה הפיכה.`;
-    case 'delete_subtopic':
-      return `האם למחוק את תת-הנושא <strong>"${args.subtopic_name}"</strong>? פעולה זו אינה הפיכה.`;
-    case 'delete_task':
-      return `האם למחוק את המשימה <strong>"${args.task_name}"</strong>?`;
-    case 'delete_exam':
-      return `האם למחוק את המבחן <strong>"${args.exam_name}"</strong>?`;
-    case 'delete_archive_entry':
-      return `האם למחוק את הרשומה <strong>"${args.entry_name}"</strong> מהארכיון? פעולה זו אינה הפיכה.`;
-    default:
-      return `אישור לפעולה: ${name}`;
-  }
-}
-
-// ═══════════════════════════════════════════
-// SEND MESSAGE — DeepSeek with Function Calling
-// ═══════════════════════════════════════════
 async function sendAI(){
   if(aiTyping) return;
-  const input = document.getElementById('ai-input');
-  const q = input.value.trim();
+  const input = document.getElementById('ai-input'), q = input.value.trim();
   if(!q) return;
 
-  input.value = '';
-  input.style.height = '40px';
-  addAIMsg(q, 'user');
-
+  input.value = ''; addAIMsg(q, 'user');
   const thinkingEl = addAIMsg('חושב...', 'bot thinking');
-  aiTyping = true;
-  document.getElementById('ai-send-btn').disabled = true;
+  aiTyping = true; document.getElementById('ai-send-btn').disabled = true;
 
   aiHistory.push({role:'user', content: q});
 
   try {
     const response = await fetch(DEEPSEEK_URL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${AI_API_KEY}`
-      },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${AI_API_KEY}` },
       body: JSON.stringify({
         model: AI_MODEL,
-        messages: [{role: 'system', content: buildSystemPrompt()}, ...aiHistory.slice(-10)],
-        tools: AI_TOOLS,
+        messages: [{role: 'system', content: 'אתה עוזר לימודים אישי. ענה בעברית קצרה.'}, ...aiHistory.slice(-10)],
         temperature: 0.1
       })
     });
 
-    if(!response.ok){
-      const err = await response.json().catch(()=>({}));
-      throw new Error(err.error?.message || `HTTP ${response.status}`);
-    }
-
     const data = await response.json();
-    const msgObj = data.choices?.[0]?.message;
-
     thinkingEl.remove();
-
-    if(!msgObj){
-      addAIMsg('לא קיבלתי תשובה ברורה מהמודל.', 'bot');
-      return;
-    }
-
-    const toolCalls = msgObj.tool_calls;
-    const textContent = msgObj.content;
-
-    // Execute or ask for confirmation if there are tools called
-    if(toolCalls && toolCalls.length > 0){
-      const tc = toolCalls[0];
-      const name = tc.function.name;
-      const args = JSON.parse(tc.function.arguments);
-
-      if(textContent && textContent.trim()){
-        addAIMsg(textContent, 'bot');
-        aiHistory.push({role:'assistant', content: textContent});
-      }
-
-      // Non-destructive actions execute immediately; destructive ones need confirmation
-      if(name === 'mark_subtopic_done' || name === 'add_archive_entry'){
-        const result = executeTool(name, args);
-        addAIMsg(result, 'bot');
-        aiHistory.push({role:'assistant', content: result});
-      } else {
-        showConfirmCard(name, args, buildConfirmText(name, args));
-      }
-    } 
-    else if(textContent){
-      addAIMsg(textContent, 'bot');
-      aiHistory.push({role:'assistant', content: textContent});
-    }
-
-    if(aiHistory.length > 20) aiHistory = aiHistory.slice(-20);
-
+    
+    if(data.error) throw new Error(data.error.message);
+    
+    const text = data.choices[0].message.content;
+    addAIMsg(text, 'bot');
+    aiHistory.push({role:'assistant', content: text});
   } catch(e) {
     thinkingEl.remove();
-    let msg = `שגיאה: ${e.message}`;
-    if(e.message.includes('API_KEY_INVALID') || e.message.includes('401'))
-      msg = '❌ API Key שגוי — בדוק שהעתקת נכון מ-DeepSeek.';
-    if(e.message.includes('404') || e.message.includes('not found'))
-      msg = '❌ שגיאת נתיב API.';
-    if(e.message.includes('429') || e.message.includes('Insufficient Balance'))
-      msg = '⏳ חרגת ממגבלת הקריאות או שנגמר התקציב למפתח זה.';
-    if(e.message.includes('Failed to fetch'))
-      msg = '🌐 שגיאת רשת — בדוק חיבור לאינטרנט.';
-    addAIMsg(msg, 'bot');
-    aiHistory.pop();
+    addAIMsg(`שגיאה: ${e.message}`, 'bot');
   } finally {
-    aiTyping = false;
-    document.getElementById('ai-send-btn').disabled = false;
+    aiTyping = false; document.getElementById('ai-send-btn').disabled = false;
   }
 }
 
 function addAIMsg(text, classes){
   const el = document.createElement('div');
-  el.className = 'ai-msg ' + classes;
-  el.textContent = text;
+  el.className = 'ai-msg ' + classes; el.textContent = text;
   const msgs = document.getElementById('ai-messages');
-  msgs.appendChild(el);
-  msgs.scrollTop = msgs.scrollHeight;
+  msgs.appendChild(el); msgs.scrollTop = msgs.scrollHeight;
   return el;
 }
-if('serviceWorker' in navigator){
-  window.addEventListener('load',()=>{
-    navigator.serviceWorker.register('sw.js').catch(()=>{});
-  });
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+if(CU){
+  loadState();
+  document.getElementById('auth-screen').classList.add('hidden');
+  document.getElementById('sb-username').textContent = CU.name;
+  document.getElementById('sb-avatar').textContent = CU.name[0].toUpperCase();
+  renderDash();
 }
 </script>
 </body>
