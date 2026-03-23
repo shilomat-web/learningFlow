@@ -347,23 +347,23 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
     </div>
   </div>
   <div class="ai-messages" id="ai-messages">
-    <div class="ai-msg bot">שלום! אני העוזר האישי שלך. אני יכול לענות רק על שאלות לגבי הנושאים, המשימות והמבחנים שלך באפליקציה. במה אוכל לעזור?</div>
+    <div class="ai-msg bot">שלום! אני העוזר האישי שלך. אני יכול לעזור לך בניהול הלימודים, להוסיף משימות, זמני לימוד ועוד.
+במה אוכל לעזור?</div>
   </div>
   <div class="ai-chips" id="ai-chips">
     <div class="ai-chip" onclick="askChip('מה ההתקדמות שלי?')">📊 ההתקדמות שלי</div>
     <div class="ai-chip" onclick="askChip('אילו מבחנים קרובים?')">📅 מבחנים קרובים</div>
-    <div class="ai-chip" onclick="askChip('מה למדתי הכי הרבה?')">⏱ זמן לימוד</div>
-    <div class="ai-chip" onclick="askChip('אילו נושאים לא הושלמו?')">📚 נושאים חסרים</div>
+    <div class="ai-chip" onclick="askChip('הוסף משימה ללמוד למתמטיקה מחר')">✨ הוסף משימה</div>
+    <div class="ai-chip" onclick="askChip('למדתי היום שעה')">⏱ רישום לימוד</div>
   </div>
   <div class="ai-input-row">
     <button class="ai-send" id="ai-send-btn" onclick="sendAI()" title="שלח">➤</button>
-    <textarea class="ai-input" id="ai-input" placeholder="שאל שאלה על הלימודים שלך..." rows="1"
+    <textarea class="ai-input" id="ai-input" placeholder="שאל שאלה או בקש להוסיף משהו..." rows="1"
       onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAI()}"
       oninput="this.style.height='40px';this.style.height=Math.min(this.scrollHeight,100)+'px'"></textarea>
   </div>
   <div class="ai-api-note">⚡ מופעל על ידי DeepSeek V3</div>
 </div>
-
 
 <div id="install-banner">
   <div class="ib-row">
@@ -712,7 +712,8 @@ const userKey   = u  => 'sa_data_' + u;
 
 // Session persists across page reloads
 let CU = null;
-try { const s = localStorage.getItem('sa_session'); if(s) CU = JSON.parse(s); } catch(e){}
+try { const s = localStorage.getItem('sa_session'); if(s) CU = JSON.parse(s);
+} catch(e){}
 
 function switchAuthTab(t){
   document.querySelectorAll('.auth-tab').forEach((el,i) =>
@@ -727,7 +728,8 @@ function doLogin(){
   const err = document.getElementById('l-err');
   if(!u||!p){ err.textContent='יש למלא את כל השדות'; return; }
   const users = getUsers();
-  if(!users[u]){ err.textContent='שם משתמש לא קיים'; return; }
+  if(!users[u]){ err.textContent='שם משתמש לא קיים'; return;
+  }
   if(users[u].pw !== btoa(unescape(encodeURIComponent(p)))){ err.textContent='סיסמה שגויה'; return; }
   err.textContent = '';
   loginUser({ id: u, name: u, provider: 'local' });
@@ -738,9 +740,11 @@ function doRegister(){
   const p  = document.getElementById('r-pass').value;
   const p2 = document.getElementById('r-pass2').value;
   const err = document.getElementById('r-err');
-  if(!u||!p){ err.textContent='יש למלא את כל השדות'; return; }
+  if(!u||!p){ err.textContent='יש למלא את כל השדות'; return;
+  }
   if(p!==p2){ err.textContent='הסיסמאות אינן תואמות'; return; }
-  if(u.length<2){ err.textContent='שם משתמש חייב להכיל לפחות 2 תווים'; return; }
+  if(u.length<2){ err.textContent='שם משתמש חייב להכיל לפחות 2 תווים'; return;
+  }
   if(p.length<4){ err.textContent='סיסמה חייבת להכיל לפחות 4 תווים'; return; }
   const users = getUsers();
   if(users[u]){ err.textContent='שם משתמש כבר קיים'; return; }
@@ -778,7 +782,8 @@ const cuId=()=>CU?CU.id:null;
 function loadState(){
   if(!CU)return;
   S=JSON.parse(localStorage.getItem(userKey(CU.id))||'null')||{subjects:[],tasks:[],exams:[],logs:[],archive:[]};
-  if(!S.archive) S.archive=[];  // migrate old saves
+  if(!S.archive) S.archive=[];
+// migrate old saves
 }
 function save(){if(CU)localStorage.setItem(userKey(CU.id),JSON.stringify(S));}
 
@@ -1103,7 +1108,6 @@ function renderExams(){
   if(pel)pel.innerHTML=pa.length?pa.map(e=>mkCard(e,true)).join(''):'<div class="empty">אין מבחנים שעברו</div>';
 }
 const var_amber='#f39c12',var_green='#2ecc8b';
-
 // ═══════════════════════════════════════════
 // STUDY TIME
 // ═══════════════════════════════════════════
@@ -1335,8 +1339,10 @@ function addArchiveEntry(){
   const score = scoreRaw !== '' ? parseInt(scoreRaw) : null;
   const subj  = document.getElementById('m-arc-subject').value.trim();
   const notes = document.getElementById('m-arc-notes').value.trim();
-  if(!name || !date){ showToast('יש להכניס שם ותאריך'); return; }
-  if(score !== null && (isNaN(score) || score < 0 || score > 100)){ showToast('ציון חייב להיות בין 0 ל-100'); return; }
+  if(!name || !date){ showToast('יש להכניס שם ותאריך'); return;
+  }
+  if(score !== null && (isNaN(score) || score < 0 || score > 100)){ showToast('ציון חייב להיות בין 0 ל-100');
+  return; }
   S.archive.push({ id:uid(), name, date, score, subject:subj||null, notes:notes||null });
   save();
   ['m-arc-name','m-arc-subject','m-arc-notes'].forEach(i=>{ const el=document.getElementById(i); if(el) el.value=''; });
@@ -1378,8 +1384,10 @@ function renderArchive(){
     const best = scored.length ? Math.max(...scored.map(e=>e.score)) : null;
     statsEl.innerHTML = [
       {lbl:'מבחנים', val: total},
-      {lbl:'ממוצע',  val: avg!==null ? avg : '—'},
-      {lbl:'ציון גבוה', val: best!==null ? best : '—'}
+      {lbl:'ממוצע',  val: avg!==null ?
+      avg : '—'},
+      {lbl:'ציון גבוה', val: best!==null ?
+      best : '—'}
     ].map(s=>`<div class="time-stat"><div class="time-stat-lbl">${s.lbl}</div><div class="time-stat-val">${s.val}</div></div>`).join('');
   }
   // List
@@ -1417,7 +1425,6 @@ function renderArchive(){
 const AI_API_KEY = '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';
 const AI_MODEL   = 'llama-3.3-70b-versatile';
 const AI_URL     = 'https://api.groq.com/openai/v1/chat/completions';
-
 let aiOpen    = false;
 let aiHistory = [];   // Format: {role:'user'|'assistant', content:'...'}
 let aiTyping  = false;
@@ -1492,8 +1499,11 @@ function buildContext(){
   } else {
     const upcoming=S.exams.filter(e=>e.date>=td).sort((a,b)=>a.date.localeCompare(b.date));
     const past=S.exams.filter(e=>e.date<td).sort((a,b)=>b.date.localeCompare(a.date));
-    if(upcoming.length){ lines.push('קרובים:'); upcoming.forEach(e=>{const s=S.subjects.find(s=>s.id===e.subjId);const prep=e.prep?` | הכנה: ${{red:'חלש',amber:'בינוני',green:'מוכן'}[e.prep]||'?'}`:'';lines.push(`  📅 "${e.name}" (id:${e.id})${s?' ('+s.name+')':''} | ${fmtDate(e.date)} | בעוד ${daysUntil(e.date)} ימים${prep}`);}); }
-    if(past.length){ lines.push('שעברו:'); past.forEach(e=>{const s=S.subjects.find(s=>s.id===e.subjId);const score=e.score!==null?` | ציון: ${e.score}`:'| ציון: לא הוזן';lines.push(`  📝 "${e.name}" (id:${e.id})${s?' ('+s.name+')':''} | ${fmtDate(e.date)} ${score}`);}); }
+    if(upcoming.length){ lines.push('קרובים:');
+      upcoming.forEach(e=>{const s=S.subjects.find(s=>s.id===e.subjId);const prep=e.prep?` | הכנה: ${{red:'חלש',amber:'בינוני',green:'מוכן'}[e.prep]||'?'}`:'';lines.push(`  📅 "${e.name}" (id:${e.id})${s?' ('+s.name+')':''} | ${fmtDate(e.date)} | בעוד ${daysUntil(e.date)} ימים${prep}`);});
+    }
+    if(past.length){ lines.push('שעברו:'); past.forEach(e=>{const s=S.subjects.find(s=>s.id===e.subjId);const score=e.score!==null?` | ציון: ${e.score}`:'| ציון: לא הוזן';lines.push(`  📝 "${e.name}" (id:${e.id})${s?' ('+s.name+')':''} | ${fmtDate(e.date)} ${score}`);});
+    }
   }
 
   lines.push('\n=== זמן לימוד ===');
@@ -1549,6 +1559,7 @@ function buildSystemPrompt(){
 6. כשמשתמש מבקש למחוק — השתמש ב-tool המתאים ובקש אישור.
 7. כשמשתמש מבקש להוסיף מבחן לארכיון — השתמש ב-tool add_archive_entry.
 8. ניתן לחשב ממוצעים, לנתח תבניות ולהצביע על שיפורים — מהנתונים בלבד.
+9. כאשר המשתמש מבקש להוסיף נושא, משימה, מבחן, או זמן לימוד, או לסמן משימה כהושלמה - **בצע זאת מיד** באמצעות הכלים (Tools) שסופקו לך. אל תסביר לו איך לעשות זאת בממשק.
 
 ## נתוני האפליקציה של המשתמש:
 ${context}
@@ -1673,6 +1684,80 @@ const AI_TOOLS = [
         required: ['entry_id', 'entry_name']
       }
     }
+  },
+  {
+    type: "function",
+    function: {
+      name: 'add_subject',
+      description: 'מוסיף נושא ראשי חדש למערכת.',
+      parameters: {
+        type: 'object',
+        properties: { name: { type: 'string', description: 'שם הנושא החדש' } },
+        required: ['name']
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: 'add_task',
+      description: 'מוסיף משימה חדשה. אפשר לקשר לנושא קיים.',
+      parameters: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'תיאור המשימה' },
+          subject_id: { type: 'string', description: 'ID של הנושא (אם הוגדר)' },
+          type: { type: 'string', description: 'daily או monthly', enum: ['daily', 'monthly'] },
+          due_date: { type: 'string', description: 'תאריך יעד YYYY-MM-DD' }
+        },
+        required: ['name']
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: 'add_exam',
+      description: 'מוסיף מבחן חדש למערכת.',
+      parameters: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'שם המבחן' },
+          subject_id: { type: 'string', description: 'ID של נושא קיים' },
+          date: { type: 'string', description: 'תאריך המבחן YYYY-MM-DD' }
+        },
+        required: ['name', 'subject_id', 'date']
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: 'add_log',
+      description: 'רושם זמן לימוד לנושא מסוים.',
+      parameters: {
+        type: 'object',
+        properties: {
+          subject_id: { type: 'string', description: 'ID של הנושא' },
+          minutes: { type: 'number', description: 'מספר דקות הלימוד' },
+          desc: { type: 'string', description: 'תיאור קצר (אופציונלי)' },
+          date: { type: 'string', description: 'תאריך YYYY-MM-DD' }
+        },
+        required: ['subject_id', 'minutes']
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: 'toggle_task',
+      description: 'מסמן משימה כהושלמה, או מבטל השלמה.',
+      parameters: {
+        type: 'object',
+        properties: { task_id: { type: 'string', description: 'ID של המשימה' } },
+        required: ['task_id']
+      }
+    }
   }
 ];
 
@@ -1708,7 +1793,8 @@ function executeTool(name, args){
       const found = findSubtopicById(subj, args.subtopic_id);
       if(!found) return `❌ תת-נושא לא נמצא: ${args.subtopic_name}`;
       found.parent.subtopics.splice(found.index,1);
-      save(); renderSubjects(); renderDash();
+      save();
+      renderSubjects(); renderDash();
       return `✅ תת-הנושא "${args.subtopic_name}" נמחק בהצלחה.`;
     }
     case 'delete_task': {
@@ -1735,7 +1821,8 @@ function executeTool(name, args){
       return `✅ תת-הנושא "${args.subtopic_name}" סומן כהושלם.`;
     }
     case 'add_archive_entry': {
-      const score = args.score !== undefined && args.score !== null ? Number(args.score) : null;
+      const score = args.score !== undefined && args.score !== null ?
+      Number(args.score) : null;
       if(score !== null && (isNaN(score)||score<0||score>100)) return '❌ ציון לא תקין (0-100).';
       if(!args.name||!args.date) return '❌ חסרים שם או תאריך.';
       if(!S.archive) S.archive=[];
@@ -1751,6 +1838,60 @@ function executeTool(name, args){
       S.archive.splice(idx,1);
       save(); renderArchive();
       return `✅ הרשומה "${args.entry_name}" נמחקה מהארכיון.`;
+    }
+    case 'add_subject': {
+      S.subjects.push({id: uid(), name: args.name, subtopics: []});
+      save(); renderSubjects(); renderDash();
+      return `✅ הנושא "${args.name}" נוסף בהצלחה.`;
+    }
+    case 'add_task': {
+      S.tasks.push({
+        id: uid(), 
+        name: args.name, 
+        subjId: args.subject_id || '', 
+        type: args.type || 'daily', 
+        done: false, 
+        dueDate: args.due_date || '', 
+        dueTime: ''
+      });
+      save(); renderTasks(); renderDash();
+      return `✅ המשימה "${args.name}" נוספה בהצלחה.`;
+    }
+    case 'add_exam': {
+      S.exams.push({
+        id: uid(), 
+        name: args.name, 
+        subjId: args.subject_id || '', 
+        date: args.date, 
+        time: '', 
+        score: null, 
+        prep: 'red'
+      });
+      save(); renderExams(); renderDash();
+      return `✅ המבחן "${args.name}" נוסף בהצלחה.`;
+    }
+    case 'add_log': {
+      const date = args.date || today();
+      const mins = Number(args.minutes);
+      const existing = S.logs.find(l => l.subjId === args.subject_id && l.date === date);
+      
+      if(existing){
+        existing.minutes += mins;
+        if(args.desc && !existing.desc.includes(args.desc)) {
+          existing.desc = existing.desc ? existing.desc + ', ' + args.desc : args.desc;
+        }
+      } else {
+        S.logs.push({id: uid(), subjId: args.subject_id, desc: args.desc || '', minutes: mins, date: date});
+      }
+      save(); renderStudyTime(); renderDash();
+      return `✅ נרשמו ${mins} דקות לימוד.`;
+    }
+    case 'toggle_task': {
+      const t = S.tasks.find(x => x.id === args.task_id);
+      if(!t) return `❌ משימה לא נמצאה.`;
+      t.done = !t.done;
+      save(); renderTasks(); renderDash();
+      return `✅ המשימה "${t.name}" סומנה כ${t.done ? 'הושלמה' : 'לא הושלמה'}.`;
     }
     default:
       return `❌ פעולה לא מוכרת: ${name}`;
@@ -1833,7 +1974,6 @@ async function sendAI(){
       { role: 'system', content: buildSystemPrompt() },
       ...aiHistory.slice(-10) // Keep last 10 messages for context
     ];
-
     const response = await fetch(AI_URL, {
       method: 'POST',
       headers: {
@@ -1847,7 +1987,6 @@ async function sendAI(){
         temperature: 0.1
       })
     });
-
     if(!response.ok){
       const err = await response.json().catch(()=>({}));
       throw new Error(err.error?.message || `HTTP ${response.status}`);
@@ -1857,7 +1996,6 @@ async function sendAI(){
     const message = data.choices?.[0]?.message;
 
     thinkingEl.remove();
-
     if(message){
       // DeepSeek might return text AND a tool call together
       if(message.content){
@@ -1867,11 +2005,13 @@ async function sendAI(){
 
       // Handle function calling
       if(message.tool_calls && message.tool_calls.length > 0){
-        const toolCall = message.tool_calls[0]; // execute first tool call
+        const toolCall = message.tool_calls[0];
+        // execute first tool call
         const name = toolCall.function.name;
         const args = JSON.parse(toolCall.function.arguments);
-
-        if(name === 'mark_subtopic_done' || name === 'add_archive_entry'){
+        
+        const safeTools = ['mark_subtopic_done', 'add_archive_entry', 'add_subject', 'add_task', 'add_exam', 'add_log', 'toggle_task'];
+        if(safeTools.includes(name)){
           const result = executeTool(name, args);
           addAIMsg(result, 'bot');
           aiHistory.push({role:'assistant', content: `פעולה בוצעה: ${result}`});
@@ -1915,7 +2055,6 @@ function addAIMsg(text, classes){
 // ⚠️ תשומת לב - ביטלתי את ה-Service Worker בהערה!
 // כדי שלא יתקע לך את העדכונים בגיטהאב יותר בזמן הפיתוח.
 // כשתרצה להחזיר תמיכה באופליין מלא, תוכל להוריד את הלוכסנים (//) מהקוד למטה.
-
 /*
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>{
