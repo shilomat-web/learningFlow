@@ -1414,7 +1414,7 @@ function renderArchive(){
 // ═══════════════════════════════════════════
 
 // ── CONFIG ──
-const AI_API_KEY   = localStorage.getItem('ai_api_key') || '';
+const AI_API_KEY   = 'sk-59f97ac8305e4397bb417d81d65ce7bd'; // מפתח הוזן ישירות כבקשתך
 const AI_MODEL     = 'deepseek-chat';
 const DEEPSEEK_URL = 'https://api.deepseek.com/chat/completions';
 
@@ -1427,17 +1427,6 @@ let pendingToolCall = null; // stores a pending action awaiting confirmation
 function toggleAI(){
   aiOpen = !aiOpen;
   document.getElementById('ai-panel').classList.toggle('open', aiOpen);
-  if(aiOpen && !AI_API_KEY){
-    const key = prompt('הכנס DeepSeek API Key\n(להוצאת מפתח חינמי היכנסו ל: platform.deepseek.com/api_keys)');
-    if(key && key.length > 10){
-      localStorage.setItem('ai_api_key', key);
-      location.reload();
-    } else if(key){
-      alert('API Key נראה קצר מדי — בדוק שהעתקת נכון');
-      aiOpen = false;
-      document.getElementById('ai-panel').classList.remove('open');
-    }
-  }
 }
 
 function askChip(q){
@@ -1834,7 +1823,6 @@ async function sendAI(){
   const input = document.getElementById('ai-input');
   const q = input.value.trim();
   if(!q) return;
-  if(!AI_API_KEY){ toggleAI(); return; }
 
   input.value = '';
   input.style.height = '40px';
