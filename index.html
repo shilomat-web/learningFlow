@@ -88,13 +88,11 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
 
 /* ── TASK ROWS ── */
 .task-row{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--white);border:1px solid var(--border);border-radius:10px;margin-bottom:8px;font-size:13px;position:relative;overflow:hidden;transition:transform .2s,opacity .2s}
-.task-row.swiped{transform:translateX(-80px)}
 .task-row-right{display:flex;align-items:center;gap:10px}
 .task-circle{width:20px;height:20px;border-radius:50%;border:2px solid var(--g);flex-shrink:0;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center}
 .task-circle.done{background:var(--g);border-color:var(--g)}
 .task-tag{font-size:11px;padding:2px 8px;border-radius:20px;background:var(--gl);color:var(--g);font-weight:500}
 .task-due{font-size:11px;color:var(--sec)}
-.swipe-action{position:absolute;right:0;top:0;bottom:0;width:80px;background:var(--g);display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px;transform:translateX(80px);transition:transform .2s}
 
 /* ── EXAM ROWS ── */
 .exam-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
@@ -361,7 +359,7 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
       onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAI()}"
       oninput="this.style.height='40px';this.style.height=Math.min(this.scrollHeight,100)+'px'"></textarea>
   </div>
-  <div class="ai-api-note">⚡ מופעל על ידי Groq (Llama 3.3) — תואם מלא לכלים</div>
+  <div class="ai-api-note">⚡ מופעל על ידי Google Gemini 2.0 Flash — חינמי ומהיר</div>
 </div>
 
 
@@ -1325,6 +1323,8 @@ if(CU){
 
 // ═══════════════════════════════════════════
 // PAST EXAMS ARCHIVE
+// Independent exam log — no subject required.
+// schema: {id, name, date, score, subject, notes}
 // ═══════════════════════════════════════════
 function addArchiveEntry(){
   const name  = document.getElementById('m-arc-name').value.trim();
@@ -1367,6 +1367,7 @@ function archiveScoreBg(score){
 }
 
 function renderArchive(){
+  // Stats
   const statsEl = document.getElementById('archive-stats');
   if(statsEl){
     const total = S.archive.length;
@@ -1379,6 +1380,7 @@ function renderArchive(){
       {lbl:'ציון גבוה', val: best!==null ? best : '—'}
     ].map(s=>`<div class="time-stat"><div class="time-stat-lbl">${s.lbl}</div><div class="time-stat-val">${s.val}</div></div>`).join('');
   }
+  // List
   const el = document.getElementById('archive-list');
   if(!el) return;
   if(!S.archive.length){
@@ -1405,18 +1407,21 @@ function renderArchive(){
 }
 
 // ═══════════════════════════════════════════
-// AI CHAT — OpenAI Format (Groq Llama 3.3)
+// AI CHAT — Strict RAG + Function Calling
+// Powered by Google Gemini 2.0 Flash (OpenAI Compatible)
 // ═══════════════════════════════════════════
 
-const AI_API_KEY   = 'AIzaSyD3IIZXJUUculQPACKRoXaVPMbohbrdp5s';
+// ── CONFIG ──
+const AI_API_KEY   = 'הכנס_כאן_את_המפתח_של_גמיני'; 
 const AI_MODEL     = 'gemini-2.0-flash';
-const GROQ_URL     = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
+const AI_URL       = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
 
 let aiOpen    = false;
-let aiHistory = [];
+let aiHistory = [];   // {role:'user'|'assistant', content:'...'}
 let aiTyping  = false;
-let pendingToolCall = null;
+let pendingToolCall = null; // stores a pending action awaiting confirmation
 
+// ── PANEL TOGGLE ──
 function toggleAI(){
   aiOpen = !aiOpen;
   document.getElementById('ai-panel').classList.toggle('open', aiOpen);
@@ -1427,6 +1432,9 @@ function askChip(q){
   sendAI();
 }
 
+// ═══════════════════════════════════════════
+// RAG CONTEXT BUILDER
+// ═══════════════════════════════════════════
 function buildContext(){
   if(!CU || !S) return 'אין נתונים זמינים.';
   const lines = [];
@@ -1508,6 +1516,7 @@ function buildContext(){
   lines.push(`תאריך היום: ${fmtDate(td)}`);
   lines.push(`שם משתמש: ${CU.name}`);
 
+  // ── 6. PAST EXAMS ARCHIVE ──
   lines.push('\n=== ארכיון מבחנים עצמאי ===');
   if(!S.archive||!S.archive.length){
     lines.push('אין מבחנים בארכיון.');
@@ -1535,13 +1544,24 @@ function buildSystemPrompt(){
 2. אם שאלה אינה קשורה לנתוני האפליקציה — השב: "אני יכול לענות רק על שאלות לגבי הנתונים שלך באפליקציה."
 3. אם המידע הספציפי לא נמצא בנתונים — השב: "המידע הזה אינו קיים בנתוני האפליקציה שלך."
 4. אל תמציא, אל תשער, אל תשתמש בשום ידע חיצוני.
-5. ענה בעברית בלבד, בצורה קצרה וברורה.
-6. ניתן לחשב ממוצעים, לנתח תבניות ולהצביע על שיפורים — מהנתונים בלבד.
+5. ענה בעברית, בצורה קצרה וברורה.
+6. כשמשתמש מבקש למחוק — השתמש ב-tool המתאים ובקש אישור.
+7. כשמשתמש מבקש להוסיף מבחן לארכיון — השתמש ב-tool add_archive_entry.
+8. ניתן לחשב ממוצעים, לנתח תבניות ולהצביע על שיפורים — מהנתונים בלבד.
 
 ## נתוני האפליקציה של המשתמש:
-${context}`;
+${context}
+
+## דוגמאות לתשובות נכונות:
+- "ההתקדמות הכוללת שלך היא X% — השלמת Y מתוך Z תת-נושאים."
+- "המבחן הקרוב ביותר הוא [שם] בתאריך [תאריך], בעוד X ימים."
+- "הנושא שלמדת בו הכי הרבה הוא [שם] עם X שעות."
+- "אני יכול לענות רק על שאלות לגבי הנתונים שלך באפליקציה." (לשאלות חיצוניות)`;
 }
 
+// ═══════════════════════════════════════════
+// FUNCTION CALLING — OPENAI FORMAT
+// ═══════════════════════════════════════════
 const AI_TOOLS = [
   {
     type: "function",
@@ -1655,6 +1675,11 @@ const AI_TOOLS = [
   }
 ];
 
+// ═══════════════════════════════════════════
+// TOOL EXECUTION ENGINE
+// ═══════════════════════════════════════════
+
+// Find a subtopic by id anywhere in a subject's tree
 function findSubtopicById(node, targetId, path=[]){
   for(let i=0;i<(node.subtopics||[]).length;i++){
     const c=node.subtopics[i];
@@ -1665,17 +1690,19 @@ function findSubtopicById(node, targetId, path=[]){
   return null;
 }
 
+// Execute a confirmed tool call
 function executeTool(name, args){
   switch(name){
     case 'delete_subject': {
       const idx = S.subjects.findIndex(s=>s.id===args.subject_id);
       if(idx===-1) return `❌ נושא לא נמצא: ${args.subject_name}`;
       S.subjects.splice(idx,1);
+      // cascade: remove related tasks/exams/logs
       S.tasks  = S.tasks.filter(t=>t.subjId!==args.subject_id);
       S.exams  = S.exams.filter(e=>e.subjId!==args.subject_id);
       S.logs   = S.logs.filter(l=>l.subjId!==args.subject_id);
       save(); renderSubjects(); renderDash();
-      return `✅ הנושא "${args.subject_name}" נמחק בהצלחה.`;
+      return `✅ הנושא "${args.subject_name}" נמחק בהצלחה (כולל כל תת-הנושאים, המשימות והמבחנים הקשורים).`;
     }
     case 'delete_subtopic': {
       const subj = S.subjects.find(s=>s.id===args.subject_id);
@@ -1716,7 +1743,8 @@ function executeTool(name, args){
       if(!S.archive) S.archive=[];
       S.archive.push({id:uid(), name:args.name, date:args.date, score, subject:args.subject||null, notes:args.notes||null});
       save(); renderArchive();
-      return `✅ המבחן "${args.name}" נוסף לארכיון.`;
+      const scoreStr = score!==null ? ` עם ציון ${score}` : '';
+      return `✅ המבחן "${args.name}"${scoreStr} נוסף לארכיון.`;
     }
     case 'delete_archive_entry': {
       if(!S.archive) return '❌ אין ארכיון.';
@@ -1726,10 +1754,12 @@ function executeTool(name, args){
       save(); renderArchive();
       return `✅ הרשומה "${args.entry_name}" נמחקה מהארכיון.`;
     }
-    default: return `❌ פעולה לא מוכרת: ${name}`;
+    default:
+      return `❌ פעולה לא מוכרת: ${name}`;
   }
 }
 
+// Render a confirmation card in the chat
 function showConfirmCard(toolName, args, confirmText){
   const msgs = document.getElementById('ai-messages');
   const card = document.createElement('div');
@@ -1765,17 +1795,27 @@ function confirmAction(confirmed, btn){
   }
 }
 
+// ── Human-readable confirmation text per tool ──
 function buildConfirmText(name, args){
   switch(name){
-    case 'delete_subject': return `האם למחוק את הנושא <strong>"${args.subject_name}"</strong>?`;
-    case 'delete_subtopic': return `האם למחוק את תת-הנושא <strong>"${args.subtopic_name}"</strong>?`;
-    case 'delete_task': return `האם למחוק את המשימה <strong>"${args.task_name}"</strong>?`;
-    case 'delete_exam': return `האם למחוק את המבחן <strong>"${args.exam_name}"</strong>?`;
-    case 'delete_archive_entry': return `האם למחוק מהארכיון את <strong>"${args.entry_name}"</strong>?`;
-    default: return `אישור לפעולה: ${name}`;
+    case 'delete_subject':
+      return `האם למחוק את הנושא <strong>"${args.subject_name}"</strong> וכל תת-הנושאים, המשימות והמבחנים הקשורים? פעולה זו אינה הפיכה.`;
+    case 'delete_subtopic':
+      return `האם למחוק את תת-הנושא <strong>"${args.subtopic_name}"</strong>? פעולה זו אינה הפיכה.`;
+    case 'delete_task':
+      return `האם למחוק את המשימה <strong>"${args.task_name}"</strong>?`;
+    case 'delete_exam':
+      return `האם למחוק את המבחן <strong>"${args.exam_name}"</strong>?`;
+    case 'delete_archive_entry':
+      return `האם למחוק את הרשומה <strong>"${args.entry_name}"</strong> מהארכיון? פעולה זו אינה הפיכה.`;
+    default:
+      return `אישור לפעולה: ${name}`;
   }
 }
 
+// ═══════════════════════════════════════════
+// SEND MESSAGE — Gemini via OpenAI Compatible Endpoint
+// ═══════════════════════════════════════════
 async function sendAI(){
   if(aiTyping) return;
   const input = document.getElementById('ai-input');
@@ -1793,14 +1833,16 @@ async function sendAI(){
   aiHistory.push({role:'user', content: q});
 
   try {
-    const response = await fetch(GROQ_URL, {
+    const response = await fetch(AI_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${AI_API_KEY}` },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${AI_API_KEY}`
+      },
       body: JSON.stringify({
         model: AI_MODEL,
         messages: [{role: 'system', content: buildSystemPrompt()}, ...aiHistory.slice(-10)],
         tools: AI_TOOLS,
-        tool_choice: "auto",
         temperature: 0.1
       })
     });
@@ -1823,6 +1865,7 @@ async function sendAI(){
     const toolCalls = msgObj.tool_calls;
     const textContent = msgObj.content;
 
+    // Execute or ask for confirmation if there are tools called
     if(toolCalls && toolCalls.length > 0){
       const tc = toolCalls[0];
       const name = tc.function.name;
@@ -1833,6 +1876,7 @@ async function sendAI(){
         aiHistory.push({role:'assistant', content: textContent});
       }
 
+      // Non-destructive actions execute immediately; destructive ones need confirmation
       if(name === 'mark_subtopic_done' || name === 'add_archive_entry'){
         const result = executeTool(name, args);
         addAIMsg(result, 'bot');
@@ -1850,7 +1894,16 @@ async function sendAI(){
 
   } catch(e) {
     thinkingEl.remove();
-    addAIMsg(`שגיאה: ${e.message}`, 'bot');
+    let msg = `שגיאה: ${e.message}`;
+    if(e.message.includes('API_KEY_INVALID') || e.message.includes('401'))
+      msg = '❌ API Key שגוי — נסה להוציא מפתח חדש.';
+    if(e.message.includes('404') || e.message.includes('not found'))
+      msg = '❌ שגיאת נתיב API.';
+    if(e.message.includes('429') || e.message.includes('Too Many Requests') || e.message.includes('RESOURCE_EXHAUSTED'))
+      msg = '⏳ חרגת ממגבלת הקריאות או הטוקנים, נסה שוב בעוד דקה.';
+    if(e.message.includes('Failed to fetch'))
+      msg = '🌐 שגיאת רשת — בדוק חיבור לאינטרנט.';
+    addAIMsg(msg, 'bot');
     aiHistory.pop();
   } finally {
     aiTyping = false;
@@ -1867,7 +1920,6 @@ function addAIMsg(text, classes){
   msgs.scrollTop = msgs.scrollHeight;
   return el;
 }
-
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>{
     navigator.serviceWorker.register('sw.js').catch(()=>{});
