@@ -88,11 +88,13 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
 
 /* ── TASK ROWS ── */
 .task-row{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--white);border:1px solid var(--border);border-radius:10px;margin-bottom:8px;font-size:13px;position:relative;overflow:hidden;transition:transform .2s,opacity .2s}
+.task-row.swiped{transform:translateX(-80px)}
 .task-row-right{display:flex;align-items:center;gap:10px}
 .task-circle{width:20px;height:20px;border-radius:50%;border:2px solid var(--g);flex-shrink:0;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center}
 .task-circle.done{background:var(--g);border-color:var(--g)}
 .task-tag{font-size:11px;padding:2px 8px;border-radius:20px;background:var(--gl);color:var(--g);font-weight:500}
 .task-due{font-size:11px;color:var(--sec)}
+.swipe-action{position:absolute;right:0;top:0;bottom:0;width:80px;background:var(--g);display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px;transform:translateX(80px);transition:transform .2s}
 
 /* ── EXAM ROWS ── */
 .exam-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
@@ -405,7 +407,7 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
   </div>
   <nav id="sidebar-nav">
     <div class="nav-item active" onclick="showPage('dashboard')"><span>ראשי</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></div>
-    <div class="nav-item" onclick="showPage('subjects')"><span>נושאים</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div>
+    <div class="nav-item" onclick="showPage('subjects')"><span>נושאים</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div>
     <div class="nav-item" onclick="showPage('tasks')"><span>משימות</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
     <div class="nav-item" onclick="showPage('calendar')"><span>לוח שנה</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
     <div class="nav-item" onclick="showPage('exams')"><span>מבחנים</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg></div>
@@ -422,7 +424,7 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
 
 <div id="mobile-nav">
   <div class="mob-item active" onclick="showPage('dashboard')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>ראשי</div>
-  <div class="mob-item" onclick="showPage('subjects')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>נושאים</div>
+  <div class="mob-item" onclick="showPage('subjects')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>נושאים</div>
   <div class="mob-item" onclick="showPage('tasks')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>משימות</div>
   <div class="mob-item" onclick="showPage('exams')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>מבחנים</div>
   <div class="mob-item" onclick="showPage('archive')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>ארכיון</div>
@@ -1412,7 +1414,7 @@ function renderArchive(){
 // ═══════════════════════════════════════════
 
 // ── CONFIG ──
-const AI_API_KEY   = 'AIzaSyCkgLbJJhnIPHgiQO1GcCGoqXZI-oqG1ZM';
+const AI_API_KEY   = 'YOUR_API_KEY_HERE'; 
 const AI_MODEL     = 'gemini-2.0-flash';
 const AI_URL       = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
 
@@ -1837,7 +1839,7 @@ async function sendAI(){
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${AI_API_KEY}`
+        'Authorization': 'Bearer ' + AI_API_KEY
       },
       body: JSON.stringify({
         model: AI_MODEL,
