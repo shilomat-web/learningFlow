@@ -326,7 +326,6 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
 </head>
 <body>
 
-<!-- AI CHAT FAB — SVG icon, always visible -->
 <button id="ai-fab" onclick="toggleAI()" title="עוזר לימודים AI" aria-label="פתח עוזר AI">
   <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
@@ -336,7 +335,6 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
   </svg>
 </button>
 
-<!-- AI CHAT PANEL -->
 <div id="ai-panel">
   <div class="ai-header">
     <button class="ai-close" onclick="toggleAI()">✕</button>
@@ -363,7 +361,7 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
       onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAI()}"
       oninput="this.style.height='40px';this.style.height=Math.min(this.scrollHeight,100)+'px'"></textarea>
   </div>
-  <div class="ai-api-note">⚡ מופעל על ידי Google Gemini 2.0 Flash — חינמי לחלוטין</div>
+  <div class="ai-api-note">⚡ מופעל על ידי DeepSeek V3 — תואם מלא לכלים</div>
 </div>
 
 
@@ -376,7 +374,6 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
   <div style="font-size:11px;opacity:.8">עובד אופליין • גישה מהירה מהמסך הראשי</div>
 </div>
 
-<!-- AUTH -->
 <div id="auth-screen">
   <div class="auth-box">
     <div class="auth-logo">
@@ -403,7 +400,6 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
   </div>
 </div>
 
-<!-- SIDEBAR -->
 <div id="sidebar">
   <div class="sb-logo">
     <div class="sb-logo-row"><h2>מרכז למידה</h2><div class="logo-icon" style="width:32px;height:32px;font-size:16px">📚</div></div>
@@ -426,7 +422,6 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
   </div>
 </div>
 
-<!-- MOBILE NAV -->
 <div id="mobile-nav">
   <div class="mob-item active" onclick="showPage('dashboard')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>ראשי</div>
   <div class="mob-item" onclick="showPage('subjects')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>נושאים</div>
@@ -436,16 +431,12 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
   <div class="mob-item" onclick="showPage('studytime')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>זמן</div>
 </div>
 
-<!-- POMODORO FAB -->
 <button id="pomodoro-fab" onclick="openPomo()" title="Pomodoro Timer">🍅</button>
 
-<!-- TOAST -->
 <div class="toast" id="toast"></div>
 
-<!-- MAIN -->
 <div id="main">
 
-<!-- DASHBOARD -->
 <div id="page-dashboard" class="page active">
   <div class="page-header">
     <div></div>
@@ -466,11 +457,9 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
     <div><div class="section-title">מבחנים קרובים</div><div id="dash-exams"></div></div>
     <div><div class="section-title">משימות היום</div><div id="dash-tasks"></div></div>
   </div>
-  <!-- 7-day deadlines -->
   <div style="margin-top:20px"><div class="section-title">יעדים ב-7 ימים הקרובים</div><div id="dash-deadlines"></div></div>
 </div>
 
-<!-- SUBJECTS -->
 <div id="page-subjects" class="page">
   <div class="page-header">
     <div class="header-actions"><button class="btn btn-primary" onclick="openModal('m-subject')">+ נושא חדש</button></div>
@@ -479,7 +468,6 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
   <div class="subjects-list" id="subjects-list"></div>
 </div>
 
-<!-- TASKS -->
 <div id="page-tasks" class="page">
   <div class="page-header">
     <div class="header-actions">
@@ -500,7 +488,6 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
   <div id="tm" style="display:none"><div id="monthly-list"></div></div>
 </div>
 
-<!-- CALENDAR -->
 <div id="page-calendar" class="page">
   <div class="page-header"><div></div><div class="page-title"><h1>לוח שנה</h1><p>משימות ומבחנים</p></div></div>
   <div class="cal-wrap">
@@ -513,7 +500,6 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
   </div>
 </div>
 
-<!-- EXAMS -->
 <div id="page-exams" class="page">
   <div class="page-header">
     <div class="header-actions"><button class="btn btn-primary" onclick="openModal('m-exam')">+ מבחן חדש</button></div>
@@ -523,7 +509,6 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
   <div class="section-sep">מבחנים שעברו</div><div id="past-exams"></div>
 </div>
 
-<!-- STUDY TIME -->
 <div id="page-studytime" class="page">
   <div class="page-header">
     <div class="header-actions"><button class="btn btn-primary" onclick="openModal('m-log')">+ רישום</button></div>
@@ -550,7 +535,6 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
   <div style="margin-top:16px"><div class="section-title">לוג לימוד</div><div id="logs-list"></div></div>
 </div>
 
-<!-- ARCHIVE PAGE -->
 <div id="page-archive" class="page">
   <div class="page-header">
     <div class="header-actions"><button class="btn btn-primary" onclick="openModal('m-archive')">+ הוסף מבחן לארכיון</button></div>
@@ -561,9 +545,6 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
   <div id="archive-list"></div>
 </div>
 
-<!-- ─── MODALS ─── -->
-
-<!-- Add Subject -->
 <div class="modal-overlay" id="m-subject">
   <div class="modal">
     <h3>נושא חדש</h3>
@@ -575,7 +556,6 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
   </div>
 </div>
 
-<!-- Add Subtopic -->
 <div class="modal-overlay" id="m-subtopic">
   <div class="modal">
     <h3 id="m-sub-title">הוספת תת-נושא</h3>
@@ -587,7 +567,6 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
   </div>
 </div>
 
-<!-- Add Task -->
 <div class="modal-overlay" id="m-task">
   <div class="modal">
     <h3>משימה חדשה</h3>
@@ -607,7 +586,6 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
   </div>
 </div>
 
-<!-- Add Exam -->
 <div class="modal-overlay" id="m-exam">
   <div class="modal">
     <h3>מבחן חדש</h3>
@@ -641,7 +619,6 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
   </div>
 </div>
 
-<!-- Score Modal -->
 <div class="modal-overlay" id="m-score">
   <div class="modal">
     <h3 id="m-score-title">הזנת ציון</h3>
@@ -653,7 +630,6 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
   </div>
 </div>
 
-<!-- Add Log -->
 <div class="modal-overlay" id="m-log">
   <div class="modal">
     <h3>רישום זמן לימוד</h3>
@@ -678,7 +654,6 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
   </div>
 </div>
 
-<!-- Notify placeholder -->
 <div class="modal-overlay" id="m-notify">
   <div class="modal">
     <h3>תזכורות</h3>
@@ -687,7 +662,6 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
   </div>
 </div>
 
-<!-- Add Archive Entry -->
 <div class="modal-overlay" id="m-archive">
   <div class="modal">
     <h3>הוסף מבחן לארכיון</h3>
@@ -705,7 +679,6 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
   </div>
 </div>
 
-<!-- Pomodoro Modal -->
 <div class="modal-overlay pomo-modal" id="m-pomo">
   <div class="modal" style="text-align:center;max-width:340px">
     <div class="pomo-label" id="pomo-label">עבודה</div>
@@ -1437,18 +1410,16 @@ function renderArchive(){
 
 // ═══════════════════════════════════════════
 // AI CHAT — Strict RAG + Function Calling
-// Powered by Google Gemini 2.0 Flash (FREE)
+// Powered by DeepSeek V3
 // ═══════════════════════════════════════════
 
 // ── CONFIG ──
-// Free key (no credit card): https://aistudio.google.com/app/apikey
-const AI_API_KEY = localStorage.getItem('ai_api_key') || '';
-// Use v1 + gemini-2.0-flash-exp which is available on the free tier
-const AI_MODEL   = 'gemini-2.0-flash-exp';
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${AI_MODEL}:generateContent`;
+const AI_API_KEY   = localStorage.getItem('ai_api_key') || '';
+const AI_MODEL     = 'deepseek-chat';
+const DEEPSEEK_URL = 'https://api.deepseek.com/chat/completions';
 
 let aiOpen    = false;
-let aiHistory = [];   // {role:'user'|'model', parts:[{text}]}
+let aiHistory = [];   // {role:'user'|'assistant', content:'...'}
 let aiTyping  = false;
 let pendingToolCall = null; // stores a pending action awaiting confirmation
 
@@ -1457,7 +1428,7 @@ function toggleAI(){
   aiOpen = !aiOpen;
   document.getElementById('ai-panel').classList.toggle('open', aiOpen);
   if(aiOpen && !AI_API_KEY){
-    const key = prompt('הכנס Google Gemini API Key\n(השג חינם — ללא כרטיס אשראי:\naistudio.google.com/app/apikey)');
+    const key = prompt('הכנס DeepSeek API Key\n(להוצאת מפתח חינמי היכנסו ל: platform.deepseek.com/api_keys)');
     if(key && key.length > 10){
       localStorage.setItem('ai_api_key', key);
       location.reload();
@@ -1476,9 +1447,6 @@ function askChip(q){
 
 // ═══════════════════════════════════════════
 // RAG CONTEXT BUILDER
-// Full snapshot of user data injected into
-// every prompt. Model forbidden from using
-// any external knowledge.
 // ═══════════════════════════════════════════
 function buildContext(){
   if(!CU || !S) return 'אין נתונים זמינים.';
@@ -1605,11 +1573,12 @@ ${context}
 }
 
 // ═══════════════════════════════════════════
-// FUNCTION CALLING — TOOL DEFINITIONS
+// FUNCTION CALLING — OPENAI FORMAT (DeepSeek)
 // ═══════════════════════════════════════════
-const AI_TOOLS = [{
-  functionDeclarations: [
-    {
+const AI_TOOLS = [
+  {
+    type: "function",
+    function: {
       name: 'delete_subject',
       description: 'מוחק נושא שלם (כולל כל תת-הנושאים שלו) מהאפליקציה. השתמש רק לאחר אישור המשתמש.',
       parameters: {
@@ -1620,8 +1589,11 @@ const AI_TOOLS = [{
         },
         required: ['subject_id', 'subject_name']
       }
-    },
-    {
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: 'delete_subtopic',
       description: 'מוחק תת-נושא (ותת-נושאיו) מנושא מסוים. השתמש רק לאחר אישור המשתמש.',
       parameters: {
@@ -1633,8 +1605,11 @@ const AI_TOOLS = [{
         },
         required: ['subject_id', 'subtopic_id', 'subtopic_name']
       }
-    },
-    {
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: 'delete_task',
       description: 'מוחק משימה מהרשימה. השתמש רק לאחר אישור המשתמש.',
       parameters: {
@@ -1645,8 +1620,11 @@ const AI_TOOLS = [{
         },
         required: ['task_id', 'task_name']
       }
-    },
-    {
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: 'delete_exam',
       description: 'מוחק מבחן. השתמש רק לאחר אישור המשתמש.',
       parameters: {
@@ -1657,8 +1635,11 @@ const AI_TOOLS = [{
         },
         required: ['exam_id', 'exam_name']
       }
-    },
-    {
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: 'mark_subtopic_done',
       description: 'מסמן תת-נושא כהושלם.',
       parameters: {
@@ -1670,8 +1651,11 @@ const AI_TOOLS = [{
         },
         required: ['subject_id', 'subtopic_id', 'subtopic_name']
       }
-    },
-    {
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: 'add_archive_entry',
       description: 'מוסיף מבחן לארכיון המבחנים העצמאי. לא דורש קישור לנושא קיים.',
       parameters: {
@@ -1685,8 +1669,11 @@ const AI_TOOLS = [{
         },
         required: ['name', 'date']
       }
-    },
-    {
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: 'delete_archive_entry',
       description: 'מוחק רשומה מארכיון המבחנים. השתמש רק לאחר אישור המשתמש.',
       parameters: {
@@ -1698,8 +1685,8 @@ const AI_TOOLS = [{
         required: ['entry_id', 'entry_name']
       }
     }
-  ]
-}];
+  }
+];
 
 // ═══════════════════════════════════════════
 // TOOL EXECUTION ENGINE
@@ -1795,7 +1782,7 @@ function showConfirmCard(toolName, args, confirmText){
     <div style="font-weight:600;color:#b45309;margin-bottom:8px">⚠️ אישור פעולה</div>
     <div style="font-size:13px;margin-bottom:12px">${confirmText}</div>
     <div style="display:flex;gap:8px">
-      <button onclick="confirmAction(true,this)" style="flex:1;padding:8px;background:#e74c3c;color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:13px">כן, מחק</button>
+      <button onclick="confirmAction(true,this)" style="flex:1;padding:8px;background:#e74c3c;color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:13px">כן, בצע</button>
       <button onclick="confirmAction(false,this)" style="flex:1;padding:8px;background:#e8e8e5;color:#333;border:none;border-radius:8px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:13px">ביטול</button>
     </div>`;
   msgs.appendChild(card);
@@ -1813,11 +1800,11 @@ function confirmAction(confirmed, btn){
     card.innerHTML = `<div style="font-size:13px">${result}</div>`;
     card.style.cssText = '';
     card.className = 'ai-msg bot';
-    aiHistory.push({role:'model', parts:[{text: result}]});
+    aiHistory.push({role:'assistant', content: result});
   } else {
     card.remove();
     addAIMsg('הפעולה בוטלה.', 'bot');
-    aiHistory.push({role:'model', parts:[{text:'הפעולה בוטלה על ידי המשתמש.'}]});
+    aiHistory.push({role:'assistant', content:'הפעולה בוטלה על ידי המשתמש.'});
   }
 }
 
@@ -1840,7 +1827,7 @@ function buildConfirmText(name, args){
 }
 
 // ═══════════════════════════════════════════
-// SEND MESSAGE — Gemini with Function Calling
+// SEND MESSAGE — DeepSeek with Function Calling
 // ═══════════════════════════════════════════
 async function sendAI(){
   if(aiTyping) return;
@@ -1857,28 +1844,20 @@ async function sendAI(){
   aiTyping = true;
   document.getElementById('ai-send-btn').disabled = true;
 
-  aiHistory.push({role:'user', parts:[{text: q}]});
+  aiHistory.push({role:'user', content: q});
 
   try {
-    const response = await fetch(`${GEMINI_URL}?key=${AI_API_KEY}`, {
+    const response = await fetch(DEEPSEEK_URL, {
       method: 'POST',
-      headers: {'Content-Type': 'application/json'},
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${AI_API_KEY}`
+      },
       body: JSON.stringify({
-        system_instruction: { parts:[{text: buildSystemPrompt()}] },
-        contents: aiHistory.slice(-10),
+        model: AI_MODEL,
+        messages: [{role: 'system', content: buildSystemPrompt()}, ...aiHistory.slice(-10)],
         tools: AI_TOOLS,
-        generationConfig: {
-          maxOutputTokens: 600,
-          temperature: 0.1,
-          topP: 0.8,
-          topK: 10
-        },
-        safetySettings: [
-          {category:'HARM_CATEGORY_HARASSMENT',        threshold:'BLOCK_NONE'},
-          {category:'HARM_CATEGORY_HATE_SPEECH',       threshold:'BLOCK_NONE'},
-          {category:'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold:'BLOCK_NONE'},
-          {category:'HARM_CATEGORY_DANGEROUS_CONTENT', threshold:'BLOCK_NONE'}
-        ]
+        temperature: 0.1
       })
     });
 
@@ -1888,36 +1867,41 @@ async function sendAI(){
     }
 
     const data = await response.json();
-    const candidate = data.candidates?.[0];
-    const parts = candidate?.content?.parts || [];
+    const msgObj = data.choices?.[0]?.message;
 
     thinkingEl.remove();
 
-    // Check for function call in response
-    const funcPart = parts.find(p => p.functionCall);
-    const textPart = parts.find(p => p.text);
+    if(!msgObj){
+      addAIMsg('לא קיבלתי תשובה ברורה מהמודל.', 'bot');
+      return;
+    }
 
-    if(funcPart){
-      const {name, args} = funcPart.functionCall;
-      // Show any text the model added before the tool call
-      if(textPart && textPart.text.trim()){
-        addAIMsg(textPart.text, 'bot');
-        aiHistory.push({role:'model', parts:[{text: textPart.text}]});
+    const toolCalls = msgObj.tool_calls;
+    const textContent = msgObj.content;
+
+    // Execute or ask for confirmation if there are tools called
+    if(toolCalls && toolCalls.length > 0){
+      const tc = toolCalls[0];
+      const name = tc.function.name;
+      const args = JSON.parse(tc.function.arguments);
+
+      if(textContent && textContent.trim()){
+        addAIMsg(textContent, 'bot');
+        aiHistory.push({role:'assistant', content: textContent});
       }
+
       // Non-destructive actions execute immediately; destructive ones need confirmation
       if(name === 'mark_subtopic_done' || name === 'add_archive_entry'){
         const result = executeTool(name, args);
         addAIMsg(result, 'bot');
-        aiHistory.push({role:'model', parts:[{text: result}]});
+        aiHistory.push({role:'assistant', content: result});
       } else {
         showConfirmCard(name, args, buildConfirmText(name, args));
-        // Don't push to history yet — will push after confirm/cancel
       }
-    } else if(textPart){
-      addAIMsg(textPart.text, 'bot');
-      aiHistory.push({role:'model', parts:[{text: textPart.text}]});
-    } else {
-      addAIMsg('לא קיבלתי תשובה מהמודל.', 'bot');
+    } 
+    else if(textContent){
+      addAIMsg(textContent, 'bot');
+      aiHistory.push({role:'assistant', content: textContent});
     }
 
     if(aiHistory.length > 20) aiHistory = aiHistory.slice(-20);
@@ -1925,12 +1909,12 @@ async function sendAI(){
   } catch(e) {
     thinkingEl.remove();
     let msg = `שגיאה: ${e.message}`;
-    if(e.message.includes('API_KEY_INVALID') || e.message.includes('400'))
-      msg = '❌ API Key שגוי — בדוק שהעתקת נכון מ-AI Studio.';
+    if(e.message.includes('API_KEY_INVALID') || e.message.includes('401'))
+      msg = '❌ API Key שגוי — בדוק שהעתקת נכון מ-DeepSeek.';
     if(e.message.includes('404') || e.message.includes('not found'))
-      msg = '❌ שגיאת מודל — נסה לרענן את הדף.';
-    if(e.message.includes('429') || e.message.includes('RESOURCE_EXHAUSTED'))
-      msg = '⏳ חרגת ממגבלת הקריאות — נסה שוב בעוד דקה.';
+      msg = '❌ שגיאת נתיב API.';
+    if(e.message.includes('429') || e.message.includes('Insufficient Balance'))
+      msg = '⏳ חרגת ממגבלת הקריאות או שנגמר התקציב למפתח זה.';
     if(e.message.includes('Failed to fetch'))
       msg = '🌐 שגיאת רשת — בדוק חיבור לאינטרנט.';
     addAIMsg(msg, 'bot');
