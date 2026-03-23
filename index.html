@@ -957,11 +957,11 @@ function renderCalendar(){
 function changeMonth(d){calM+=d;if(calM>11){calM=0;calY++;}if(calM<0){calM=11;calY--;}renderCalendar();}
 
 // ═══════════════════════════════════════════
-// AI CHAT — DeepSeek V3 (HARDCODED KEY)
+// AI CHAT — Groq (Llama 3.3)
 // ═══════════════════════════════════════════
-const AI_API_KEY   = 'sk-1217fc0a2c164662bfd75c17c147e5f9'; // מפתח חדש ומעודכן
-const AI_MODEL     = 'deepseek-chat';
-const DEEPSEEK_URL = 'https://api.deepseek.com/chat/completions';
+const AI_API_KEY   = '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'; 
+const AI_MODEL     = 'llama-3.3-70b-versatile';
+const DEEPSEEK_URL = 'https://api.groq.com/openai/v1/chat/completions'; // השארתי את השם כדי לא לשבור פונקציות אחרות
 
 let aiOpen = false, aiHistory = [], aiTyping = false;
 
