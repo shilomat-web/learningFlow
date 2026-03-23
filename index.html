@@ -1416,7 +1416,7 @@ function renderArchive(){
 // ── CONFIG ──
 const AI_API_KEY   = 'AIzaSyD3IIZXJUUculQPACKRoXaVPMbohbrdp5s';.trim(); 
 const AI_MODEL     = 'gemini-2.0-flash';
-const AI_URL = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
+const AI_URL = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions?key=' + AIzaSyD3IIZXJUUculQPACKRoXaVPMbohbrdp5s;
 
 let aiOpen    = false;
 let aiHistory = [];   // {role:'user'|'assistant', content:'...'}
