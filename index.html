@@ -511,7 +511,7 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
 
 <div id="page-studytime" class="page">
   <div class="page-header">
-    <div class="header-actions"><button class="btn btn-primary" onclick="openModal('m-log')">+ רישום</button></div>
+    <div class="header-actions"><button class="btn btn-primary" onclick="openLogModal()">+ רישום</button></div>
     <div class="page-title"><h1>זמן לימוד</h1><p>מעקב ולוגים יומיים</p></div>
   </div>
   <div id="quote-area"></div>
@@ -1112,15 +1112,75 @@ const var_amber='#f39c12',var_green='#2ecc8b';
 // STUDY TIME
 // ═══════════════════════════════════════════
 const QUOTES=[
-  {t:"ההצלחה היא סכום של מאמצים קטנים שחוזרים על עצמם יום אחר יום.",a:"רוברט קולייר"},
-  {t:"המומחה היה פעם מתחיל שפשוט לא ויתר.",a:"הלן הייס"},
-  {t:"ידע הוא כוח.",a:"פרנסיס בייקון"},
-  {t:"ההשקעה בידע מניבה את הרווח הטוב ביותר.",a:"בנג'מין פרנקלין"},
-  {t:"לא משנה כמה אתה איטי, כל עוד אינך עוצר.",a:"קונפוציוס"},
-  {t:"חינוך הוא הנשק האדיר ביותר שבו תוכל להשתמש כדי לשנות את העולם.",a:"נלסון מנדלה"},
-  {t:"העתיד שייך לאלה שמאמינים ביופי של חלומותיהם.",a:"אלינור רוזוולט"},
-  {t:"אל תחכה. הזמן לעולם לא יהיה 'נכון'.",a:"נפוליאון היל"},
+  {t:"ככל שאני עובד קשה יותר, נראה שיש לי יותר מזל.", a:"לאונרדו דה וינצ'י"},
+  {t:"למידה היא הדבר היחיד שהמוח לעולם לא מתיש, אף פעם לא מפחד ולא מתחרט.", a:"לאונרדו דה וינצ'י"},
+  {t:"גאונות היא אחוז השראה אחד, תשעים ותשעה אחוז זיעה.", a:"תומאס אדיסון"},
+  {t:"אין תחליף לעבודה קשה.", a:"תומאס אדיסון"},
+  {t:"אנו מה שאנחנו עושים שוב ושוב. מצוינות, אם כן, אינה מעשה אלא הרגל.", a:"אריסטו"},
+  {t:"מזל מעדיף את הנועזים.", a:"וירגיליוס"},
+  {t:"כל החלומות שלנו יכולים להתגשם אם יהיה לנו את האומץ לרדוף אחריהם.", a:"וולט דיסני"},
+  {t:"הדרך להתחיל היא להפסיק לדבר ולהתחיל לעשות.", a:"וולט דיסני"},
+  {t:"הכישרונות והיכולות שלך ישתפרו עם הזמן, אבל בשביל זה אתה צריך להתחיל.", a:"מרטין לותר קינג"},
+  {t:"הדרך הטובה ביותר לחזות את העתיד שלך היא ליצור אותו.", a:"אברהם לינקולן"},
+  {t:"הצלחה אינה מקרית. זו עבודה קשה, התמדה, ולמידה.", a:"פלה"},
+  {t:"החינוך הוא הנשק הכי חזק שאפשר להשתמש בו כדי לשנות את העולם.", a:"נלסון מנדלה"},
+  {t:"זה תמיד נראה בלתי אפשרי עד שזה נעשה.", a:"נלסון מנדלה"},
+  {t:"אם החלומות שלך לא מפחידים אותך, הם לא מספיק גדולים.", a:"מוחמד עלי"},
+  {t:"תתחיל איפה שאתה. השתמש במה שיש לך. תעשה מה שאתה יכול.", a:"ארתור אש"},
+  {t:"דחיינות היא גנבת הזמן. צווארון אותו.", a:"צ'רלס דיקנס"},
+  {t:"כשנראה שהכל הולך נגדך, זכור שהמטוס ממריא נגד הרוח, לא איתה.", a:"הנרי פורד"},
+  {t:"תאמין שאתה יכול ואתה כבר בחצי הדרך.", a:"תיאודור רוזוולט"},
+  {t:"אדם שמעולם לא עשה טעות לא ניסה שום דבר חדש.", a:"אלברט איינשטיין"},
+  {t:"העתיד שייך לאלה שמאמינים ביופי של חלומותיהם.", a:"אלינור רוזוולט"},
+  {t:"עשה מה שנכון, לא מה שקל.", a:"רוי טי בנט"},
+  {t:"בכל בוקר יש לך שתי אפשרויות: להמשיך לישון עם החלומות, או להתעורר ולרדוף אחריהם.", a:"כרמלו אנתוני"},
+  {t:"אם אתה רוצה להשיג את מטרות חייך, אתה צריך להתחיל עם הרוח.", a:"אופרה ווינפרי"},
+  {t:"למי שלא מאמין בעצמו, עבודה קשה היא חסרת ערך.", a:"מאסאשי קישימוטו"},
+  {t:"הצלחה היא לא בין לילה. זה כשכל יום אתה משתפר קצת מהיום הקודם.", a:"דוויין ג'ונסון"},
+  {t:"אם אתה באמת רוצה לעשות משהו, אתה תמצא דרך. אם לא, תמצא תירוצים.", a:"ג'ים רוהן"},
+  {t:"היום זו ההזדמנות שלך לבנות את המחר שאתה רוצה.", a:"קן פוארו"},
+  {t:"עבודה קשה מנצחת כישרון כשכישרון לא עובד קשה.", a:"טים נוטקה"},
+  {t:"קריאה חיונית למי שמבקש להתעלות מעל הרגיל.", a:"ג'ים רוהן"},
+  {t:"כל מה שמוחו של אדם יכול לקבל ולהאמין בו, הוא גם יכול להשיג.", a:"נפוליאון היל"},
+  {t:"או שאתה הוא זה ששולט ביומך, או שהוא שולט בך.", a:"ג'ים רוהן"},
+  {t:"כל מה שאי פעם רציתם נמצא בצידו השני של הפחד.", a:"ג'ורג' אדאיר"},
+  {t:"אתה לא יכול ליפול אם לא תטפס. אבל אין שמחה בלחיות על הקרקע.", a:"אנונימי"},
+  {t:"אם אתה עושה מה שתמיד עשית, תקבל את מה שתמיד קיבלת.", a:"טוני רובינס"},
+  {t:"ההתחלה היא החלק החשוב ביותר של העבודה.", a:"אפלטון"},
+  {t:"מסע של אלף מייל מתחיל בצעד אחד.", a:"לאו דזה"}
 ];
+
+let pendingLogId = null;
+
+function openLogModal(){
+  pendingLogId = null;
+  document.getElementById('m-log-desc').value = '';
+  document.getElementById('m-log-h').value = '0';
+  document.getElementById('m-log-m').value = '0';
+  document.getElementById('m-log-date').value = today();
+  document.getElementById('m-log-custom-wrap').style.display = 'none';
+  openModal('m-log');
+}
+
+function editLog(id){
+  const l = S.logs.find(x => x.id === id);
+  if(!l) return;
+  pendingLogId = id;
+  document.getElementById('m-log-subj').value = l.subjId;
+  document.getElementById('m-log-desc').value = l.desc || '';
+  document.getElementById('m-log-h').value = Math.floor(l.minutes / 60);
+  document.getElementById('m-log-m').value = l.minutes % 60;
+  document.getElementById('m-log-date').value = l.date;
+  document.getElementById('m-log-custom-wrap').style.display = 'none';
+  openModal('m-log');
+}
+
+function deleteLogUI(id){
+  if(!confirm('האם למחוק רשומת זמן לימוד זו?')) return;
+  S.logs = S.logs.filter(x => x.id !== id);
+  save(); renderStudyTime(); renderDash(); showToast('הרשומה נמחקה!');
+}
+
 function addLog(){
   const h=parseInt(document.getElementById('m-log-h').value)||0;
   const m=parseInt(document.getElementById('m-log-m').value)||0;
@@ -1133,13 +1193,28 @@ function addLog(){
   }
   const date=document.getElementById('m-log-date').value||today();
   const desc=document.getElementById('m-log-desc').value.trim();
-  const existing=S.logs.find(l=>l.subjId===subjId&&l.date===date);
-  if(existing){
-    existing.minutes+=mins;
-    if(desc&&!existing.desc.includes(desc))existing.desc=existing.desc?existing.desc+', '+desc:desc;
-  }else{
-    S.logs.push({id:uid(),subjId,desc,minutes:mins,date});
+
+  if(pendingLogId) {
+    // מצב עריכה - מעדכן את הרשומה הקיימת בלי לחבר אותה לאחרות
+    const existing = S.logs.find(l=>l.id===pendingLogId);
+    if(existing){
+      existing.subjId = subjId; 
+      existing.minutes = mins; 
+      existing.date = date; 
+      existing.desc = desc;
+    }
+    pendingLogId = null;
+  } else {
+    // מצב הוספה - מחבר לרשומות קיימות באותו יום ונושא אם יש
+    const existing=S.logs.find(l=>l.subjId===subjId&&l.date===date);
+    if(existing){
+      existing.minutes+=mins;
+      if(desc&&!existing.desc.includes(desc))existing.desc=existing.desc?existing.desc+', '+desc:desc;
+    }else{
+      S.logs.push({id:uid(),subjId,desc,minutes:mins,date});
+    }
   }
+
   save();['m-log-desc'].forEach(i=>document.getElementById(i).value='');
   document.getElementById('m-log-h').value='0';document.getElementById('m-log-m').value='0';
   document.getElementById('m-log-custom-wrap').style.display='none';
@@ -1178,7 +1253,23 @@ function renderLogsList(){
   const el=document.getElementById('logs-list');if(!el)return;
   const sorted=[...S.logs].sort((a,b)=>b.date.localeCompare(a.date));
   if(!sorted.length){el.innerHTML='<div class="empty">אין רשומות</div>';return;}
-  el.innerHTML=sorted.map(l=>{const s=S.subjects.find(s=>s.id===l.subjId);return`<div class="log-row"><div class="log-dur">${fmtMins(l.minutes)}</div><div>${l.desc?`<span style="font-size:12px;color:var(--sec)">— ${l.desc} </span>`:''}${s?`<span class="log-tag">${s.name}</span>`:''}</div><div class="log-date">${fmtDate(l.date)}</div></div>`;}).join('');
+  el.innerHTML=sorted.map(l=>{
+    const s=S.subjects.find(s=>s.id===l.subjId);
+    return `<div class="log-row">
+      <div style="display:flex;gap:12px;align-items:center">
+        <div class="log-dur">${fmtMins(l.minutes)}</div>
+        <div>
+          ${s?`<span class="log-tag">${s.name}</span>`:''}
+          ${l.desc?`<div style="font-size:11px;color:var(--sec);margin-top:2px">${l.desc}</div>`:''}
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <div class="log-date" style="margin-left:6px">${fmtDate(l.date)}</div>
+        <button onclick="editLog('${l.id}')" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;width:26px;height:26px;cursor:pointer;color:var(--sec)" title="ערוך">✎</button>
+        <button onclick="deleteLogUI('${l.id}')" style="background:#fdecea;border:1px solid #fad2ce;border-radius:6px;width:26px;height:26px;cursor:pointer;color:var(--red)" title="מחק">✕</button>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 // ═══════════════════════════════════════════
@@ -1516,6 +1607,14 @@ function buildContext(){
     S.logs.forEach(l=>{bySubj[l.subjId]=(bySubj[l.subjId]||0)+l.minutes;});
     lines.push('לפי נושא:');
     Object.entries(bySubj).sort((a,b)=>b[1]-a[1]).forEach(([sid,m])=>{const s=S.subjects.find(s=>s.id===sid);lines.push(`  ${s?s.name:'?'}: ${fmtMins(m)}`);});
+    
+    // הוספת רשומות לימוד אחרונות (עם ID כדי שה-AI יוכל למחוק אותן)
+    lines.push('רשומות אחרונות:');
+    [...S.logs].sort((a,b)=>b.date.localeCompare(a.date)).slice(0, 15).forEach(l=>{
+      const s = S.subjects.find(s=>s.id===l.subjId);
+      lines.push(`  (id:${l.id}) בתאריך ${fmtDate(l.date)} | נושא: ${s?s.name:'?'} | זמן: ${l.minutes} דקות${l.desc?' | תיאור: '+l.desc:''}`);
+    });
+    
     const todayMins=S.logs.filter(l=>l.date===td).reduce((s,l)=>s+l.minutes,0);
     lines.push(`היום: ${fmtMins(todayMins)}`);
   }
@@ -1556,7 +1655,7 @@ function buildSystemPrompt(){
 3. אם המידע הספציפי לא נמצא בנתונים — השב: "המידע הזה אינו קיים בנתוני האפליקציה שלך."
 4. אל תמציא, אל תשער, אל תשתמש בשום ידע חיצוני.
 5. ענה בעברית, בצורה קצרה וברורה.
-6. כשמשתמש מבקש למחוק — השתמש ב-tool המתאים ובקש אישור.
+6. כשמשתמש מבקש למחוק נושא, משימה, מבחן, זמן לימוד או רשומה מהארכיון — השתמש ב-tool המתאים ובקש אישור.
 7. כשמשתמש מבקש להוסיף מבחן לארכיון — השתמש ב-tool add_archive_entry.
 8. ניתן לחשב ממוצעים, לנתח תבניות ולהצביע על שיפורים — מהנתונים בלבד.
 9. כאשר המשתמש מבקש להוסיף נושא, משימה, מבחן, או זמן לימוד, או לסמן משימה כהושלמה - **בצע זאת מיד** באמצעות הכלים (Tools) שסופקו לך. אל תסביר לו איך לעשות זאת בממשק.
@@ -1633,6 +1732,21 @@ const AI_TOOLS = [
           exam_name: { type: 'string', description: 'שם המבחן (לאישור)' }
         },
         required: ['exam_id', 'exam_name']
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: 'delete_log',
+      description: 'מוחק רשומת זמן לימוד. השתמש רק לאחר אישור המשתמש.',
+      parameters: {
+        type: 'object',
+        properties: {
+          log_id:   { type: 'string', description: 'ה-ID של רשומת זמן הלימוד' },
+          log_desc: { type: 'string', description: 'תיאור הרשומה או שם הנושא (לאישור)' }
+        },
+        required: ['log_id', 'log_desc']
       }
     }
   },
@@ -1811,6 +1925,13 @@ function executeTool(name, args){
       save(); renderExams(); renderDash();
       return `✅ המבחן "${args.exam_name}" נמחק בהצלחה.`;
     }
+    case 'delete_log': {
+      const idx = S.logs.findIndex(l=>l.id===args.log_id);
+      if(idx===-1) return `❌ זמן לימוד לא נמצא.`;
+      S.logs.splice(idx,1);
+      save(); renderStudyTime(); renderDash();
+      return `✅ רשומת זמן הלימוד נמחקה בהצלחה.`;
+    }
     case 'mark_subtopic_done': {
       const subj = S.subjects.find(s=>s.id===args.subject_id);
       if(!subj) return `❌ נושא לא נמצא.`;
@@ -1943,6 +2064,8 @@ function buildConfirmText(name, args){
       return `האם למחוק את המשימה <strong>"${args.task_name}"</strong>?`;
     case 'delete_exam':
       return `האם למחוק את המבחן <strong>"${args.exam_name}"</strong>?`;
+    case 'delete_log':
+      return `האם למחוק את זמן הלימוד עבור <strong>"${args.log_desc}"</strong>?`;
     case 'delete_archive_entry':
       return `האם למחוק את הרשומה <strong>"${args.entry_name}"</strong> מהארכיון? פעולה זו אינה הפיכה.`;
     default:
