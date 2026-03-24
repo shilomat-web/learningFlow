@@ -653,11 +653,19 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
     </div>
   </div>
 </div>
-
+<div class="modal-overlay" id="m-day-logs">
+  <div class="modal">
+    <h3 id="m-day-logs-title">פירוט למידה</h3>
+    <div id="m-day-logs-content" style="margin-bottom: 20px;"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('m-day-logs')">סגור</button>
+    </div>
+  </div>
+</div>
 <div class="modal-overlay" id="m-notify">
   <div class="modal">
-    <h3>תזכורות</h3>
-    <p style="color:var(--sec);font-size:14px;text-align:right">תכונה זו תהיה זמינה בגרסה הבאה.<br>כרגע ניתן לסמן תאריכי יעד למשימות.</p>
+    <h3>תזכורות קרובות 🔔</h3>
+    <div id="notify-list" style="margin-bottom: 20px; max-height: 300px; overflow-y: auto;"></div>
     <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal('m-notify')">סגור</button></div>
   </div>
 </div>
@@ -857,7 +865,7 @@ let pendingSubjParent=null,pendingScoreId=null,currentTL='red';
 function openModal(id){
   if(id==='m-task'||id==='m-exam'||id==='m-log')populateSubjSelects();
   
-  // -- הקוד החדש שהוספנו --
+  if(id==='m-notify') renderReminders();
   if(id==='m-task') {
     const typeSelect = document.getElementById('m-task-type');
     if (typeSelect && typeSelect.options.length <= 2) {
@@ -983,6 +991,7 @@ function renderSubNodes(sid,items,path){
     <div class="sub-topic-children" id="sc${sid}${pk}">${renderSubNodes(sid,item.subtopics,cp)}</div>`;
   }).join('');
 }
+  
 function toggleSubj(id,chevId){
   document.getElementById(id).classList.toggle('open');
   const ch=document.getElementById(chevId);if(ch)ch.classList.toggle('open');
@@ -1265,7 +1274,7 @@ function renderTimeChart(){
   const el=document.getElementById('time-chart');if(!el)return;
   if(timeView==='h'){
     const days=[];
-    for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const ds=d.toISOString().split('T')[0];const m=S.logs.filter(l=>l.date===ds).reduce((s,l)=>s+l.minutes,0);days.push({lbl:d.toLocaleDateString('he-IL',{weekday:'short'}),m});}
+    for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const ds=d.toISOString().split('T')[0];const m=S.logs.filter(l=>l.date===ds).reduce((s,l)=>s+l.minutes,0);days.push({lbl:d.toLocaleDateString('he-IL',{weekday:'short'}),m, ds: ds});}
     const mx=Math.max(...days.map(d=>d.m),60);
     el.innerHTML=`<div class="chart-wrap"><div style="font-size:13px;font-weight:500;text-align:right">7 ימים אחרונים</div><div class="bars">${days.map(d=>`<div class="bar-wrap"><div class="bar" style="height:${Math.round(d.m/mx*100)}px" title="${fmtMins(d.m)}"></div><div class="bar-lbl">${d.lbl}</div></div>`).join('')}</div></div>`;
   }else{
@@ -1543,7 +1552,89 @@ function renderArchive(){
     </div>`;
   }).join('');
 }
+// ═══════════════════════════════════════════
+// DAY LOGS & REMINDERS
+// ═══════════════════════════════════════════
+function showDayLogs(dateStr) {
+    const logs = S.logs.filter(l => l.date === dateStr);
+    const titleEl = document.getElementById('m-day-logs-title');
+    const contentEl = document.getElementById('m-day-logs-content');
 
+    titleEl.textContent = 'פירוט למידה - ' + fmtDate(dateStr);
+
+    if(logs.length === 0) {
+        contentEl.innerHTML = '<div class="empty">לא נרשמה למידה ביום זה.</div>';
+    } else {
+        let bySubj = {};
+        let total = 0;
+        logs.forEach(l => {
+            bySubj[l.subjId] = (bySubj[l.subjId] || 0) + l.minutes;
+            total += l.minutes;
+        });
+
+        let html = `<div style="margin-bottom:12px; font-weight:bold; font-size:16px;">סה"כ למידה: ${fmtMins(total)}</div>`;
+        html += Object.entries(bySubj).map(([sid, m]) => {
+            const s = S.subjects.find(sub => sub.id === sid);
+            const name = s ? s.name : 'נושא לא ידוע';
+            return `<div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border);">
+                <span>${name}</span>
+                <strong style="color:var(--g);">${fmtMins(m)}</strong>
+            </div>`;
+        }).join('');
+        contentEl.innerHTML = html;
+    }
+    openModal('m-day-logs');
+}
+
+function renderReminders() {
+    const el = document.getElementById('notify-list');
+    if(!el) return;
+    const upcoming = S.tasks.filter(t => !t.done && t.dueDate && t.dueTime).sort((a,b) => (a.dueDate+' '+a.dueTime).localeCompare(b.dueDate+' '+b.dueTime));
+
+    if(!upcoming.length) {
+        el.innerHTML = '<div class="empty">אין תזכורות קרובות. הגדר שעה בתפריט הוספת משימה.</div>';
+        return;
+    }
+    el.innerHTML = upcoming.map(t => {
+         const s = S.subjects.find(sub => sub.id === t.subjId);
+         return `<div style="padding:12px 10px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+            <div>
+                <div style="font-weight:600; font-size:14px;">${t.name}</div>
+                <div style="font-size:11px; color:var(--sec);">${s && s.name !== '__other__' ? s.name : ''}</div>
+            </div>
+            <div style="text-align:left; background:var(--gl); padding:6px 12px; border-radius:8px;">
+                <div style="font-size:11px; color:var(--g);">${fmtDate(t.dueDate)}</div>
+                <div style="font-size:14px; font-weight:bold; color:var(--g);">${t.dueTime}</div>
+            </div>
+         </div>`;
+    }).join('');
+}
+
+// בקשת הרשאה להתראות קופצות בדפדפן
+if ("Notification" in window && Notification.permission !== "denied" && Notification.permission !== "granted") {
+    Notification.requestPermission();
+}
+
+// לולאה שבודקת כל דקה אם יש תזכורת
+setInterval(() => {
+    if(!CU || !S || !S.tasks) return;
+    const now = new Date();
+    const dStr = today();
+    const tStr = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+
+    let changed = false;
+    S.tasks.forEach(t => {
+        if(!t.done && t.dueDate === dStr && t.dueTime === tStr && !t.notified) {
+            if("Notification" in window && Notification.permission === 'granted') {
+                new Notification('מרכז למידה: תזכורת', {body: t.name, icon: '📚'});
+            }
+            showToast('⏰ תזכורת: ' + t.name, 5000);
+            t.notified = true; // מסמן כדי לא להתריע שוב על אותה דקה
+            changed = true;
+        }
+    });
+    if(changed) save();
+}, 60000);
 // ═══════════════════════════════════════════
 // AI CHAT — Strict RAG + Function Calling
 // Powered by DeepSeek V3/Chat
