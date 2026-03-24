@@ -35,7 +35,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--txt);min-he
 .auth-err{font-size:12px;color:var(--red);margin-top:6px;min-height:16px;text-align:right}
 
 /* ── SIDEBAR ── */
-#sidebar{width:var(--sidebar);background:var(--white);border-left:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;right:0;bottom:0;z-index:100}
+#sidebar{width:var(--sidebar);background:var(--white);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100}
 .sb-logo{padding:20px 16px 16px;border-bottom:1px solid var(--border)}
 .sb-logo-row{display:flex;align-items:center;gap:8px;justify-content:flex-end}
 .sb-logo-row h2{font-size:15px;font-weight:700}
@@ -52,10 +52,10 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
 .logout-btn:hover{color:var(--red)}
 
 /* ── MAIN ── */
-#main{margin-right:var(--sidebar);flex:1;padding:32px 40px;min-height:100vh}
+#main{margin-left:var(--sidebar);flex:1;padding:32px 40px;min-height:100vh}
 .page{display:none}
 .page.active{display:block}
-.page-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px}
+.page-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px;flex-direction:row-reverse}
 .page-title h1{font-size:26px;font-weight:700}
 .page-title p{font-size:13px;color:var(--sec);margin-top:3px}
 .header-actions{display:flex;gap:8px;align-items:center}
@@ -216,7 +216,7 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
 .modal-actions{display:flex;gap:10px;justify-content:flex-start;margin-top:24px}
 
 /* ── POMODORO ── */
-#pomodoro-fab{position:fixed;bottom:80px;left:20px;width:56px;height:56px;border-radius:50%;background:var(--g);color:#fff;font-size:24px;border:none;cursor:pointer;box-shadow:0 4px 16px rgba(46,204,139,.5);z-index:200;display:flex;align-items:center;justify-content:center;transition:transform .15s}
+#pomodoro-fab{position:fixed;bottom:80px;right:20px;width:56px;height:56px;border-radius:50%;background:var(--g);color:#fff;font-size:24px;border:none;cursor:pointer;box-shadow:0 4px 16px rgba(46,204,139,.5);z-index:200;display:flex;align-items:center;justify-content:center;transition:transform .15s}
 #pomodoro-fab:hover{transform:scale(1.08)}
 #pomodoro-fab.running{background:#e74c3c;box-shadow:0 4px 16px rgba(231,76,60,.5);animation:pulse 1s infinite}
 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
@@ -244,7 +244,7 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
   .mob-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:9px;color:var(--muted);cursor:pointer;padding:6px 2px;transition:color .15s}
   .mob-item.active{color:var(--g)}
   .mob-item svg{width:22px;height:22px}
-  #main{margin-right:0;padding:16px 14px 80px}
+  #main{margin-left:0;padding:16px 14px 80px}
   .stats-grid{grid-template-columns:1fr 1fr}
   .stat-card.progress-card{grid-column:span 2;flex-direction:row;gap:20px}
   .bottom-grid{grid-template-columns:1fr}
@@ -252,7 +252,7 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
   .fr{grid-template-columns:1fr}
   .page-header{flex-direction:column-reverse;gap:12px}
   .modal{padding:20px 16px}
-  #pomodoro-fab{bottom:74px;left:16px}
+  #pomodoro-fab{bottom:74px;right:16px}
   .pomo-ring{width:140px;height:140px}
   .pomo-time{font-size:28px}
 }
@@ -268,7 +268,7 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
 #ai-fab{
   position:fixed;
   bottom:100px;
-  left:24px;
+  right:24px;
   width:54px;height:54px;
   border-radius:50%;
   background:var(--g);
@@ -287,7 +287,7 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
 }
 #ai-fab:hover{transform:scale(1.1);box-shadow:0 6px 24px rgba(46,204,139,.7)}
 #ai-fab:active{transform:scale(0.96)}
-#ai-panel{position:fixed;bottom:0;left:0;width:380px;height:560px;max-width:100vw;max-height:85vh;background:var(--white);border-radius:0 20px 0 0;box-shadow:4px -4px 32px rgba(0,0,0,.15);z-index:8999;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1)}
+#ai-panel{position:fixed;bottom:0;right:0;width:380px;height:560px;max-width:100vw;max-height:85vh;background:var(--white);border-radius:20px 0 0 0;box-shadow:-4px -4px 32px rgba(0,0,0,.15);z-index:8999;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1)}
 #ai-panel.open{transform:translateY(0)}
 .ai-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0}
 .ai-header-right{display:flex;align-items:center;gap:10px}
@@ -312,11 +312,11 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
 .ai-chip:hover{background:var(--gl);border-color:var(--g);color:var(--g)}
 .ai-api-note{font-size:10px;color:var(--muted);text-align:center;padding:4px 16px;flex-shrink:0}
 @media(max-width:640px){
-  #ai-panel{width:100%;border-radius:20px 20px 0 0;left:0}
-  #ai-fab{bottom:74px;left:16px}
+  #ai-panel{width:100%;border-radius:20px 20px 0 0;right:0}
+  #ai-fab{bottom:74px;right:16px}
 }
 @media(min-width:641px){
-  #pomodoro-fab{left:90px}
+  #pomodoro-fab{left:auto;right:90px}
 }
 #install-banner{display:none;position:fixed;top:0;left:0;right:0;background:var(--g);color:#fff;padding:12px 16px;text-align:center;font-size:13px;z-index:500;flex-direction:column;gap:8px;align-items:center}
 #install-banner.show{display:flex}
@@ -708,20 +708,27 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 'use strict';
 // ═══════════════════════════════════════════
-// AUTH — Username / Password only
-// No Google account required whatsoever.
+// SUPABASE CONFIG
 // ═══════════════════════════════════════════
+const SUPABASE_URL = 'https://xirsfctsowhrsyytgcnh.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_rFgIdYMxry2LJOhOcPGWLw_9eIVcHEv';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ═══════════════════════════════════════════
+// AUTH — Username only (appends @studyapp.local for Supabase)
+// Fallback: localStorage when not logged in via Supabase
+// ═══════════════════════════════════════════
+const toEmail = u => u.includes('@') ? u : u + '@studyapp.local';
 const getUsers  = () => JSON.parse(localStorage.getItem('sa_users') || '{}');
 const saveUsers = u  => localStorage.setItem('sa_users', JSON.stringify(u));
 const userKey   = u  => 'sa_data_' + u;
 
-// Session persists across page reloads
 let CU = null;
-try { const s = localStorage.getItem('sa_session'); if(s) CU = JSON.parse(s);
-} catch(e){}
+try { const s = localStorage.getItem('sa_session'); if(s) CU = JSON.parse(s); } catch(e){}
 
 function switchAuthTab(t){
   document.querySelectorAll('.auth-tab').forEach((el,i) =>
@@ -730,50 +737,69 @@ function switchAuthTab(t){
   document.getElementById('auth-register').style.display = t==='register' ? 'block' : 'none';
 }
 
-function doLogin(){
+async function doLogin(){
   const u = document.getElementById('l-user').value.trim();
   const p = document.getElementById('l-pass').value;
   const err = document.getElementById('l-err');
   if(!u||!p){ err.textContent='יש למלא את כל השדות'; return; }
-  const users = getUsers();
-  if(!users[u]){ err.textContent='שם משתמש לא קיים'; return;
+  err.textContent = '...מתחבר';
+  // Try Supabase first
+  const { data, error } = await sb.auth.signInWithPassword({ email: toEmail(u), password: p });
+  if(!error && data.user){
+    const session = { id: data.user.id, name: u, provider: 'supabase' };
+    err.textContent = '';
+    await loginUser(session);
+    return;
   }
+  // Fallback to localStorage
+  const users = getUsers();
+  if(!users[u]){ err.textContent='שם משתמש לא קיים'; return; }
   if(users[u].pw !== btoa(unescape(encodeURIComponent(p)))){ err.textContent='סיסמה שגויה'; return; }
   err.textContent = '';
-  loginUser({ id: u, name: u, provider: 'local' });
+  await loginUser({ id: u, name: u, provider: 'local' });
 }
 
-function doRegister(){
+async function doRegister(){
   const u  = document.getElementById('r-user').value.trim();
   const p  = document.getElementById('r-pass').value;
   const p2 = document.getElementById('r-pass2').value;
   const err = document.getElementById('r-err');
-  if(!u||!p){ err.textContent='יש למלא את כל השדות'; return;
-  }
+  if(!u||!p){ err.textContent='יש למלא את כל השדות'; return; }
   if(p!==p2){ err.textContent='הסיסמאות אינן תואמות'; return; }
-  if(u.length<2){ err.textContent='שם משתמש חייב להכיל לפחות 2 תווים'; return;
-  }
+  if(u.length<2){ err.textContent='שם משתמש חייב להכיל לפחות 2 תווים'; return; }
   if(p.length<4){ err.textContent='סיסמה חייבת להכיל לפחות 4 תווים'; return; }
+  err.textContent = '...נרשם';
+  // Try Supabase signup
+  const { data, error } = await sb.auth.signUp({ email: toEmail(u), password: p });
+  if(!error && data.user){
+    err.textContent = '';
+    const session = { id: data.user.id, name: u, provider: 'supabase' };
+    await seedNewUserSupabase(data.user.id, u);
+    await loginUser(session);
+    return;
+  }
+  // Fallback to localStorage
   const users = getUsers();
   if(users[u]){ err.textContent='שם משתמש כבר קיים'; return; }
   users[u] = { pw: btoa(unescape(encodeURIComponent(p))) };
   saveUsers(users);
   seedNewUser(u);
   err.textContent = '';
-  loginUser({ id: u, name: u, provider: 'local' });
+  await loginUser({ id: u, name: u, provider: 'local' });
 }
 
-function loginUser(session){
+async function loginUser(session){
   CU = session;
   localStorage.setItem('sa_session', JSON.stringify(session));
-  loadState();
+  await loadState();
   document.getElementById('auth-screen').classList.add('hidden');
   document.getElementById('sb-username').textContent = session.name;
   document.getElementById('sb-avatar').textContent   = session.name[0].toUpperCase();
   showPage('dashboard');
 }
 
-function doLogout(){
+async function doLogout(){
+  if(CU && CU.provider === 'supabase') await sb.auth.signOut();
   CU = null;
   localStorage.removeItem('sa_session');
   document.getElementById('auth-screen').classList.remove('hidden');
@@ -783,17 +809,57 @@ function doLogout(){
 }
 
 // ═══════════════════════════════════════════
-// STATE
+// STATE — Supabase primary, localStorage fallback
 // ═══════════════════════════════════════════
 let S={subjects:[],tasks:[],exams:[],logs:[],archive:[]};
 const cuId=()=>CU?CU.id:null;
-function loadState(){
-  if(!CU)return;
-  S=JSON.parse(localStorage.getItem(userKey(CU.id))||'null')||{subjects:[],tasks:[],exams:[],logs:[],archive:[]};
-  if(!S.archive) S.archive=[];
-// migrate old saves
+
+async function loadState(){
+  if(!CU) return;
+  if(CU.provider === 'supabase'){
+    try {
+      const { data, error } = await sb.from('user_data')
+        .select('data')
+        .eq('user_id', CU.id)
+        .single();
+      if(!error && data && data.data){
+        S = data.data;
+        if(!S.archive) S.archive = [];
+        renderDash();
+        return;
+      }
+    } catch(e){}
+  }
+  // localStorage fallback
+  S = JSON.parse(localStorage.getItem(userKey(CU.id))||'null') || {subjects:[],tasks:[],exams:[],logs:[],archive:[]};
+  if(!S.archive) S.archive = [];
 }
-function save(){if(CU)localStorage.setItem(userKey(CU.id),JSON.stringify(S));}
+
+async function save(){
+  if(!CU) return;
+  // Always keep a local sync copy for instant reads
+  localStorage.setItem(userKey(CU.id), JSON.stringify(S));
+  if(CU.provider === 'supabase'){
+    try {
+      await sb.from('user_data').upsert(
+        { user_id: CU.id, data: S },
+        { onConflict: 'user_id' }
+      );
+    } catch(e){ /* localStorage already written above */ }
+  }
+}
+
+async function seedNewUserSupabase(userId, username){
+  const data = {subjects:[{id:uid(),name:'מתמטיקה',subtopics:MATH_TOPICS.map(t=>({id:uid(),name:t.n,done:t.d,subtopics:[]}))}],tasks:[],exams:[],logs:[],archive:[]};
+  try {
+    await sb.from('user_data').upsert(
+      { user_id: userId, data },
+      { onConflict: 'user_id' }
+    );
+  } catch(e) {
+    localStorage.setItem(userKey(userId), JSON.stringify(data));
+  }
+}
 
 // ═══════════════════════════════════════════
 // SEED DATA
@@ -1666,13 +1732,23 @@ window.addEventListener('appinstalled',()=>{document.getElementById('install-ban
 // ═══════════════════════════════════════════
 // INIT — restore session on page load
 // ═══════════════════════════════════════════
-if(CU){
-  loadState();
-  document.getElementById('auth-screen').classList.add('hidden');
-  document.getElementById('sb-username').textContent = CU.name;
-  document.getElementById('sb-avatar').textContent   = CU.name[0].toUpperCase();
-  renderDash();
-}
+(async function(){
+  if(CU){
+    await loadState();
+    document.getElementById('auth-screen').classList.add('hidden');
+    document.getElementById('sb-username').textContent = CU.name;
+    document.getElementById('sb-avatar').textContent   = CU.name[0].toUpperCase();
+    renderDash();
+  }
+  // Also check for active Supabase session (e.g. after OAuth redirect)
+  const { data: { session } } = await sb.auth.getSession();
+  if(session && session.user && (!CU || CU.provider !== 'supabase')){
+    // Supabase has a session but we didn't load it — restore it
+    const storedSession = localStorage.getItem('sa_session');
+    const name = storedSession ? JSON.parse(storedSession).name : session.user.email.replace('@studyapp.local','');
+    await loginUser({ id: session.user.id, name, provider: 'supabase' });
+  }
+})();
 
 // ═══════════════════════════════════════════
 // PAST EXAMS ARCHIVE
