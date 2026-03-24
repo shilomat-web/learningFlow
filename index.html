@@ -742,21 +742,22 @@ async function doLogin(){
   const p = document.getElementById('l-pass').value;
   const err = document.getElementById('l-err');
   if(!u||!p){ err.textContent='יש למלא את כל השדות'; return; }
-  err.textContent = '...מתחבר';
-  // Try Supabase first
+  
+  err.textContent = '...מתחבר לענן';
+  
+  // ניסיון התחברות לענן - בלי פשרות
   const { data, error } = await sb.auth.signInWithPassword({ email: toEmail(u), password: p });
-  if(!error && data.user){
-    const session = { id: data.user.id, name: u, provider: 'supabase' };
-    err.textContent = '';
-    await loginUser(session);
+  
+  if(error) {
+    err.textContent = 'שגיאת התחברות: ' + error.message;
+    console.error(error);
     return;
   }
-  // Fallback to localStorage
-  const users = getUsers();
-  if(!users[u]){ err.textContent='שם משתמש לא קיים'; return; }
-  if(users[u].pw !== btoa(unescape(encodeURIComponent(p)))){ err.textContent='סיסמה שגויה'; return; }
-  err.textContent = '';
-  await loginUser({ id: u, name: u, provider: 'local' });
+
+  if(data.user){
+    const session = { id: data.user.id, name: u, provider: 'supabase' };
+    await loginUser(session);
+  }
 }
 
 async function doRegister(){
@@ -764,28 +765,23 @@ async function doRegister(){
   const p  = document.getElementById('r-pass').value;
   const p2 = document.getElementById('r-pass2').value;
   const err = document.getElementById('r-err');
-  if(!u||!p){ err.textContent='יש למלא את כל השדות'; return; }
-  if(p!==p2){ err.textContent='הסיסמאות אינן תואמות'; return; }
-  if(u.length<2){ err.textContent='שם משתמש חייב להכיל לפחות 2 תווים'; return; }
-  if(p.length<4){ err.textContent='סיסמה חייבת להכיל לפחות 4 תווים'; return; }
-  err.textContent = '...נרשם';
-  // Try Supabase signup
+  
+  if(!u||!p||p!==p2){ err.textContent='בדוק שדות וסיסמאות'; return; }
+  
+  err.textContent = '...יוצר חשבון בענן';
+  
   const { data, error } = await sb.auth.signUp({ email: toEmail(u), password: p });
-  if(!error && data.user){
-    err.textContent = '';
+  
+  if(error) {
+    err.textContent = 'שגיאת רישום: ' + error.message;
+    return;
+  }
+
+  if(data.user){
     const session = { id: data.user.id, name: u, provider: 'supabase' };
     await seedNewUserSupabase(data.user.id, u);
     await loginUser(session);
-    return;
   }
-  // Fallback to localStorage
-  const users = getUsers();
-  if(users[u]){ err.textContent='שם משתמש כבר קיים'; return; }
-  users[u] = { pw: btoa(unescape(encodeURIComponent(p))) };
-  saveUsers(users);
-  seedNewUser(u);
-  err.textContent = '';
-  await loginUser({ id: u, name: u, provider: 'local' });
 }
 
 async function loginUser(session){
