@@ -837,15 +837,18 @@ async function loadState(){
 
 async function save(){
   if(!CU) return;
-  // Always keep a local sync copy for instant reads
   localStorage.setItem(userKey(CU.id), JSON.stringify(S));
   if(CU.provider === 'supabase'){
-    try {
-      await sb.from('user_data').upsert(
+    const { data, error } = await sb.from('user_data').upsert(
         { user_id: CU.id, data: S },
         { onConflict: 'user_id' }
-      );
-    } catch(e){ /* localStorage already written above */ }
+    );
+    if (error) {
+        console.error("Supabase Save Error:", error.message);
+        showToast("שגיאת סנכרון: " + error.message);
+    } else {
+        console.log("Saved to Supabase successfully!");
+    }
   }
 }
 
