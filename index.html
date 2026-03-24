@@ -856,13 +856,17 @@ let pendingSubjParent=null,pendingScoreId=null,currentTL='red';
 
 function openModal(id){
   if(id==='m-task'||id==='m-exam'||id==='m-log')populateSubjSelects();
-  if(id==='m-log')document.getElementById('m-log-date').value=today();
+  
+  // -- הקוד החדש שהוספנו --
   if(id==='m-task') {
-  const typeSelect = document.getElementById('m-task-type');
-  if (typeSelect && typeSelect.options.length <= 2) {
-      typeSelect.innerHTML += '<option value="weekly">שבועי</option><option value="custom">לפי תאריך</option>';
+    const typeSelect = document.getElementById('m-task-type');
+    if (typeSelect && typeSelect.options.length <= 2) {
+        typeSelect.innerHTML += '<option value="weekly">שבועי</option><option value="custom">לפי תאריך</option>';
+    }
   }
-}
+  // -------------------------
+
+  if(id==='m-log')document.getElementById('m-log-date').value=today();
   if(id==='m-exam'){currentTL='red';updateTL();}
   document.getElementById(id).classList.add('open');
 }
