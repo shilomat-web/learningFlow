@@ -1934,9 +1934,9 @@ setInterval(() => {
 // ═══════════════════════════════════════════
 
 // ── CONFIG ──
-const AI_API_KEY = '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';
 const AI_MODEL   = 'llama-3.3-70b-versatile';
-const AI_URL     = 'https://api.groq.com/openai/v1/chat/completions';
+let aiOpen    = false;
+
 let aiOpen    = false;
 let aiHistory = [];   // Format: {role:'user'|'assistant', content:'...'}
 let aiTyping  = false;
@@ -2518,11 +2518,11 @@ async function sendAI(){
       { role: 'system', content: buildSystemPrompt() },
       ...aiHistory.slice(-10) // Keep last 10 messages for context
     ];
-    const response = await fetch(AI_URL, {
+const response = await fetch('/api/chat', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${AI_API_KEY}`
+        'Content-Type': 'application/json'
+      
       },
       body: JSON.stringify({
         model: AI_MODEL,
