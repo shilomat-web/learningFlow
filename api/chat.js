@@ -1,8 +1,9 @@
-// /api/chat.js — Vercel Serverless Function
+// /api/chat.js — Vercel Serverless Function  (Phase 1 & 2 update)
 // Handles authenticated user-data CRUD against Supabase.
 // Deploy alongside index.html. Set env vars in Vercel dashboard:
-//   SUPABASE_URL        = https://xirsfctsowhrsyytgcnh.supabase.co
+//   SUPABASE_URL         = https://xirsfctsowhrsyytgcnh.supabase.co
 //   SUPABASE_SERVICE_KEY = <your service_role key>  ← NOT the anon key
+//   SUPABASE_ANON_KEY    = <your anon/public key>
 
 import { createClient } from '@supabase/supabase-js';
 
@@ -32,6 +33,58 @@ const CORS = {
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 };
+
+// ─────────────────────────────────────────────────────────────
+// SCHEMA HELPERS
+// Phase 1 & 2 add two new fields to the JSONB payload:
+//   subject.category   : '' | 'university' | 'matriculation' | 'other'
+//   task.recurring     : boolean  (daily auto-reset at midnight)
+//   task.lastReset     : string   (YYYY-MM-DD — date of last recurring reset)
+//
+// migrateData() is a pure-JS forward-migration that runs on every
+// load so old rows stored before the update are transparently upgraded.
+// No Supabase column changes are required — everything lives in the
+// existing JSONB `data` column.
+// ─────────────────────────────────────────────────────────────
+function migrateData(data) {
+  if (!data || typeof data !== 'object') return data;
+
+  // Ensure top-level arrays exist
+  if (!Array.isArray(data.subjects)) data.subjects = [];
+  if (!Array.isArray(data.tasks))    data.tasks    = [];
+  if (!Array.isArray(data.exams))    data.exams    = [];
+  if (!Array.isArray(data.logs))     data.logs     = [];
+  if (!Array.isArray(data.archive))  data.archive  = [];
+
+  // Forward-migrate subjects: add category field if missing
+  data.subjects = data.subjects.map(s => ({
+    ...s,
+    category: s.category ?? '',   // '' = no category
+  }));
+
+  // Forward-migrate tasks: add recurring fields if missing
+  const todayStr = new Date().toISOString().split('T')[0];
+  data.tasks = data.tasks.map(t => ({
+    ...t,
+    recurring:  t.recurring  ?? false,
+    lastReset:  t.lastReset  ?? (t.recurring ? todayStr : null),
+  }));
+
+  return data;
+}
+
+// ─────────────────────────────────────────────────────────────
+// SEED DATA for new users (includes category on the demo subject)
+// ─────────────────────────────────────────────────────────────
+function buildSeedData() {
+  return {
+    subjects: [],   // frontend adds the Math demo subject on first login
+    tasks:    [],
+    exams:    [],
+    logs:     [],
+    archive:  [],
+  };
+}
 
 export default async function handler(req, res) {
   // Handle CORS preflight
@@ -74,8 +127,8 @@ export default async function handler(req, res) {
 
     const userId = authData.user.id;
 
-    // Seed initial data row
-    const seedData = { subjects: [], tasks: [], exams: [], logs: [], archive: [] };
+    // Seed initial data row (Phase 1 & 2: use buildSeedData)
+    const seedData = buildSeedData();
     await sb.from('user_data').upsert(
       { user_id: userId, data: seedData },
       { onConflict: 'user_id' }
@@ -99,13 +152,13 @@ export default async function handler(req, res) {
     // Use anon client for signIn (returns user-scoped JWT)
     const anonSb = createClient(
       process.env.SUPABASE_URL,
-      process.env.SUPABASE_ANON_KEY  // add this env var too
+      process.env.SUPABASE_ANON_KEY
     );
     const { data, error } = await anonSb.auth.signInWithPassword({ email, password });
     if (error) return res.status(401).json({ error: 'שם משתמש או סיסמה שגויים' });
 
     return res.status(200).json({
-      ok: true,
+      ok:           true,
       accessToken:  data.session.access_token,
       refreshToken: data.session.refresh_token,
       userId:       data.user.id,
@@ -134,7 +187,9 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: error.message });
     }
 
-    return res.status(200).json({ ok: true, data: data?.data || null });
+    // Phase 1 & 2: run forward migration before returning to client
+    const migrated = migrateData(data?.data || null);
+    return res.status(200).json({ ok: true, data: migrated });
   }
 
   // ─────────────────────────────────────────────
@@ -153,10 +208,15 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Missing data payload' });
     }
 
+    // Phase 1 & 2: run migration on the incoming payload before saving,
+    // so any client that hasn't yet applied the front-end update is still
+    // handled gracefully.
+    const migratedPayload = migrateData(payload);
+
     const sb = getAdminClient();
     const { error } = await sb
       .from('user_data')
-      .upsert({ user_id: userId, data: payload }, { onConflict: 'user_id' });
+      .upsert({ user_id: userId, data: migratedPayload }, { onConflict: 'user_id' });
 
     if (error) return res.status(500).json({ error: error.message });
     return res.status(200).json({ ok: true });
