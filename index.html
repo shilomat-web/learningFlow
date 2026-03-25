@@ -37,7 +37,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--txt);min-he
 /* ── Responsive logo in sidebar ── */
 .sb-logo-img{width:48px;height:48px;object-fit:contain;flex-shrink:0;display:block}
 /* ── Auth logo: larger, crisp ── */
-.auth-logo-img{width:100%;max-width:160px;height:auto;object-fit:contain;display:block}
+.auth-logo-img{width:100%;max-width:260px;height:auto;object-fit:contain;display:block}
 .auth-logo h1{font-size:22px;font-weight:700}
 .auth-tabs,.tabs{display:flex;background:var(--bg);border-radius:10px;padding:4px}
 .auth-tab,.tab{flex:1;padding:9px;text-align:center;font-size:14px;cursor:pointer;border-radius:7px;transition:all .15s;color:var(--sec);font-family:'Heebo',sans-serif}
@@ -288,7 +288,7 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
   cursor:pointer;
   box-shadow:0 4px 20px rgba(46,204,139,.55);
   z-index:9000;
-  display:flex !important;
+  display:flex 
   align-items:center;
   justify-content:center;
   transition:transform .15s, box-shadow .15s;
@@ -614,7 +614,7 @@ body.dark-mode {
   <div class="auth-box">
     <div class="auth-logo">
       <h1>מרכז למידה</h1>
-      <div class="logo-icon" style="width:auto;max-width:168px;border-radius:18px;margin:0 auto"><img src="logo.png" alt="לוגו מרכז למידה" class="auth-logo-img"></div>
+  <div class="logo-icon" style="width:auto;max-width:280px;border-radius:18px;margin:0 auto"><img src="logo.png" alt="לוגו מרכז למידה" class="auth-logo-img"></div>
     </div>
     <div class="auth-tabs" id="auth-tabs">
       <div class="auth-tab active" onclick="switchAuthTab('login')">כניסה</div>
@@ -2403,7 +2403,7 @@ function toggleAI(){
   document.getElementById('ai-panel').classList.toggle('open', aiOpen);
   // Hide the FAB while the panel is open so it doesn't overlap the chat UI
   const fab = document.getElementById('ai-fab');
-  if (fab) fab.style.display = aiOpen ? 'none' : 'flex';
+if (fab) fab.style.setProperty('display', aiOpen ? 'none' : 'flex', 'important');
 }
 
 function askChip(q){
@@ -3359,7 +3359,7 @@ function addAIMsg(text, classes){
 // ── Service Worker + PWA Install Prompt ──────────────────────
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js')
+    navigator.serviceWorker.register('/sw.js')
       .then(reg => console.log('[PWA] SW registered, scope:', reg.scope))
       .catch(err => console.warn('[PWA] SW registration failed:', err));
   });
