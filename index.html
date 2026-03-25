@@ -32,12 +32,12 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--txt);min-he
 #auth-screen.hidden{display:none}
 .auth-box{background:var(--white);border:1px solid var(--border);border-radius:20px;padding:40px 36px;width:380px;max-width:92vw;box-shadow:0 4px 24px rgba(0,0,0,.08);text-align:right}
 .auth-logo{display:flex;align-items:center;gap:10px;justify-content:flex-end;margin-bottom:28px}
-.logo-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;background:transparent}
-.logo-icon img{width:100%;height:100%;object-fit:contain;display:block}
+.logo-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;background:transparent;padding:0}
+.logo-icon img{width:100%;height:100%;object-fit:contain;display:block;max-width:none}
 /* ── Responsive logo in sidebar ── */
-.sb-logo-img{width:clamp(28px,4vw,40px);height:clamp(28px,4vw,40px);object-fit:contain;flex-shrink:0}
+.sb-logo-img{width:36px;height:36px;object-fit:contain;flex-shrink:0;display:block}
 /* ── Auth logo: larger, crisp ── */
-.auth-logo-img{width:clamp(52px,10vw,72px);height:auto;object-fit:contain;display:block}
+.auth-logo-img{width:clamp(64px,12vw,88px);height:clamp(64px,12vw,88px);object-fit:contain;display:block}
 .auth-logo h1{font-size:22px;font-weight:700}
 .auth-tabs,.tabs{display:flex;background:var(--bg);border-radius:10px;padding:4px}
 .auth-tab,.tab{flex:1;padding:9px;text-align:center;font-size:14px;cursor:pointer;border-radius:7px;transition:all .15s;color:var(--sec);font-family:'Heebo',sans-serif}
@@ -328,10 +328,12 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
 @media(min-width:641px){
   #pomodoro-fab{left:auto;right:90px}
 }
-#install-banner{display:none;position:fixed;top:0;left:0;right:0;background:var(--g);color:#fff;padding:12px 16px;text-align:center;font-size:13px;z-index:500;flex-direction:column;gap:8px;align-items:center}
+#install-banner{display:none;position:fixed;top:0;left:0;right:0;background:var(--g);color:#fff;padding:12px 16px;text-align:center;font-size:13px;z-index:10000;flex-direction:column;gap:8px;align-items:center;box-shadow:0 2px 12px rgba(0,0,0,.2)}
 #install-banner.show{display:flex}
 #install-banner .ib-row{display:flex;align-items:center;gap:10px}
-#install-banner button{padding:6px 16px;border-radius:8px;border:2px solid rgba(255,255,255,.7);background:transparent;color:#fff;font-family:'Heebo',sans-serif;font-size:13px;cursor:pointer}
+#install-banner button{padding:6px 16px;border-radius:8px;border:2px solid rgba(255,255,255,.7);background:transparent;color:#fff;font-family:'Heebo',sans-serif;font-size:13px;cursor:pointer;transition:background .15s}
+#install-banner button:hover{background:rgba(255,255,255,.15)}
+#install-banner .ib-dismiss{background:none;border:none;color:rgba(255,255,255,.7);font-size:20px;cursor:pointer;padding:0 6px;line-height:1;margin-right:auto}
 
 /* ══════════════════════════════════════
    PHASE 1 & 2 ADDITIONS
@@ -601,18 +603,18 @@ body.dark-mode {
 
 <div id="install-banner">
   <div class="ib-row">
-    <span>📱 התקן את האפליקציה על המכשיר שלך</span>
-    <button onclick="installPWA()">התקן</button>
-    <button onclick="document.getElementById('install-banner').classList.remove('show')" style="border:none;opacity:.7">✕</button>
+    <span>📱 <strong>התקן את האפליקציה</strong> — גישה מהירה + עבודה אופליין</span>
+    <button onclick="installPWA()" style="font-weight:600;background:rgba(255,255,255,.25);border-color:#fff">✚ התקן עכשיו</button>
+    <button onclick="dismissInstallBanner()" class="ib-dismiss" title="סגור">✕</button>
   </div>
-  <div style="font-size:11px;opacity:.8">עובד אופליין • גישה מהירה מהמסך הראשי</div>
+  <div style="font-size:11px;opacity:.75">עובד ללא אינטרנט • גישה מהמסך הראשי • ללא App Store</div>
 </div>
 
 <div id="auth-screen">
   <div class="auth-box">
     <div class="auth-logo">
       <h1>מרכז למידה</h1>
-      <div class="logo-icon" style="width:56px;height:56px;border-radius:14px"><img src="logo.png" alt="לוגו מרכז למידה" class="auth-logo-img"></div>
+      <div class="logo-icon" style="width:80px;height:80px;border-radius:18px"><img src="logo.png" alt="לוגו מרכז למידה" class="auth-logo-img" style="width:100%;height:100%"></div>
     </div>
     <div class="auth-tabs" id="auth-tabs">
       <div class="auth-tab active" onclick="switchAuthTab('login')">כניסה</div>
@@ -636,7 +638,7 @@ body.dark-mode {
 
 <div id="sidebar">
   <div class="sb-logo">
-    <div class="sb-logo-row"><h2>מרכז למידה</h2><div class="logo-icon" style="width:32px;height:32px"><img src="logo.png" alt="לוגו" class="sb-logo-img"></div></div>
+    <div class="sb-logo-row"><h2>מרכז למידה</h2><div class="logo-icon" style="width:44px;height:44px;border-radius:12px"><img src="logo.png" alt="לוגו" class="sb-logo-img" style="width:100%;height:100%"></div></div>
     <p>ניהול משימות לימודים</p>
   </div>
   <nav id="sidebar-nav">
@@ -2378,13 +2380,18 @@ setInterval(() => {
 }, 60000);
 // ═══════════════════════════════════════════
 // AI CHAT — Strict RAG + Function Calling
-// Powered by DeepSeek V3/Chat
+// Powered by Groq llama-3.3-70b
 // ═══════════════════════════════════════════
 
 // ── CONFIG ──
 const AI_API_KEY = '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';
 const AI_MODEL   = 'llama-3.3-70b-versatile';
 const AI_URL     = 'https://api.groq.com/openai/v1/chat/completions';
+// API_BASE: Vercel serverless endpoint for READ queries (context-aware Groq via server)
+// Falls back to direct Groq call if not on Vercel.
+const API_BASE   = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  ? null
+  : '/api/chat';
 let aiOpen    = false;
 let aiHistory = [];   // Format: {role:'user'|'assistant', content:'...'}
 let aiTyping  = false;
@@ -2597,41 +2604,95 @@ function buildAnalyticsInsights(){
 }
 
 function buildSystemPrompt(){
+  if(!CU || !S) return 'אין נתונים זמינים.';
   const context  = buildContext();
   const insights = buildAnalyticsInsights();
 
-  // Structured JSONB snapshot injected into LLM context for deep reasoning
+  // Structured JSONB snapshot — the AI reads ALL data from here (READ-ONLY mode)
+  const taskList = (S.tasks||[]).map(t=>{
+    const subj = (S.subjects||[]).find(s=>s.id===t.subjId);
+    return {
+      id: t.id,
+      name: t.name,
+      done: t.done,
+      type: t.type,
+      dueDate: t.dueDate||null,
+      subject: subj ? subj.name : null,
+      overdue: !t.done && t.dueDate && t.dueDate < today() ? true : false
+    };
+  });
+
+  const studyBySubject = {};
+  (S.logs||[]).forEach(l=>{ studyBySubject[l.subjId]=(studyBySubject[l.subjId]||0)+l.minutes; });
+  const studyBySubjectNamed = Object.entries(studyBySubject).map(([id,mins])=>{
+    const s=(S.subjects||[]).find(x=>x.id===id);
+    return { subjectId:id, subjectName:s?s.name:id, minutes:mins, formatted:fmtMins(mins) };
+  }).sort((a,b)=>b.minutes-a.minutes);
+
   const stateSnapshot = JSON.stringify({
     user: CU ? CU.name : 'unknown',
     today: today(),
     subjects: (S.subjects||[]).map(subj=>{
       const {total,done} = countNodes(subj);
-      return { id:subj.id, name:subj.name, category:subj.category||'', completion:{ done, total, pct:total?Math.round(done/total*100):0 } };
+      return { id:subj.id, name:subj.name, category:subj.category||'',
+               completion:{ done, total, pct:total?Math.round(done/total*100):0 } };
     }),
     upcomingExams: (S.exams||[]).filter(e=>e.date>=today()).sort((a,b)=>a.date.localeCompare(b.date))
-      .map(e=>({ id:e.id, name:e.name, date:e.date, daysUntil:daysUntil(e.date), prep:e.prep, readiness:calcReadiness(e) })),
-    tasks:{ total:(S.tasks||[]).length, done:(S.tasks||[]).filter(t=>t.done).length, overdue:(S.tasks||[]).filter(t=>!t.done&&t.dueDate&&t.dueDate<today()).length },
-    studyMins:{ today:S.logs.filter(l=>l.date===today()).reduce((s,l)=>s+l.minutes,0), last7days:S.logs.filter(l=>{const d=new Date();d.setDate(d.getDate()-7);return new Date(l.date)>=d;}).reduce((s,l)=>s+l.minutes,0), total:S.logs.reduce((s,l)=>s+l.minutes,0) }
+      .map(e=>({ id:e.id, name:e.name, date:e.date, daysUntil:daysUntil(e.date),
+                 prep:e.prep, readiness:calcReadiness(e) })),
+    tasks:{
+      total:(S.tasks||[]).length,
+      done:(S.tasks||[]).filter(t=>t.done).length,
+      overdue:(S.tasks||[]).filter(t=>!t.done&&t.dueDate&&t.dueDate<today()).length,
+      list: taskList
+    },
+    studyMins:{
+      today:  (S.logs||[]).filter(l=>l.date===today()).reduce((s,l)=>s+l.minutes,0),
+      last7days: (S.logs||[]).filter(l=>{const d=new Date();d.setDate(d.getDate()-7);return new Date(l.date)>=d;}).reduce((s,l)=>s+l.minutes,0),
+      total:  (S.logs||[]).reduce((s,l)=>s+l.minutes,0),
+      bySubject: studyBySubjectNamed
+    }
   }, null, 2);
 
-  return 'אתה עוזר לימודים אישי מתקדם ומנתח נתונים. תפקידך לתת תובנות אקדמיות מעמיקות ומותאמות אישית לסטודנט, בהתבסס אך ורק על נתוני האפליקציה שלו.\n\n'
-    + '## תפקידך הליבה:\n'
-    + 'אתה לא רק עונה על שאלות — אתה מנתח עומס לימודי, מזהה סיכונים, ומציע אסטרטגיית לימוד מבוססת-נתונים.\n\n'
-    + '## כללים קריטיים:\n'
-    + '1. ענה רק על בסיס הנתונים שלמטה — אל תמציא, אל תשער.\n'
-    + '2. ענה בעברית, קצר וברור, עם פורמט מסודר (bullet points לרשימות).\n'
-    + '3. כשמבקשים ניתוח — ספק: (א) מה המצב, (ב) מה הסיכון, (ג) המלצה פרקטית.\n'
-    + '4. כשמשתמש מבקש להוסיף/לסמן/למחוק — השתמש בכלים מיד. לא להסביר את הממשק.\n'
-    + '5. כשמשתמש מבקש להוסיף מבחן לארכיון — השתמש ב-tool add_archive_entry.\n'
-    + '6. לפני מחיקה — הצג confirm card ובקש אישור.\n'
-    + '7. לשאלות חיצוניות שאינן קשורות ללימודים: "אני מנתח רק את הנתונים שלך באפליקציה."\n\n'
-    + '## נתוני האפליקציה (מפורט):\n' + context + '\n\n'
-    + '## תובנות מחושבות אוטומטית (Computed Insights):\n' + insights + '\n\n'
-    + '## Snapshot JSON לניתוח עמוק:\n```json\n' + stateSnapshot + '\n```\n\n'
-    + '## דוגמאות לתשובות מעולות:\n'
-    + '- שאלה: "מה המצב שלי?" → ניתוח: אחוז השלמה + מבחנים קרובים + מצב משימות + נושא בסיכון גבוה + המלצה ל-48 שעות.\n'
-    + '- שאלה: "על מה להתמקד?" → עדיפויות לפי: ימים למבחן × (100-מוכנות), עם דגש על נושאים מפגרים.\n'
-    + '- שאלה: "איך ההתקדמות?" → השוואת קצב שבוע-לשבוע + הצבעה על פערי כיסוי.';
+  return [
+    '## תפקידך',
+    'אתה עוזר לימודים אישי שמנתח נתונים ועונה בעברית, קצר וברור.',
+    '',
+    '## ══ חוק ברזל: מצב קריאה בלבד ══',
+    'הנתונים של המשתמש מוזרקים למטה בפורמט JSON וטקסט מובנה.',
+    'אתה עונה על שאלות אינפורמטיביות מתוך הנתונים בלבד — אל תמציא ואל תשער.',
+    '⛔ אל תבצע שום פעולה (הוסף / מחק / שנה) מיוזמתך.',
+    '⛔ אל תקרא לאף tool/function כדי לענות על שאלות כגון "כמה זמן?", "מה המשימות?", "מה המצב?".',
+    '⛔ אם אין לך נתון מספיק בסנאפשוט — אמור זאת מפורשות.',
+    '',
+    'אם המשתמש מבקש לבצע פעולה (הוסף/מחק/עדכן) — ענה: "לביצוע פעולה זו, השתמש בממשק האפליקציה. לחלופין, ציין פרטים מלאים ואבצע עבורך." אל תנסה לקרוא לפונקציה.',
+    '',
+    '## כללים',
+    '1. ענה רק מהנתונים שלמטה.',
+    '2. עברית בלבד. bullet points לרשימות.',
+    '3. לניתוח: (א) מצב (ב) סיכון (ג) המלצה פרקטית.',
+    '4. לשאלות שאינן לימודיות: "אני מנתח רק את הנתונים שלך."',
+    '',
+    '## נתוני האפליקציה (טקסט מובנה):',
+    context,
+    '',
+    '## תובנות מחושבות:',
+    insights,
+    '',
+    '## ══ Snapshot JSON — קרא מכאן לשאלות עובדתיות ══',
+    'לשאלות כמו "כמה זמן למדתי X?" → חפש ב-studyMins.bySubject.',
+    'לשאלות כמו "מה המשימות שלי?" → הצג את tasks.list.',
+    'לשאלות כמו "מה מוכנות המבחן?" → הסתכל ב-upcomingExams.',
+    '```json',
+    stateSnapshot,
+    '```',
+    '',
+    '## דוגמאות לתשובות נכונות:',
+    '- "כמה זמן למדתי ג׳אווה?" → מצא ב-studyMins.bySubject את הנושא, הצג minutes+formatted. אל תפעיל tool.',
+    '- "מה המשימות שלי?" → הצג את tasks.list: שם, סטטוס (✓/○), תאריך יעד. אל תפעיל tool.',
+    '- "מה המצב שלי?" → completion% + מבחנים קרובים + משימות ממתינות + נושא בסיכון + המלצה.',
+    '- "הוסף משימה חדשה" → ציין שם המשימה ותאריך יעד, ואוסיף אותה עבורך. אין צורך ללחוץ בממשק.',
+  ].join('\n');
 }
 
 // ═══════════════════════════════════════════
@@ -3038,8 +3099,45 @@ function buildConfirmText(name, args){
 }
 
 // ═══════════════════════════════════════════
-// SEND MESSAGE — DEEPSEEK API
+// SEND MESSAGE — GROQ AI (Fixed v3)
+// READ queries  → /api/chat?action=ai  (text answer from JSONB)
+// WRITE commands → local executeTool() / showConfirmCard()
 // ═══════════════════════════════════════════
+
+// Intent classification — returns 'read' or 'write'
+function classifyIntent(q) {
+  const w = q.toLowerCase();
+
+  // Explicit READ signals
+  const readPatterns = [
+    /כמה זמן/, /כמה שעות/, /כמה דקות/,
+    /מה המשימ/, /אילו משימ/, /רשימת משימ/,
+    /מה המצב/, /מה ההתקדמות/, /איך ההתקדמות/,
+    /מה המבחנ/, /אילו מבחנ/, /מתי המבחן/,
+    /כמה נושא/, /ספר לי/, /הסבר לי/,
+    /ניתוח/, /תובנות/, /המלצ/, /עדיפות/,
+    /קצב לימוד/, /סטטיסטיק/, /ממוצע/,
+    /על מה/, /מה בסיכון/, /איפה אני/,
+    /שאל/, /^\?/, /\?$/
+  ];
+  if (readPatterns.some(p => p.test(w))) return 'read';
+
+  // Explicit WRITE signals — must match these to trigger a tool
+  const writePatterns = [
+    /^הוסף\s/, /^צור\s/, /^רשום\s/, /^סמן\s/, /^עדכן\s/,
+    /^מחק\s/,  /^הסר\s/,  /^בטל\s/,
+    /הוסף משימה/, /הוסף נושא/, /הוסף מבחן/, /הוסף זמן/,
+    /רשום זמן/, /רשום לימוד/, /מחק משימה/, /מחק נושא/,
+    /סמן כהושלם/, /סמן כסיום/, /עדכן ציון/,
+    /add task/, /add exam/, /add subject/, /add log/,
+    /log time/, /mark done/
+  ];
+  if (writePatterns.some(p => p.test(w))) return 'write';
+
+  // Default: treat ambiguous messages as READ (answer from data, don't trigger tools)
+  return 'read';
+}
+
 async function sendAI(){
   if(aiTyping) return;
   const input = document.getElementById('ai-input');
@@ -3056,69 +3154,165 @@ async function sendAI(){
 
   aiHistory.push({role:'user', content: q});
 
+  const intent = classifyIntent(q);
+
+  // ── WRITE path: use local function-calling (no Groq tools API) ──
+  if(intent === 'write'){
+    try {
+      const messages = [
+        { role: 'system', content: buildSystemPrompt() },
+        ...aiHistory.slice(-10)
+      ];
+      const response = await fetch(AI_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${AI_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: AI_MODEL,
+          messages,
+          tools: AI_TOOLS,
+          tool_choice: 'required',
+          temperature: 0.05
+        })
+      });
+
+      let data;
+      try {
+        data = await response.json();
+      } catch(_) {
+        throw new Error('תגובה לא תקינה מהשרת');
+      }
+
+      // Graceful fallback for failed_generation or any 4xx
+      if(!response.ok){
+        const errType = data?.error?.type || '';
+        if(errType === 'failed_generation' || response.status === 400){
+          thinkingEl.remove();
+          const fb = 'לא הצלחתי לזהות את הפעולה המבוקשת. נסה לנסח מחדש, לדוגמה: "הוסף משימה: חזרה על פרק 3" או "רשום 45 דקות לימוד בנושא מתמטיקה".';
+          addAIMsg(fb, 'bot');
+          aiHistory.push({role:'assistant', content: fb});
+          aiTyping = false; document.getElementById('ai-send-btn').disabled = false;
+          return;
+        }
+        throw new Error(data?.error?.message || `HTTP ${response.status}`);
+      }
+
+      const message = data.choices?.[0]?.message;
+      thinkingEl.remove();
+
+      if(message){
+        if(message.content){
+          addAIMsg(message.content, 'bot');
+          aiHistory.push({role:'assistant', content: message.content});
+        }
+        if(message.tool_calls && message.tool_calls.length > 0){
+          const toolCall = message.tool_calls[0];
+          const name = toolCall.function.name;
+          let args;
+          try { args = JSON.parse(toolCall.function.arguments); }
+          catch(_){ args = {}; }
+
+          const safeTools = ['mark_subtopic_done','add_archive_entry','add_subject','add_task','add_exam','add_log','toggle_task','set_subject_category'];
+          if(safeTools.includes(name)){
+            const result = executeTool(name, args);
+            addAIMsg(result, 'bot');
+            aiHistory.push({role:'assistant', content:`פעולה בוצעה: ${result}`});
+          } else {
+            showConfirmCard(name, args, buildConfirmText(name, args));
+          }
+        } else if(!message.content){
+          addAIMsg('לא קיבלתי תשובה ברורה. נסה לנסח מחדש.', 'bot');
+        }
+      } else {
+        addAIMsg('לא קיבלתי תשובה מהמודל.', 'bot');
+      }
+
+    } catch(e) {
+      thinkingEl.remove();
+      let msg = `שגיאה: ${e.message}`;
+      if(e.message.includes('API_KEY_INVALID') || e.message.includes('Unauthorized'))
+        msg = '❌ API Key שגוי.';
+      if(e.message.includes('insufficient_quota') || e.message.includes('Payment Required'))
+        msg = '⏳ חרגת ממגבלת הקרדיט.';
+      if(e.message.includes('Failed to fetch'))
+        msg = '🌐 שגיאת רשת — בדוק חיבור לאינטרנט.';
+      addAIMsg(msg, 'bot');
+      aiHistory.pop();
+    } finally {
+      aiTyping = false;
+      document.getElementById('ai-send-btn').disabled = false;
+    }
+          aiTyping = false; document.getElementById('ai-send-btn').disabled = false;
+    return;
+  }
+
+  // ── READ path: call /api/chat?action=ai — pure text, no tools ──
   try {
-    const messages = [
-      { role: 'system', content: buildSystemPrompt() },
-      ...aiHistory.slice(-10) // Keep last 10 messages for context
-    ];
-    const response = await fetch(AI_URL, {
+    const token = CU?.token || '';
+    // Use Vercel server endpoint when deployed; direct Groq for READ when on localhost
+    const endpoint = API_BASE
+      ? `${API_BASE}?action=ai`
+      : AI_URL; // localhost fallback: direct Groq (no server context injection)
+
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${AI_API_KEY}`
+        'Authorization': API_BASE
+          ? `Bearer ${token}`          // Vercel: send JWT to our server
+          : `Bearer ${AI_API_KEY}`     // localhost: send Groq key directly
       },
-      body: JSON.stringify({
-        model: AI_MODEL,
-        messages: messages,
-        tools: AI_TOOLS,
-        temperature: 0.1
-      })
+      body: API_BASE
+        ? JSON.stringify({
+            messages: aiHistory.slice(-10),
+            userState: S,
+            userName: CU?.name || 'student'
+          })
+        : JSON.stringify({
+            model: AI_MODEL,
+            messages: [
+              { role: 'system', content: buildSystemPrompt() },
+              ...aiHistory.slice(-10)
+            ],
+            temperature: 0.15,
+            max_tokens: 1024
+            // No tools — READ-only direct call
+          })
     });
+
+    let data;
+    try { data = await response.json(); }
+    catch(_){ throw new Error('תגובה לא תקינה מהשרת'); }
+
     if(!response.ok){
-      const err = await response.json().catch(()=>({}));
-      throw new Error(err.error?.message || `HTTP ${response.status}`);
+      const errType = data?.error?.type || '';
+      if(errType === 'failed_generation' || response.status === 400){
+        thinkingEl.remove();
+        const fb = 'לא הצלחתי לעבד את הבקשה. נסה לנסח מחדש.';
+        addAIMsg(fb, 'bot');
+        aiHistory.push({role:'assistant', content: fb});
+          aiTyping = false; document.getElementById('ai-send-btn').disabled = false;
+        return;
+      }
+      throw new Error(data?.error?.message || data?.error || `HTTP ${response.status}`);
     }
 
-    const data = await response.json();
-    const message = data.choices?.[0]?.message;
-
     thinkingEl.remove();
-    if(message){
-      // DeepSeek might return text AND a tool call together
-      if(message.content){
-        addAIMsg(message.content, 'bot');
-        aiHistory.push({role:'assistant', content: message.content});
-      }
 
-      // Handle function calling
-      if(message.tool_calls && message.tool_calls.length > 0){
-        const toolCall = message.tool_calls[0];
-        // execute first tool call
-        const name = toolCall.function.name;
-        const args = JSON.parse(toolCall.function.arguments);
-        
-        const safeTools = ['mark_subtopic_done', 'add_archive_entry', 'add_subject', 'add_task', 'add_exam', 'add_log', 'toggle_task'];
-        if(safeTools.includes(name)){
-          const result = executeTool(name, args);
-          addAIMsg(result, 'bot');
-          aiHistory.push({role:'assistant', content: `פעולה בוצעה: ${result}`});
-        } else {
-          showConfirmCard(name, args, buildConfirmText(name, args));
-        }
-      } else if (!message.content) {
-        addAIMsg('לא קיבלתי תשובה ברורה מהמודל.', 'bot');
-      }
+    // Handle both: /api/chat server response (.reply) and direct Groq response (.choices)
+    const reply = data?.reply || data?.choices?.[0]?.message?.content || '';
+    if(reply){
+      addAIMsg(reply, 'bot');
+      aiHistory.push({role:'assistant', content: reply});
     } else {
-      addAIMsg('לא קיבלתי תשובה מהמודל.', 'bot');
+      addAIMsg('לא קיבלתי תשובה. נסה שוב.', 'bot');
     }
 
   } catch(e) {
     thinkingEl.remove();
     let msg = `שגיאה: ${e.message}`;
-    if(e.message.includes('API_KEY_INVALID') || e.message.includes('Unauthorized'))
-      msg = '❌ API Key שגוי של DeepSeek.';
-    if(e.message.includes('insufficient_quota') || e.message.includes('Payment Required'))
-      msg = '⏳ חרגת ממגבלת הקרדיט בדיפסיק.';
     if(e.message.includes('Failed to fetch'))
       msg = '🌐 שגיאת רשת — בדוק חיבור לאינטרנט.';
     addAIMsg(msg, 'bot');
@@ -3139,16 +3333,52 @@ function addAIMsg(text, classes){
   return el;
 }
 
-// ⚠️ תשומת לב - ביטלתי את ה-Service Worker בהערה!
-// כדי שלא יתקע לך את העדכונים בגיטהאב יותר בזמן הפיתוח.
-// כשתרצה להחזיר תמיכה באופליין מלא, תוכל להוריד את הלוכסנים (//) מהקוד למטה.
-/*
-if('serviceWorker' in navigator){
-  window.addEventListener('load',()=>{
-    navigator.serviceWorker.register('sw.js').catch(()=>{});
+// ── Service Worker + PWA Install Prompt ──────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js')
+      .then(reg => console.log('[PWA] SW registered, scope:', reg.scope))
+      .catch(err => console.warn('[PWA] SW registration failed:', err));
   });
 }
-*/
+
+// ── PWA Install Banner ────────────────────────────────────────
+// Capture the beforeinstallprompt event so we can show it later
+let _pwaInstallEvent = null;
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault(); // Don't show the default browser mini-infobar
+  _pwaInstallEvent = e;
+
+  // Show our custom install banner (only if not already installed)
+  const banner = document.getElementById('install-banner');
+  if (banner) banner.classList.add('show');
+});
+
+// Called by the "Install" button in the banner
+window.installPWA = async function() {
+  const banner = document.getElementById('install-banner');
+  if (!_pwaInstallEvent) return;
+  _pwaInstallEvent.prompt();
+  const { outcome } = await _pwaInstallEvent.userChoice;
+  console.log('[PWA] Install prompt outcome:', outcome);
+  _pwaInstallEvent = null;
+  if (banner) banner.classList.remove('show');
+};
+
+// Called by the "×" dismiss button in the banner
+window.dismissInstallBanner = function() {
+  const banner = document.getElementById('install-banner');
+  if (banner) banner.classList.remove('show');
+  sessionStorage.setItem('pwa_banner_dismissed', '1');
+};
+
+// Hide the banner once the app is installed (standalone mode)
+window.addEventListener('appinstalled', () => {
+  const banner = document.getElementById('install-banner');
+  if (banner) banner.classList.remove('show');
+  console.log('[PWA] App installed successfully!');
+});
 // ═══════════════════════════════════════════
 // DARK MODE TOGGLE
 // ═══════════════════════════════════════════
