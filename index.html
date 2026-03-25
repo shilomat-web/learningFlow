@@ -32,12 +32,12 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--txt);min-he
 #auth-screen.hidden{display:none}
 .auth-box{background:var(--white);border:1px solid var(--border);border-radius:20px;padding:40px 36px;width:380px;max-width:92vw;box-shadow:0 4px 24px rgba(0,0,0,.08);text-align:right}
 .auth-logo{display:flex;align-items:center;gap:10px;justify-content:flex-end;margin-bottom:28px}
-.logo-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;background:transparent;padding:0}
+.logo-icon{border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;background:transparent;padding:0}
 .logo-icon img{width:100%;height:100%;object-fit:contain;display:block;max-width:none}
 /* ── Responsive logo in sidebar ── */
-.sb-logo-img{width:36px;height:36px;object-fit:contain;flex-shrink:0;display:block}
+.sb-logo-img{width:48px;height:48px;object-fit:contain;flex-shrink:0;display:block}
 /* ── Auth logo: larger, crisp ── */
-.auth-logo-img{width:clamp(64px,12vw,88px);height:clamp(64px,12vw,88px);object-fit:contain;display:block}
+.auth-logo-img{width:100%;max-width:160px;height:auto;object-fit:contain;display:block}
 .auth-logo h1{font-size:22px;font-weight:700}
 .auth-tabs,.tabs{display:flex;background:var(--bg);border-radius:10px;padding:4px}
 .auth-tab,.tab{flex:1;padding:9px;text-align:center;font-size:14px;cursor:pointer;border-radius:7px;transition:all .15s;color:var(--sec);font-family:'Heebo',sans-serif}
@@ -614,7 +614,7 @@ body.dark-mode {
   <div class="auth-box">
     <div class="auth-logo">
       <h1>מרכז למידה</h1>
-      <div class="logo-icon" style="width:80px;height:80px;border-radius:18px"><img src="logo.png" alt="לוגו מרכז למידה" class="auth-logo-img" style="width:100%;height:100%"></div>
+      <div class="logo-icon" style="width:auto;max-width:168px;border-radius:18px;margin:0 auto"><img src="logo.png" alt="לוגו מרכז למידה" class="auth-logo-img"></div>
     </div>
     <div class="auth-tabs" id="auth-tabs">
       <div class="auth-tab active" onclick="switchAuthTab('login')">כניסה</div>
@@ -638,7 +638,7 @@ body.dark-mode {
 
 <div id="sidebar">
   <div class="sb-logo">
-    <div class="sb-logo-row"><h2>מרכז למידה</h2><div class="logo-icon" style="width:44px;height:44px;border-radius:12px"><img src="logo.png" alt="לוגו" class="sb-logo-img" style="width:100%;height:100%"></div></div>
+    <div class="sb-logo-row"><h2>מרכז למידה</h2><div class="logo-icon" style="width:48px;height:48px;border-radius:12px"><img src="logo.png" alt="לוגו" class="sb-logo-img"></div></div>
     <p>ניהול משימות לימודים</p>
   </div>
   <nav id="sidebar-nav">
@@ -2401,6 +2401,9 @@ let pendingToolCall = null;
 function toggleAI(){
   aiOpen = !aiOpen;
   document.getElementById('ai-panel').classList.toggle('open', aiOpen);
+  // Hide the FAB while the panel is open so it doesn't overlap the chat UI
+  const fab = document.getElementById('ai-fab');
+  if (fab) fab.style.display = aiOpen ? 'none' : 'flex';
 }
 
 function askChip(q){
@@ -2687,11 +2690,44 @@ function buildSystemPrompt(){
     stateSnapshot,
     '```',
     '',
+    '',
+    '## מיפוי שאלות → שדות JSON (חובה לקרוא):',
+    '| שאלה | שדה ב-JSON |',
+    '|------|-----------|',
+    '| "כמה זמן למדתי היום" | studyMins.today (דקות) |',
+    '| "כמה זמן למדתי השבוע" | studyMins.last7days (דקות) |',
+    '| "כמה זמן למדתי סה\"כ" | studyMins.total (דקות) |',
+    '| "כמה זמן למדתי [נושא]" | studyMins.bySubject → מצא לפי subjectName |',
+    '| "מה המשימות שלי" | tasks.list (id, name, done, type, dueDate) |',
+    '| "משימות פתוחות / לא גמורות" | tasks.list סנן done===false |',
+    '| "מה הנושאים שלי" | subjects (id, name, completion.pct) |',
+    '| "כמה השלמתי" | subjects[*].completion.pct |',
+    '| "מה המבחנים הקרובים" | upcomingExams (name, date, daysUntil, readiness) |',
+    '| "מה רמת המוכנות שלי" | upcomingExams[*].readiness |',
+    '',
+    '## כללי התאמת שמות נושאים:',
+    'אם המשתמש כותב שם נושא חלקי (למשל "ג׳אווה", "java", "מתמטיקה", "מת׳"),',
+    'חפש התאמה חלקית לא-רגישה לאותיות בשדה subjectName.',
+    'אם לא מצאת — הצג את כל הנושאים הזמינים ובקש הבהרה.',
+    '',
     '## דוגמאות לתשובות נכונות:',
-    '- "כמה זמן למדתי ג׳אווה?" → מצא ב-studyMins.bySubject את הנושא, הצג minutes+formatted. אל תפעיל tool.',
-    '- "מה המשימות שלי?" → הצג את tasks.list: שם, סטטוס (✓/○), תאריך יעד. אל תפעיל tool.',
-    '- "מה המצב שלי?" → completion% + מבחנים קרובים + משימות ממתינות + נושא בסיכון + המלצה.',
-    '- "הוסף משימה חדשה" → ציין שם המשימה ותאריך יעד, ואוסיף אותה עבורך. אין צורך ללחוץ בממשק.',
+    '- "כמה זמן למדתי היום?" →',
+    '  שלב 1: קרא studyMins.today מה-JSON.',
+    '  שלב 2: אם 0 — "לא רשמת זמן לימוד היום."',
+    '  שלב 3: אם >0 — "למדת X דקות היום (= Y שעות Z דקות)."',
+    '  ⛔ אל תקרא לשום tool.',
+    '- "כמה זמן למדתי ג׳אווה?" →',
+    '  חפש ב-studyMins.bySubject רשומה שה-subjectName מכיל "ג׳אווה" / "java".',
+    '  הצג: "למדת X דקות בסך הכל ב[שם נושא]."',
+    '  אם אין → "לא נמצאו רישומי לימוד לנושא זה."',
+    '- "מה המשימות שלי?" →',
+    '  קרא tasks.list, הצג bullet point לכל משימה: "• [שם] ([סוג]) — [✓ הושלם | ○ פתוח] [תאריך יעד אם קיים]".',
+    '- "מה המצב שלי?" →',
+    '  1. השלמה כוללת: subjects[*].completion.pct ממוצע',
+    '  2. מבחנים קרובים: upcomingExams עם daysUntil ≤ 14',
+    '  3. משימות פתוחות: tasks.list שדה done===false',
+    '  4. נושא בסיכון: completion.pct הנמוך ביותר',
+    '  5. המלצה לפעולה הבאה.',
   ].join('\n');
 }
 
@@ -3105,36 +3141,25 @@ function buildConfirmText(name, args){
 // ═══════════════════════════════════════════
 
 // Intent classification — returns 'read' or 'write'
+// Default is ALWAYS 'read'. Only explicit imperative commands go to 'write'.
+// When in doubt → 'read' (answer from data, never crash from missing tool).
 function classifyIntent(q) {
-  const w = q.toLowerCase();
+  const w = q.trim();
 
-  // Explicit READ signals
-  const readPatterns = [
-    /כמה זמן/, /כמה שעות/, /כמה דקות/,
-    /מה המשימ/, /אילו משימ/, /רשימת משימ/,
-    /מה המצב/, /מה ההתקדמות/, /איך ההתקדמות/,
-    /מה המבחנ/, /אילו מבחנ/, /מתי המבחן/,
-    /כמה נושא/, /ספר לי/, /הסבר לי/,
-    /ניתוח/, /תובנות/, /המלצ/, /עדיפות/,
-    /קצב לימוד/, /סטטיסטיק/, /ממוצע/,
-    /על מה/, /מה בסיכון/, /איפה אני/,
-    /שאל/, /^\?/, /\?$/
-  ];
-  if (readPatterns.some(p => p.test(w))) return 'read';
-
-  // Explicit WRITE signals — must match these to trigger a tool
+  // ── WRITE: only explicit imperative action verbs at start of sentence ──
+  // Must start with an action verb OR contain a clear action phrase.
   const writePatterns = [
-    /^הוסף\s/, /^צור\s/, /^רשום\s/, /^סמן\s/, /^עדכן\s/,
-    /^מחק\s/,  /^הסר\s/,  /^בטל\s/,
-    /הוסף משימה/, /הוסף נושא/, /הוסף מבחן/, /הוסף זמן/,
-    /רשום זמן/, /רשום לימוד/, /מחק משימה/, /מחק נושא/,
-    /סמן כהושלם/, /סמן כסיום/, /עדכן ציון/,
-    /add task/, /add exam/, /add subject/, /add log/,
-    /log time/, /mark done/
+    /^הוסף\s/,  /^צור\s/,   /^רשום\s/,  /^סמן\s/,   /^עדכן\s/,
+    /^מחק\s/,   /^הסר\s/,   /^בטל\s/,   /^ערוך\s/,
+    /הוסף משימה/, /הוסף נושא/, /הוסף מבחן/, /הוסף זמן לימוד/,
+    /רשום זמן/,  /רשום לימוד/, /מחק משימה/, /מחק נושא/,  /מחק מבחן/,
+    /סמן כהושלם/, /סמן כגמור/, /עדכן ציון/, /שנה ציון/,
+    /add task/,  /add exam/,  /add subject/, /add log/,
+    /log time/,  /mark done/, /mark complete/
   ];
   if (writePatterns.some(p => p.test(w))) return 'write';
 
-  // Default: treat ambiguous messages as READ (answer from data, don't trigger tools)
+  // Everything else is READ — informational, analytical, or conversational
   return 'read';
 }
 
@@ -3248,73 +3273,71 @@ async function sendAI(){
     return;
   }
 
-  // ── READ path: call /api/chat?action=ai — pure text, no tools ──
+  // ── READ path: call Groq directly — always, on every host ──
+  // Why direct? The app is hosted on GitHub Pages (static) — there is no
+  // /api/chat serverless function. API_BASE is only used for save/load/auth
+  // via Supabase. For AI inference the Groq key lives in the client.
   try {
-    const token = CU?.token || '';
-    // Use Vercel server endpoint when deployed; direct Groq for READ when on localhost
-    const endpoint = API_BASE
-      ? `${API_BASE}?action=ai`
-      : AI_URL; // localhost fallback: direct Groq (no server context injection)
-
-    const response = await fetch(endpoint, {
+    const response = await fetch(AI_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': API_BASE
-          ? `Bearer ${token}`          // Vercel: send JWT to our server
-          : `Bearer ${AI_API_KEY}`     // localhost: send Groq key directly
+        'Authorization': `Bearer ${AI_API_KEY}`
       },
-      body: API_BASE
-        ? JSON.stringify({
-            messages: aiHistory.slice(-10),
-            userState: S,
-            userName: CU?.name || 'student'
-          })
-        : JSON.stringify({
-            model: AI_MODEL,
-            messages: [
-              { role: 'system', content: buildSystemPrompt() },
-              ...aiHistory.slice(-10)
-            ],
-            temperature: 0.15,
-            max_tokens: 1024
-            // No tools — READ-only direct call
-          })
+      body: JSON.stringify({
+        model: AI_MODEL,
+        messages: [
+          { role: 'system', content: buildSystemPrompt() },
+          ...aiHistory.slice(-10)
+        ],
+        temperature: 0.15,
+        max_tokens: 1024
+        // No tools array — READ-only, model answers from injected JSONB
+      })
     });
 
     let data;
-    try { data = await response.json(); }
-    catch(_){ throw new Error('תגובה לא תקינה מהשרת'); }
+    try {
+      data = await response.json();
+    } catch(_) {
+      throw new Error('תגובה לא תקינה מ-Groq — ייתכן שגיאת רשת.');
+    }
 
-    if(!response.ok){
+    // Groq-level errors
+    if (!response.ok) {
       const errType = data?.error?.type || '';
-      if(errType === 'failed_generation' || response.status === 400){
+      const errMsg  = data?.error?.message || `HTTP ${response.status}`;
+      // failed_generation = model attempted a tool call but no tools were given
+      if (errType === 'failed_generation' || response.status === 400) {
         thinkingEl.remove();
-        const fb = 'לא הצלחתי לעבד את הבקשה. נסה לנסח מחדש.';
+        const fb = 'לא הצלחתי לזהות את הנתון. נסה לשאול אחרת, לדוגמה: "כמה דקות למדתי השבוע?"';
         addAIMsg(fb, 'bot');
-        aiHistory.push({role:'assistant', content: fb});
-          aiTyping = false; document.getElementById('ai-send-btn').disabled = false;
+        aiHistory.push({ role: 'assistant', content: fb });
+        aiTyping = false;
+        document.getElementById('ai-send-btn').disabled = false;
         return;
       }
-      throw new Error(data?.error?.message || data?.error || `HTTP ${response.status}`);
+      throw new Error(errMsg);
     }
 
     thinkingEl.remove();
 
-    // Handle both: /api/chat server response (.reply) and direct Groq response (.choices)
-    const reply = data?.reply || data?.choices?.[0]?.message?.content || '';
-    if(reply){
+    // Standard Groq response shape: choices[0].message.content
+    const reply = data?.choices?.[0]?.message?.content || '';
+    if (reply) {
       addAIMsg(reply, 'bot');
-      aiHistory.push({role:'assistant', content: reply});
+      aiHistory.push({ role: 'assistant', content: reply });
     } else {
-      addAIMsg('לא קיבלתי תשובה. נסה שוב.', 'bot');
+      addAIMsg('לא קיבלתי תשובה מהמודל. נסה שוב.', 'bot');
     }
 
   } catch(e) {
     thinkingEl.remove();
     let msg = `שגיאה: ${e.message}`;
-    if(e.message.includes('Failed to fetch'))
+    if (e.message.includes('Failed to fetch') || e.message.includes('NetworkError'))
       msg = '🌐 שגיאת רשת — בדוק חיבור לאינטרנט.';
+    if (e.message.includes('401') || e.message.includes('Unauthorized'))
+      msg = '❌ מפתח Groq API לא תקין.';
     addAIMsg(msg, 'bot');
     aiHistory.pop();
   } finally {
