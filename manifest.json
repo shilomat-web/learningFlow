@@ -2,7 +2,8 @@
   "name": "מרכז למידה",
   "short_name": "למידה",
   "description": "ניהול משימות לימודים",
-  "start_url": "/",
+  "start_url": "/index.html",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#f5f5f3",
   "theme_color": "#2ecc8b",
@@ -14,26 +15,42 @@
       "src": "icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "maskable any"
+      "purpose": "any"
+    },
+    {
+      "src": "icon-192-maskable.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "maskable any"
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "categories": ["education", "productivity"],
   "shortcuts": [
     {
       "name": "משימות היום",
-      "url": "/?page=tasks",
-      "description": "פתח משימות"
+      "url": "/index.html?page=tasks",
+      "description": "פתח משימות",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
     },
     {
       "name": "זמן לימוד",
-      "url": "/?page=studytime",
-      "description": "רשום זמן לימוד"
+      "url": "/index.html?page=studytime",
+      "description": "רשום זמן לימוד",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
     }
-  ]
+  ],
+  "screenshots": [],
+  "prefer_related_applications": false
 }
