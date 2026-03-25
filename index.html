@@ -322,6 +322,229 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
 #install-banner.show{display:flex}
 #install-banner .ib-row{display:flex;align-items:center;gap:10px}
 #install-banner button{padding:6px 16px;border-radius:8px;border:2px solid rgba(255,255,255,.7);background:transparent;color:#fff;font-family:'Heebo',sans-serif;font-size:13px;cursor:pointer}
+
+/* ══════════════════════════════════════
+   PHASE 1 & 2 ADDITIONS
+══════════════════════════════════════ */
+
+/* ── DARK MODE via system preference ── */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1117;
+    --white: #1a1d27;
+    --border: #2a2d3a;
+    --txt: #e8e8ee;
+    --sec: #8888aa;
+    --muted: #4a4a66;
+    --gl: #162a20;
+    --gm: #1e3d2e;
+    --shadow: 0 1px 4px rgba(0,0,0,.3);
+  }
+  .auth-box { box-shadow: 0 4px 24px rgba(0,0,0,.4); }
+  .fc { color: var(--txt); }
+  .fc option { background: var(--white); }
+  select.fc { background: var(--white); }
+  .ai-msg.user { background: var(--gd); }
+  .cal-nav-btn { color: var(--txt); }
+  .tl-red { background: #3a1a1a; }
+  .tl-amber { background: #3a2a10; }
+  .tl-green { background: var(--gl); }
+}
+
+/* ── DARK MODE manual toggle ── */
+body.dark-mode {
+  --bg: #0f1117;
+  --white: #1a1d27;
+  --border: #2a2d3a;
+  --txt: #e8e8ee;
+  --sec: #8888aa;
+  --muted: #4a4a66;
+  --gl: #162a20;
+  --gm: #1e3d2e;
+  --shadow: 0 1px 4px rgba(0,0,0,.3);
+}
+
+/* ── CATEGORY GROUPS ── */
+.category-group { margin-bottom: 24px; }
+.category-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  color: var(--sec);
+  text-transform: uppercase;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 10px;
+  text-align: right;
+}
+
+/* ── OVERDUE BADGE ── */
+.overdue-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 20px;
+  background: #fdecea;
+  color: var(--red);
+  border: 1px solid #f9ccc7;
+  margin-right: 4px;
+}
+.task-row.overdue {
+  border-color: #f9ccc7;
+  background: #fffafa;
+}
+.task-row.overdue .task-row-right > span:first-child {
+  color: var(--red);
+}
+@media (prefers-color-scheme: dark) {
+  .task-row.overdue { background: #1e1212; border-color: #3d1a1a; }
+  .overdue-badge { background: #3d1a1a; border-color: #5a2020; }
+}
+
+/* ── RECURRING TASK ICON ── */
+.recurring-icon {
+  font-size: 11px;
+  color: var(--sec);
+  flex-shrink: 0;
+}
+
+/* ── SUBTOPIC SUCCESS ANIMATION ── */
+@keyframes subtopicDone {
+  0%   { transform: scale(1); }
+  30%  { transform: scale(1.18); background: #d4f5e5; }
+  60%  { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+.sub-topic-item.just-done {
+  animation: subtopicDone .55s ease;
+}
+@keyframes doneFlash {
+  0%   { box-shadow: 0 0 0 0 rgba(46,204,139,.6); }
+  60%  { box-shadow: 0 0 0 14px rgba(46,204,139,0); }
+  100% { box-shadow: none; }
+}
+.done-check.flash { animation: doneFlash .6s ease; }
+
+/* ── COUNTDOWN HERO CARD ── */
+.countdown-hero {
+  background: linear-gradient(135deg, var(--g) 0%, #1aad6e 100%);
+  border-radius: var(--r);
+  padding: 20px 24px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 20px rgba(46,204,139,.35);
+  flex-direction: row-reverse;
+}
+.countdown-hero.no-exam {
+  background: linear-gradient(135deg, #888 0%, #666 100%);
+  box-shadow: none;
+}
+.countdown-hero-right { text-align: right; }
+.countdown-hero h2 { font-size: 16px; font-weight: 600; opacity: .9; margin-bottom: 4px; }
+.countdown-hero h3 { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+.countdown-hero .cd-sub { font-size: 12px; opacity: .8; }
+.countdown-days {
+  text-align: center;
+  min-width: 80px;
+}
+.countdown-days .cd-num {
+  font-size: 42px;
+  font-weight: 800;
+  line-height: 1;
+}
+.countdown-days .cd-unit { font-size: 12px; opacity: .8; margin-top: 2px; }
+
+/* ── TODAY'S FOCUS CARD ── */
+.focus-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow);
+}
+.focus-card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sec);
+  margin-bottom: 12px;
+  text-align: right;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.focus-tasks-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.focus-task-pill {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 14px;
+  border-radius: 8px;
+  background: var(--bg);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background .15s;
+}
+.focus-task-pill:hover { background: var(--gm); }
+.focus-task-pill.done-pill { opacity: .55; }
+
+/* ── READINESS SCORE ── */
+.readiness-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+.readiness-bar {
+  flex: 1;
+  height: 5px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.readiness-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width .4s;
+}
+.readiness-pct {
+  font-size: 11px;
+  font-weight: 600;
+  min-width: 32px;
+  text-align: left;
+}
+
+/* ── DARK TOGGLE BUTTON ── */
+#dark-toggle {
+  position: fixed;
+  bottom: 20px;
+  left: 8px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--white);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 150;
+  box-shadow: var(--shadow);
+  transition: background .2s;
+}
+#dark-toggle:hover { background: var(--bg); }
+@media(max-width:640px){ #dark-toggle { bottom: 70px; left: 6px; } }
+
 </style>
 </head>
 <body>
@@ -432,6 +655,7 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
 </div>
 
 <button id="pomodoro-fab" onclick="openPomo()" title="Pomodoro Timer">🍅</button>
+<button id="dark-toggle" onclick="toggleDarkMode()" title="מצב לילה">🌙</button>
 
 <div class="toast" id="toast"></div>
 
@@ -442,6 +666,8 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
     <div></div>
     <div class="page-title"><h1>מרכז למידה</h1><p id="dash-date"></p></div>
   </div>
+  <div id="countdown-hero-wrap"></div>
+  <div id="focus-card-wrap"></div>
   <div class="stats-grid">
     <div class="stat-card"><div class="stat-label">תת-נושאים הושלמו <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/></svg></div><div class="stat-value" id="s-subtopics">0/0</div></div>
     <div class="stat-card"><div class="stat-label">נושאים <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div><div class="stat-value" id="s-subjects">0</div></div>
@@ -549,6 +775,14 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
   <div class="modal">
     <h3>נושא חדש</h3>
     <div class="fg"><label>שם הנושא</label><input class="fc" id="m-subj-name" placeholder="למשל: מתמטיקה"></div>
+    <div class="fg"><label>קטגוריה</label>
+      <select class="fc" id="m-subj-category">
+        <option value="">ללא קטגוריה</option>
+        <option value="university">אוניברסיטה / מכללה</option>
+        <option value="matriculation">בגרות</option>
+        <option value="other">אחר</option>
+      </select>
+    </div>
     <div class="modal-actions">
       <button class="btn btn-primary" onclick="addSubject()">הוסף</button>
       <button class="btn btn-ghost" onclick="closeModal('m-subject')">ביטול</button>
@@ -578,6 +812,12 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
     <div class="fr">
       <div class="fg"><label>תאריך יעד</label><input class="fc" id="m-task-date" type="date"></div>
       <div class="fg"><label>שעה</label><input class="fc" id="m-task-time" type="time"></div>
+    </div>
+    <div class="fg" style="display:flex;align-items:center;justify-content:space-between;padding:10px 0 0">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--sec)">
+        <input type="checkbox" id="m-task-recurring" style="width:16px;height:16px;accent-color:var(--g)">
+        <span>איפוס יומי אוטומטי (Recurring)</span>
+      </label>
     </div>
     <div class="modal-actions">
       <button class="btn btn-primary" onclick="addTask()">הוסף</button>
@@ -868,6 +1108,10 @@ async function loadState(){
   // localStorage fallback
   S = JSON.parse(localStorage.getItem(userKey(CU.id))||'null') || {subjects:[],tasks:[],exams:[],logs:[],archive:[]};
   if(!S.archive) S.archive = [];
+  // Migrate existing tasks: ensure recurring fields
+  if(S.tasks) S.tasks.forEach(t=>{ if(t.recurring===undefined)t.recurring=false; if(t.recurring&&!t.lastReset)t.lastReset=today(); });
+  // Migrate existing subjects: ensure category fields
+  if(S.subjects) S.subjects.forEach(s=>{ if(s.category===undefined)s.category=''; });
 }
 
 async function save(){
@@ -1013,8 +1257,10 @@ document.getElementById('r-pass2').addEventListener('keydown',e=>{if(e.key==='En
 function addSubject(){
   const name=document.getElementById('m-subj-name').value.trim();
   if(!name)return;
-  S.subjects.push({id:uid(),name,subtopics:[]});
+  const category=document.getElementById('m-subj-category')?.value||'';
+  S.subjects.push({id:uid(),name,subtopics:[],category});
   save();document.getElementById('m-subj-name').value='';
+  if(document.getElementById('m-subj-category'))document.getElementById('m-subj-category').value='';
   closeModal('m-subject');renderSubjects();showToast('נושא נוסף!');
 }
 function openAddSub(subjId,path,parentName){
@@ -1041,7 +1287,22 @@ function getNode(subjId,path){
 }
 function toggleDone(subjId,path){
   const node=getNode(subjId,path);
-  if(node){node.done=!node.done;save();renderSubjects();renderDash();}
+  if(node){
+    node.done=!node.done;
+    save();renderSubjects();renderDash();
+    if(node.done){
+      // Trigger success animation on re-render
+      requestAnimationFrame(()=>{
+        const pathKey=path.join('-');
+        const itemEl=document.querySelector(`.sub-topic-item[data-path="${subjId}-${pathKey}"]`);
+        if(itemEl){itemEl.classList.add('just-done');setTimeout(()=>itemEl.classList.remove('just-done'),600);}
+        // Flash all done-check elements briefly
+        document.querySelectorAll('.done-check.done').forEach(el=>{
+          el.classList.add('flash');setTimeout(()=>el.classList.remove('flash'),600);
+        });
+      });
+    }
+  }
 }
 function countNodes(node){
   let total=0,done=0;
@@ -1051,32 +1312,50 @@ function countNodes(node){
 function renderSubjects(){
   const el=document.getElementById('subjects-list');if(!el)return;
   if(!S.subjects.length){el.innerHTML='<div class="empty">עדיין אין נושאים. לחץ "+ נושא חדש".</div>';return;}
-  el.innerHTML=S.subjects.map(s=>{
-    const{total,done}=countNodes(s);const pct=total?Math.round(done/total*100):0;
-    return`<div class="subject-item">
-      <div class="subject-header" onclick="toggleSubj('s${s.id}','chev${s.id}')">
-        <div class="subject-left">
-          <span class="chevron" id="chev${s.id}">▾</span>
-          <span class="subject-pct">${pct}%</span>
-          <div class="subject-bar"><div class="subject-bar-fill" style="width:${pct}%"></div></div>
+  
+  const CATEGORY_LABELS={'university':'🎓 אוניברסיטה / מכללה','matriculation':'📚 בגרות','other':'📁 אחר',''  :'📂 ללא קטגוריה'};
+  const groups={};
+  S.subjects.forEach(s=>{
+    const cat=s.category||'';
+    if(!groups[cat])groups[cat]=[];
+    groups[cat].push(s);
+  });
+  
+  const catOrder=['university','matriculation','other',''];
+  let html='';
+  catOrder.forEach(cat=>{
+    if(!groups[cat]||!groups[cat].length)return;
+    const hasMultipleCats=Object.keys(groups).length>1;
+    if(hasMultipleCats) html+=`<div class="category-group"><div class="category-label">${CATEGORY_LABELS[cat]||cat}</div>`;
+    groups[cat].forEach(s=>{
+      const{total,done}=countNodes(s);const pct=total?Math.round(done/total*100):0;
+      html+=`<div class="subject-item">
+        <div class="subject-header" onclick="toggleSubj('s${s.id}','chev${s.id}')">
+          <div class="subject-left">
+            <span class="chevron" id="chev${s.id}">▾</span>
+            <span class="subject-pct">${pct}%</span>
+            <div class="subject-bar"><div class="subject-bar-fill" style="width:${pct}%"></div></div>
+          </div>
+          <div class="subject-right">
+            <div><div class="subject-name">${s.name}</div><div class="subject-meta">${done}/${total} הושלמו</div></div>
+          </div>
         </div>
-        <div class="subject-right">
-          <div><div class="subject-name">${s.name}</div><div class="subject-meta">${done}/${total} הושלמו</div></div>
+        <div class="sub-topics" id="s${s.id}">
+          ${renderSubNodes(s.id,s.subtopics,[])}
+          <button class="add-sub-btn" onclick="openAddSub('${s.id}',[],'${escQ(s.name)}')">+ תת-נושא</button>
+          <div style="height:8px"></div>
         </div>
-      </div>
-      <div class="sub-topics" id="s${s.id}">
-        ${renderSubNodes(s.id,s.subtopics,[])}
-        <button class="add-sub-btn" onclick="openAddSub('${s.id}',[],'${escQ(s.name)}')">+ תת-נושא</button>
-        <div style="height:8px"></div>
-      </div>
-    </div>`;
-  }).join('');
+      </div>`;
+    });
+    if(hasMultipleCats) html+='</div>';
+  });
+  el.innerHTML=html;
 }
 function renderSubNodes(sid,items,path){
   if(!items||!items.length)return'';
   return items.map((item,idx)=>{
     const cp=[...path,idx],pk=cp.join('-'),hc=item.subtopics&&item.subtopics.length>0;
-    return`<div class="sub-topic-item" onclick="event.stopPropagation();toggleSub('sc${sid}${pk}','sch${sid}${pk}')">
+    return`<div class="sub-topic-item" data-path="${sid}-${pk}" onclick="event.stopPropagation();toggleSub('sc${sid}${pk}','sch${sid}${pk}')">
       <div style="display:flex;align-items:center;gap:6px">
         ${hc?`<span id="sch${sid}${pk}" style="font-size:11px;color:var(--muted)">▸</span>`:'<span style="width:14px"></span>'}
         <button class="add-sub-btn" onclick="event.stopPropagation();openAddSub('${sid}',${JSON.stringify(cp)},'${escQ(item.name)}')">+</button>
@@ -1110,8 +1389,10 @@ function escQ(s){return(s||'').replace(/'/g,"\\'").replace(/"/g,'&quot;');}
 function addTask(){
   const name=document.getElementById('m-task-name').value.trim();
   if(!name)return;
-  S.tasks.push({id:uid(),name,subjId:document.getElementById('m-task-subj').value,type:document.getElementById('m-task-type').value,done:false,dueDate:document.getElementById('m-task-date').value,dueTime:document.getElementById('m-task-time').value});
+  const recurring=document.getElementById('m-task-recurring')?.checked||false;
+  S.tasks.push({id:uid(),name,subjId:document.getElementById('m-task-subj').value,type:document.getElementById('m-task-type').value,done:false,dueDate:document.getElementById('m-task-date').value,dueTime:document.getElementById('m-task-time').value,recurring,lastReset:recurring?today():null});
   save();['m-task-name','m-task-date','m-task-time'].forEach(i=>document.getElementById(i).value='');
+  if(document.getElementById('m-task-recurring'))document.getElementById('m-task-recurring').checked=false;
   closeModal('m-task');renderTasks();renderDash();showToast('משימה נוספה!');
 }
 function toggleTask(id){
@@ -1132,15 +1413,20 @@ function renderTaskList(id,tasks){
   if(!tasks.length){el.innerHTML='<div class="empty" style="padding:20px">אין משימות</div>';return;}
   el.innerHTML=tasks.map(t=>{
     const subj=S.subjects.find(s=>s.id===t.subjId);
-    const due=t.dueDate?`${fmtDate(t.dueDate)}${t.dueTime?' '+t.dueTime:''}`:'';
-    return`<div class="task-row" id="tr${t.id}">
+    const due=t.dueDate?`${fmtDate(t.dueDate)}${t.dueTime?' '+t.dueTime:''}`:''
+    const isOverdue=t.dueDate&&t.dueDate<today()&&!t.done;
+    const recurIcon=t.recurring?'<span class="recurring-icon" title="איפוס יומי אוטומטי">🔄</span>':'';
+    const overdueBadge=isOverdue?'<span class="overdue-badge">פגר</span>':'';
+    return`<div class="task-row${isOverdue?' overdue':''}" id="tr${t.id}">
       <div class="swipe-action">✓</div>
       <div style="display:flex;gap:8px;align-items:center">
-        ${due?`<span class="task-due">${due}</span>`:''}
+        ${overdueBadge}
+        ${due?`<span class="task-due" style="${isOverdue?'color:var(--red)':''}">${due}</span>`:''}
         ${subj&&subj.name!=='__other__'?`<span class="task-tag">${subj.name}</span>`:''}
       </div>
       <div class="task-row-right">
-        <span style="${t.done?'text-decoration:line-through;color:var(--muted)':''}">${t.name}</span>
+        ${recurIcon}
+        <span style="${t.done?'text-decoration:line-through;color:var(--muted)':isOverdue?'color:var(--red)':''}">${t.name}</span>
         <div class="task-circle${t.done?' done':''}" onclick="toggleTask('${t.id}')">
           ${t.done?'<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>':''}
         </div>
@@ -1197,6 +1483,19 @@ function saveScore(){
   closeModal('m-score');
 }
 function scoreClass(s){if(s>=85)return'green';if(s>=60)return'amber';return'red';}
+// Readiness Score: 0-100 based on subtopic completion + prep traffic light
+function calcReadiness(exam){
+  const subj=S.subjects.find(s=>s.id===exam.subjId);
+  let subtopicScore=0;
+  if(subj){
+    const{total,done}=countNodes(subj);
+    subtopicScore=total?Math.round(done/total*100):0;
+  }
+  const prepScore={red:0,amber:40,green:80}[exam.prep]||0;
+  // Weighted: 60% subtopics, 40% prep
+  return Math.round(subtopicScore*0.6+prepScore*0.4);
+}
+
 function renderExams(){
   const td=today();
   const up=S.exams.filter(e=>e.date>=td).sort((a,b)=>a.date.localeCompare(b.date));
@@ -1205,16 +1504,23 @@ function renderExams(){
     const subj=S.subjects.find(s=>s.id===e.subjId);
     const timeStr=e.time?` ${e.time}`:'';
     const days=daysUntil(e.date);
-    const tlColors={red:'#e74c3c',amber:var_amber,green:var_green};
     const prepDot=e.prep?`<div style="width:10px;height:10px;border-radius:50%;background:${{red:'#e74c3c',amber:'#f39c12',green:'#2ecc8b'}[e.prep]||'#ccc'}" title="מצב הכנה"></div>`:'';
+    // Readiness Score
+    const readiness=calcReadiness(e);
+    const rColor=readiness>=70?'var(--g)':readiness>=40?'#f39c12':'var(--red)';
+    const readinessHTML=`<div class="readiness-bar-wrap">
+      <div class="readiness-bar"><div class="readiness-bar-fill" style="width:${readiness}%;background:${rColor}"></div></div>
+      <span class="readiness-pct" style="color:${rColor}">${readiness}%</span>
+    </div>`;
     return`<div class="exam-card">
-      <div style="display:flex;gap:8px;align-items:center">
+      <div style="display:flex;gap:8px;align-items:center;flex-direction:column;align-items:flex-start">
         ${past
           ?`<button class="btn btn-ghost" style="font-size:12px;padding:4px 10px" onclick="openScore('${e.id}')">
               ${e.score!==null?`<span class="exam-score ${scoreClass(e.score)}">${e.score}</span>`:'+ ציון'}</button>`
           :`<span class="countdown-badge${days<=3?' urgent':days<=7?' soon':''}">${days===0?'היום!':days===1?'מחר':days+'ד'}</span>`
         }
         ${prepDot}
+        ${!past?readinessHTML:''}
       </div>
       <div class="exam-card-right">
         <div><div class="exam-name">${e.name}</div><div class="exam-date">${fmtDate(e.date)}${timeStr}</div></div>
@@ -1620,8 +1926,55 @@ function renderLogsList(){
 // ═══════════════════════════════════════════
 // DASHBOARD
 // ═══════════════════════════════════════════
+function renderCountdownHero(){
+  const el=document.getElementById('countdown-hero-wrap');if(!el)return;
+  const td=today();
+  const upcoming=S.exams.filter(e=>e.date>=td).sort((a,b)=>a.date.localeCompare(b.date));
+  if(!upcoming.length){
+    el.innerHTML='<div class="countdown-hero no-exam"><div class="countdown-hero-right"><h2>ספירה לאחור</h2><h3>אין מבחנים קרובים</h3><div class="cd-sub">הוסף מבחן חדש כדי להתחיל</div></div><div class="countdown-days"><div class="cd-num">—</div><div class="cd-unit">ימים</div></div></div>';
+    return;
+  }
+  const e=upcoming[0];
+  const subj=S.subjects.find(s=>s.id===e.subjId);
+  const days=daysUntil(e.date);
+  const readiness=calcReadiness(e);
+  const urgentClass=days<=3?' urgent':days<=7?' soon':'';
+  el.innerHTML=`<div class="countdown-hero">
+    <div class="countdown-hero-right">
+      <h2>מבחן קרוב הבא</h2>
+      <h3>${e.name}</h3>
+      <div class="cd-sub">${subj?subj.name+' · ':''} ${fmtDate(e.date)}${e.time?' '+ e.time:''} | מוכנות: ${readiness}%</div>
+    </div>
+    <div class="countdown-days">
+      <div class="cd-num">${days===0?'0':days}</div>
+      <div class="cd-unit">${days===0?'היום!':days===1?'מחר':'ימים'}</div>
+    </div>
+  </div>`;
+}
+
+function renderFocusCard(){
+  const el=document.getElementById('focus-card-wrap');if(!el)return;
+  const todayTasks=S.tasks.filter(t=>t.type==='daily');
+  const priority=todayTasks.filter(t=>!t.done).slice(0,3);
+  const done=todayTasks.filter(t=>t.done).length;
+  el.innerHTML=`<div class="focus-card">
+    <div class="focus-card-title">⚡ פוקוס היום <span style="font-weight:400;margin-right:auto;color:var(--g)">${done}/${todayTasks.length} הושלם</span></div>
+    <div class="focus-tasks-row">
+      ${priority.length?priority.map(t=>{
+        const subj=S.subjects.find(s=>s.id===t.subjId);
+        return`<div class="focus-task-pill" onclick="toggleTask('${t.id}');renderFocusCard();renderDash()">
+          <span>${t.name}</span>
+          ${subj&&subj.name!=='__other__'?`<span class="task-tag" style="font-size:10px">${subj.name}</span>`:''}
+        </div>`;
+      }).join(''):`<div style="font-size:13px;color:var(--muted);text-align:right;padding:8px 0">כל המשימות הושלמו! 🎉</div>`}
+    </div>
+  </div>`;
+}
+
 function renderDash(){
   if(!CU)return;
+  renderCountdownHero();
+  renderFocusCard();
   document.getElementById('dash-date').textContent='ברוך הבא — '+new Date().toLocaleDateString('he-IL',{weekday:'long',day:'2-digit',month:'2-digit',year:'numeric'});
   let tot=0,don=0;S.subjects.forEach(s=>{const c=countNodes(s);tot+=c.total;don+=c.done;});
   document.getElementById('s-subtopics').textContent=`${don}/${tot}`;
@@ -2647,6 +3000,112 @@ if('serviceWorker' in navigator){
   });
 }
 */
+// ═══════════════════════════════════════════
+// DARK MODE TOGGLE
+// ═══════════════════════════════════════════
+function toggleDarkMode(){
+  document.body.classList.toggle('dark-mode');
+  const isDark=document.body.classList.contains('dark-mode');
+  localStorage.setItem('sa_dark_mode',isDark?'1':'0');
+  document.getElementById('dark-toggle').textContent=isDark?'☀️':'🌙';
+}
+// Restore dark mode preference
+(function(){
+  if(localStorage.getItem('sa_dark_mode')==='1'){
+    document.body.classList.add('dark-mode');
+    const btn=document.getElementById('dark-toggle');
+    if(btn)btn.textContent='☀️';
+  }
+})();
+
+// ═══════════════════════════════════════════
+// DAILY RESET — recurring tasks
+// Runs at page load and checks every minute
+// ═══════════════════════════════════════════
+function resetRecurringTasks(){
+  if(!CU||!S||!S.tasks)return;
+  const td=today();
+  let changed=false;
+  S.tasks.forEach(t=>{
+    if(t.recurring && t.done && t.lastReset !== td){
+      t.done=false;
+      t.lastReset=td;
+      t.notified=false;
+      changed=true;
+    }
+  });
+  if(changed){
+    save();
+    renderTasks();
+    renderDash();
+    showToast('משימות יומיות אופסו 🔄');
+  }
+}
+
+// Run on load (after login)
+const _origLoginUser = loginUser;
+loginUser = async function(session){
+  await _origLoginUser(session);
+  resetRecurringTasks();
+};
+
+// Check once a minute if midnight has passed
+setInterval(()=>{
+  resetRecurringTasks();
+}, 60000);
+
+// ═══════════════════════════════════════════
+// UPDATE seedNewUserSupabase to include category
+// ═══════════════════════════════════════════
+// Monkey-patch to ensure category exists on seed data
+const _origSeedNewUserSupabase = seedNewUserSupabase;
+seedNewUserSupabase = async function(userId, username){
+  const data = {
+    subjects:[{id:uid(),name:'מתמטיקה',category:'matriculation',subtopics:MATH_TOPICS.map(t=>({id:uid(),name:t.n,done:t.d,subtopics:[]}))}],
+    tasks:[],exams:[],logs:[],archive:[]
+  };
+  try {
+    await sb.from('user_data').upsert(
+      { user_id: userId, data },
+      { onConflict: 'user_id' }
+    );
+  } catch(e) {
+    localStorage.setItem(userKey(userId), JSON.stringify(data));
+  }
+};
+
+// ═══════════════════════════════════════════
+// EXTEND AI TOOLS with recurring + category support
+// ═══════════════════════════════════════════
+AI_TOOLS.push({
+  type: "function",
+  function: {
+    name: 'set_subject_category',
+    description: 'מגדיר קטגוריה לנושא קיים.',
+    parameters: {
+      type: 'object',
+      properties: {
+        subject_id: { type: 'string', description: 'ID של הנושא' },
+        category: { type: 'string', description: 'university / matriculation / other', enum: ['university','matriculation','other',''] }
+      },
+      required: ['subject_id','category']
+    }
+  }
+});
+
+const _origExecuteTool = executeTool;
+executeTool = function(name, args){
+  if(name === 'set_subject_category'){
+    const subj=S.subjects.find(s=>s.id===args.subject_id);
+    if(!subj)return '❌ נושא לא נמצא.';
+    subj.category=args.category;
+    save(); renderSubjects();
+    const labels={university:'אוניברסיטה / מכללה',matriculation:'בגרות',other:'אחר',''  :'ללא קטגוריה'};
+    return `✅ הקטגוריה של "${subj.name}" עודכנה ל: ${labels[args.category]||args.category}`;
+  }
+  return _origExecuteTool(name, args);
+};
+
 </script>
 </body>
 </html>
