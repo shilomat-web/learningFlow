@@ -9,6 +9,11 @@
 <meta name="apple-mobile-web-app-title" content="מרכז למידה">
 <link rel="manifest" href="manifest.json">
 <title>מרכז למידה</title>
+<!-- ── FAVICON & PWA ICONS (using uploaded logo) ── -->
+<link rel="icon" type="image/png" sizes="32x32"   href="logo.png">
+<link rel="icon" type="image/png" sizes="16x16"   href="logo.png">
+<link rel="apple-touch-icon"      sizes="180x180" href="logo.png">
+<meta property="og:image" content="logo.png">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -27,7 +32,12 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--txt);min-he
 #auth-screen.hidden{display:none}
 .auth-box{background:var(--white);border:1px solid var(--border);border-radius:20px;padding:40px 36px;width:380px;max-width:92vw;box-shadow:0 4px 24px rgba(0,0,0,.08);text-align:right}
 .auth-logo{display:flex;align-items:center;gap:10px;justify-content:flex-end;margin-bottom:28px}
-.logo-icon{width:40px;height:40px;background:var(--g);border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px;flex-shrink:0}
+.logo-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;background:transparent}
+.logo-icon img{width:100%;height:100%;object-fit:contain;display:block}
+/* ── Responsive logo in sidebar ── */
+.sb-logo-img{width:clamp(28px,4vw,40px);height:clamp(28px,4vw,40px);object-fit:contain;flex-shrink:0}
+/* ── Auth logo: larger, crisp ── */
+.auth-logo-img{width:clamp(52px,10vw,72px);height:auto;object-fit:contain;display:block}
 .auth-logo h1{font-size:22px;font-weight:700}
 .auth-tabs,.tabs{display:flex;background:var(--bg);border-radius:10px;padding:4px}
 .auth-tab,.tab{flex:1;padding:9px;text-align:center;font-size:14px;cursor:pointer;border-radius:7px;transition:all .15s;color:var(--sec);font-family:'Heebo',sans-serif}
@@ -564,20 +574,21 @@ body.dark-mode {
     <div class="ai-header-right">
       <div>
         <div class="ai-title">עוזר לימודים</div>
-        <div class="ai-subtitle">מבוסס על הנתונים שלך בלבד</div>
+        <div class="ai-subtitle">ניתוח אקדמי מותאם אישית</div>
       </div>
       <div class="ai-avatar">🤖</div>
     </div>
   </div>
   <div class="ai-messages" id="ai-messages">
-    <div class="ai-msg bot">שלום! אני העוזר האישי שלך. אני יכול לעזור לך בניהול הלימודים, להוסיף משימות, זמני לימוד ועוד.
-במה אוכל לעזור?</div>
+    <div class="ai-msg bot">שלום! אני העוזר האישי שלך — מנתח את הנתונים שלך ומספק תובנות לימודיות מותאמות אישית.
+
+נסה לשאול: "מה המצב שלי?" או "על מה אני צריך להתמקד?"</div>
   </div>
   <div class="ai-chips" id="ai-chips">
-    <div class="ai-chip" onclick="askChip('מה ההתקדמות שלי?')">📊 ההתקדמות שלי</div>
-    <div class="ai-chip" onclick="askChip('אילו מבחנים קרובים?')">📅 מבחנים קרובים</div>
-    <div class="ai-chip" onclick="askChip('הוסף משימה ללמוד למתמטיקה מחר')">✨ הוסף משימה</div>
-    <div class="ai-chip" onclick="askChip('למדתי היום שעה')">⏱ רישום לימוד</div>
+    <div class="ai-chip" onclick="askChip('מה המצב שלי? תן לי ניתוח מלא')">📊 ניתוח מלא</div>
+    <div class="ai-chip" onclick="askChip('על מה אני צריך להתמקד? מה בסיכון?')">🎯 עדיפויות</div>
+    <div class="ai-chip" onclick="askChip('אילו מבחנים קרובים ומה רמת המוכנות שלי?')">📅 מבחנים</div>
+    <div class="ai-chip" onclick="askChip('הוסף משימה חדשה')">✨ הוסף משימה</div>
   </div>
   <div class="ai-input-row">
     <button class="ai-send" id="ai-send-btn" onclick="sendAI()" title="שלח">➤</button>
@@ -585,7 +596,7 @@ body.dark-mode {
       onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAI()}"
       oninput="this.style.height='40px';this.style.height=Math.min(this.scrollHeight,100)+'px'"></textarea>
   </div>
-  <div class="ai-api-note">⚡ מופעל על ידי DeepSeek V3</div>
+  <div class="ai-api-note">⚡ מופעל על ידי Groq · llama-3.3-70b | ניתוח הנתונים שלך</div>
 </div>
 
 <div id="install-banner">
@@ -601,7 +612,7 @@ body.dark-mode {
   <div class="auth-box">
     <div class="auth-logo">
       <h1>מרכז למידה</h1>
-      <div class="logo-icon">📚</div>
+      <div class="logo-icon" style="width:56px;height:56px;border-radius:14px"><img src="logo.png" alt="לוגו מרכז למידה" class="auth-logo-img"></div>
     </div>
     <div class="auth-tabs" id="auth-tabs">
       <div class="auth-tab active" onclick="switchAuthTab('login')">כניסה</div>
@@ -625,7 +636,7 @@ body.dark-mode {
 
 <div id="sidebar">
   <div class="sb-logo">
-    <div class="sb-logo-row"><h2>מרכז למידה</h2><div class="logo-icon" style="width:32px;height:32px;font-size:16px">📚</div></div>
+    <div class="sb-logo-row"><h2>מרכז למידה</h2><div class="logo-icon" style="width:32px;height:32px"><img src="logo.png" alt="לוגו" class="sb-logo-img"></div></div>
     <p>ניהול משימות לימודים</p>
   </div>
   <nav id="sidebar-nav">
@@ -2031,8 +2042,35 @@ function changeMonth(d){calM+=d;if(calM>11){calM=0;calY++;}if(calM<0){calM=11;ca
 // ═══════════════════════════════════════════
 // POMODORO
 // ═══════════════════════════════════════════
-let pomoState={running:false,phase:'work',elapsed:0,phaseElapsed:0,totalElapsed:0,sessions:0,timer:null};
+let pomoState={running:false,phase:'work',elapsed:0,phaseElapsed:0,totalElapsed:0,sessions:0};
 const WORK=25*60,BREAK=5*60,MAX=60*60;
+
+// ── Web Worker for tick — prevents throttling when tab is backgrounded ──
+let _pomoWorker = null;
+function _getPomoWorker(){
+  if(_pomoWorker) return _pomoWorker;
+  // Inline the worker as a Blob URL so no separate file is needed
+  const workerSrc = `
+    let _iv = null;
+    self.onmessage = function(e){
+      const { cmd } = e.data;
+      if(cmd === 'start'){
+        if(_iv !== null) return;
+        _iv = setInterval(() => self.postMessage({ type: 'tick' }), 1000);
+      }
+      if(cmd === 'pause' || cmd === 'reset'){
+        if(_iv !== null){ clearInterval(_iv); _iv = null; }
+      }
+    };
+  `;
+  const blob = new Blob([workerSrc], { type: 'application/javascript' });
+  _pomoWorker = new Worker(URL.createObjectURL(blob));
+  _pomoWorker.onmessage = function(e){
+    if(e.data.type === 'tick') pomoTick();
+  };
+  return _pomoWorker;
+}
+
 function openPomo(){openModal('m-pomo');renderPomo();}
 function pomoBtnClick(){if(pomoState.running)pomoPause();else pomoStart();}
 function pomoStart(){
@@ -2040,38 +2078,54 @@ function pomoStart(){
   pomoState.running=true;
   document.getElementById('pomo-start-btn').textContent='⏸ השהה';
   document.getElementById('pomodoro-fab').classList.add('running');
-  pomoState.timer=setInterval(pomoTick,1000);
+  _getPomoWorker().postMessage({ cmd: 'start' });
 }
 function pomoPause(){
-  pomoState.running=false;clearInterval(pomoState.timer);
+  pomoState.running=false;
+  _getPomoWorker().postMessage({ cmd: 'pause' });
   document.getElementById('pomo-start-btn').textContent='▶ המשך';
   document.getElementById('pomodoro-fab').classList.remove('running');
 }
 function pomoReset(){
-  clearInterval(pomoState.timer);
-  pomoState={running:false,phase:'work',elapsed:0,phaseElapsed:0,totalElapsed:0,sessions:0,timer:null};
+  if(_pomoWorker) _pomoWorker.postMessage({ cmd: 'reset' });
+  pomoState={running:false,phase:'work',elapsed:0,phaseElapsed:0,totalElapsed:0,sessions:0};
   document.getElementById('pomodoro-fab').classList.remove('running');
   renderPomo();
 }
-  function playPomodoroBeep() {
+
+// ── Pleasant multi-note chime via Web Audio API ──
+function playPomodoroChime(isWork){
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(800, ctx.currentTime);
-    osc.connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.2);
+    // Work-complete: ascending 3-note chord. Break-complete: descending.
+    const notes = isWork ? [523.25, 659.25, 783.99] : [783.99, 659.25, 523.25];
+    notes.forEach((freq, i) => {
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, ctx.currentTime);
+      const t0 = ctx.currentTime + i * 0.18;
+      gain.gain.setValueAtTime(0, t0);
+      gain.gain.linearRampToValueAtTime(0.28, t0 + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.55);
+      osc.start(t0);
+      osc.stop(t0 + 0.6);
+    });
   } catch(e) {}
 }
+
 function pomoTick(){
   pomoState.phaseElapsed++;pomoState.totalElapsed++;
   const limit=pomoState.phase==='work'?WORK:BREAK;
   if(pomoState.phaseElapsed>=limit){
-    playPomodoroBeep();
-    clearInterval(pomoState.timer);pomoState.running=false;
+    const wasWork = pomoState.phase==='work';
+    playPomodoroChime(wasWork);
+    _getPomoWorker().postMessage({ cmd: 'pause' });
+    pomoState.running=false;
     document.getElementById('pomodoro-fab').classList.remove('running');
-    if(pomoState.phase==='work'){
+    if(wasWork){
       pomoState.sessions++;
       if(pomoState.totalElapsed>=MAX){showToast('סיימת 60 דקות! כל הכבוד 🎉 הפסקה!');renderPomo();return;}
       pomoState.phase='break';pomoState.phaseElapsed=0;
@@ -2460,29 +2514,124 @@ function buildContext(){
   return lines.join('\n');
 }
 
+// ── Build rich analytics insights from full user state ──
+function buildAnalyticsInsights(){
+  if(!CU || !S) return '';
+  const td = today();
+  const lines = [];
+
+  // Exam urgency analysis
+  const upcoming = S.exams.filter(e=>e.date>=td).sort((a,b)=>a.date.localeCompare(b.date));
+  if(upcoming.length){
+    lines.push('=== ניתוח דחיפות מבחנים ===');
+    upcoming.forEach(e=>{
+      const days = daysUntil(e.date);
+      const subj = S.subjects.find(s=>s.id===e.subjId);
+      const readiness = calcReadiness(e);
+      const urgency = days<=3 ? '🔴 דחוף מאוד' : days<=7 ? '🟡 דחוף' : '🟢 יש זמן';
+      const readinessLbl = readiness>=70?'✅ מוכן':readiness>=40?'⚠️ חלקי':'❌ לא מוכן';
+      let pendingSubtopics = 0;
+      if(subj){ const c=countNodes(subj); pendingSubtopics=c.total-c.done; }
+      lines.push('  '+urgency+' "'+e.name+'" — עוד '+days+' ימים | מוכנות: '+readiness+'% ('+readinessLbl+') | תת-נושאים ממתינים: '+pendingSubtopics);
+    });
+  }
+
+  // Overdue tasks
+  const overdue = S.tasks.filter(t=>!t.done && t.dueDate && t.dueDate < td);
+  if(overdue.length){
+    lines.push('\n=== משימות באיחור ('+overdue.length+') ===');
+    overdue.forEach(t=>{
+      const subj = S.subjects.find(s=>s.id===t.subjId);
+      const daysLate = Math.abs(daysUntil(t.dueDate));
+      lines.push('  ⚠️ "'+t.name+'" ('+(subj?subj.name:'ללא נושא')+') — '+daysLate+' ימים באיחור');
+    });
+  }
+
+  // Study velocity: last 7 vs previous 7 days
+  const d7  = new Date(); d7.setDate(d7.getDate()-7);
+  const d14 = new Date(); d14.setDate(d14.getDate()-14);
+  const last7 = S.logs.filter(l=>new Date(l.date)>=d7).reduce((s,l)=>s+l.minutes,0);
+  const prev7 = S.logs.filter(l=>new Date(l.date)>=d14 && new Date(l.date)<d7).reduce((s,l)=>s+l.minutes,0);
+  const velocityTrend = last7>prev7?'📈 עולה':last7<prev7?'📉 יורד':'➡️ יציב';
+  lines.push('\n=== קצב לימוד ===');
+  lines.push('  שבוע אחרון: '+fmtMins(last7)+' | שבוע קודם: '+fmtMins(prev7)+' | מגמה: '+velocityTrend);
+
+  // Subject balance
+  const bySubjLog = {};
+  S.logs.forEach(l=>{ bySubjLog[l.subjId]=(bySubjLog[l.subjId]||0)+l.minutes; });
+  const totalLogMins = Object.values(bySubjLog).reduce((a,b)=>a+b, 0);
+  if(totalLogMins > 0){
+    lines.push('\n=== איזון בין נושאים ===');
+    S.subjects.forEach(subj=>{
+      const mins = bySubjLog[subj.id]||0;
+      const pct  = Math.round(mins/totalLogMins*100);
+      const {total,done} = countNodes(subj);
+      const compPct = total ? Math.round(done/total*100) : 0;
+      const hasNearExam = S.exams.some(e=>e.subjId===subj.id && e.date>=td && daysUntil(e.date)<=14);
+      const flag = (compPct<40 && pct>25) ? '⚠️ ריבוי זמן, התקדמות נמוכה' : hasNearExam && compPct<60 ? '🚨 מבחן קרוב, הכנה לא מספקת' : '';
+      lines.push('  '+subj.name+': '+fmtMins(mins)+' ('+pct+'% מהזמן) | השלמה: '+compPct+'% '+flag);
+    });
+  }
+
+  // Priority recommendation — score = (100-readiness) * (30/days)
+  lines.push('\n=== המלצת עדיפות לימוד ===');
+  const scoredSubjs = S.exams
+    .filter(e=>e.date>=td)
+    .map(e=>{
+      const days = daysUntil(e.date);
+      const readiness = calcReadiness(e);
+      const subj = S.subjects.find(s=>s.id===e.subjId);
+      const priority = Math.round((100-readiness) * (30/Math.max(days,1)));
+      return { name: e.name, subjName: subj?subj.name:'', days, readiness, priority };
+    })
+    .sort((a,b)=>b.priority-a.priority)
+    .slice(0,3);
+  if(scoredSubjs.length){
+    scoredSubjs.forEach((s,i)=>{
+      lines.push('  '+(i+1)+'. '+s.subjName+' (מבחן "'+s.name+'" בעוד '+s.days+'ד) — מוכנות '+s.readiness+'% — עדיפות: '+(s.priority>150?'גבוהה מאוד':s.priority>80?'גבוהה':'בינונית'));
+    });
+  } else {
+    lines.push('  אין מבחנים קרובים לניתוח.');
+  }
+  return lines.join('\n');
+}
+
 function buildSystemPrompt(){
-  const context = buildContext();
-  return `אתה עוזר לימודים אישי חכם. תפקידך לעזור לסטודנט על סמך נתוני האפליקציה שלו בלבד.
+  const context  = buildContext();
+  const insights = buildAnalyticsInsights();
 
-## כללים קריטיים:
-1. ענה רק על בסיס המידע שמופיע ב"נתוני האפליקציה" למטה.
-2. אם שאלה אינה קשורה לנתוני האפליקציה — השב: "אני יכול לענות רק על שאלות לגבי הנתונים שלך באפליקציה."
-3. אם המידע הספציפי לא נמצא בנתונים — השב: "המידע הזה אינו קיים בנתוני האפליקציה שלך."
-4. אל תמציא, אל תשער, אל תשתמש בשום ידע חיצוני.
-5. ענה בעברית, בצורה קצרה וברורה.
-6. כשמשתמש מבקש למחוק נושא, משימה, מבחן, זמן לימוד או רשומה מהארכיון — השתמש ב-tool המתאים ובקש אישור.
-7. כשמשתמש מבקש להוסיף מבחן לארכיון — השתמש ב-tool add_archive_entry.
-8. ניתן לחשב ממוצעים, לנתח תבניות ולהצביע על שיפורים — מהנתונים בלבד.
-9. כאשר המשתמש מבקש להוסיף נושא, משימה, מבחן, או זמן לימוד, או לסמן משימה כהושלמה - **בצע זאת מיד** באמצעות הכלים (Tools) שסופקו לך. אל תסביר לו איך לעשות זאת בממשק.
+  // Structured JSONB snapshot injected into LLM context for deep reasoning
+  const stateSnapshot = JSON.stringify({
+    user: CU ? CU.name : 'unknown',
+    today: today(),
+    subjects: (S.subjects||[]).map(subj=>{
+      const {total,done} = countNodes(subj);
+      return { id:subj.id, name:subj.name, category:subj.category||'', completion:{ done, total, pct:total?Math.round(done/total*100):0 } };
+    }),
+    upcomingExams: (S.exams||[]).filter(e=>e.date>=today()).sort((a,b)=>a.date.localeCompare(b.date))
+      .map(e=>({ id:e.id, name:e.name, date:e.date, daysUntil:daysUntil(e.date), prep:e.prep, readiness:calcReadiness(e) })),
+    tasks:{ total:(S.tasks||[]).length, done:(S.tasks||[]).filter(t=>t.done).length, overdue:(S.tasks||[]).filter(t=>!t.done&&t.dueDate&&t.dueDate<today()).length },
+    studyMins:{ today:S.logs.filter(l=>l.date===today()).reduce((s,l)=>s+l.minutes,0), last7days:S.logs.filter(l=>{const d=new Date();d.setDate(d.getDate()-7);return new Date(l.date)>=d;}).reduce((s,l)=>s+l.minutes,0), total:S.logs.reduce((s,l)=>s+l.minutes,0) }
+  }, null, 2);
 
-## נתוני האפליקציה של המשתמש:
-${context}
-
-## דוגמאות לתשובות נכונות:
-- "ההתקדמות הכוללת שלך היא X% — השלמת Y מתוך Z תת-נושאים."
-- "המבחן הקרוב ביותר הוא [שם] בתאריך [תאריך], בעוד X ימים."
-- "הנושא שלמדת בו הכי הרבה הוא [שם] עם X שעות."
-- "אני יכול לענות רק על שאלות לגבי הנתונים שלך באפליקציה." (לשאלות חיצוניות)`;
+  return 'אתה עוזר לימודים אישי מתקדם ומנתח נתונים. תפקידך לתת תובנות אקדמיות מעמיקות ומותאמות אישית לסטודנט, בהתבסס אך ורק על נתוני האפליקציה שלו.\n\n'
+    + '## תפקידך הליבה:\n'
+    + 'אתה לא רק עונה על שאלות — אתה מנתח עומס לימודי, מזהה סיכונים, ומציע אסטרטגיית לימוד מבוססת-נתונים.\n\n'
+    + '## כללים קריטיים:\n'
+    + '1. ענה רק על בסיס הנתונים שלמטה — אל תמציא, אל תשער.\n'
+    + '2. ענה בעברית, קצר וברור, עם פורמט מסודר (bullet points לרשימות).\n'
+    + '3. כשמבקשים ניתוח — ספק: (א) מה המצב, (ב) מה הסיכון, (ג) המלצה פרקטית.\n'
+    + '4. כשמשתמש מבקש להוסיף/לסמן/למחוק — השתמש בכלים מיד. לא להסביר את הממשק.\n'
+    + '5. כשמשתמש מבקש להוסיף מבחן לארכיון — השתמש ב-tool add_archive_entry.\n'
+    + '6. לפני מחיקה — הצג confirm card ובקש אישור.\n'
+    + '7. לשאלות חיצוניות שאינן קשורות ללימודים: "אני מנתח רק את הנתונים שלך באפליקציה."\n\n'
+    + '## נתוני האפליקציה (מפורט):\n' + context + '\n\n'
+    + '## תובנות מחושבות אוטומטית (Computed Insights):\n' + insights + '\n\n'
+    + '## Snapshot JSON לניתוח עמוק:\n```json\n' + stateSnapshot + '\n```\n\n'
+    + '## דוגמאות לתשובות מעולות:\n'
+    + '- שאלה: "מה המצב שלי?" → ניתוח: אחוז השלמה + מבחנים קרובים + מצב משימות + נושא בסיכון גבוה + המלצה ל-48 שעות.\n'
+    + '- שאלה: "על מה להתמקד?" → עדיפויות לפי: ימים למבחן × (100-מוכנות), עם דגש על נושאים מפגרים.\n'
+    + '- שאלה: "איך ההתקדמות?" → השוואת קצב שבוע-לשבוע + הצבעה על פערי כיסוי.';
 }
 
 // ═══════════════════════════════════════════
