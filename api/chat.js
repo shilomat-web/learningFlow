@@ -1,89 +1,63 @@
-// /api/chat.js — Vercel Serverless Function  (Phase 3 update)
-// Handles authenticated user-data CRUD against Supabase.
-// Phase 3 additions:
-//   • POST /api/chat?action=ai  — Context-aware Groq AI analytics endpoint.
-//     Injects the user's complete JSONB state (tasks, exam readiness, subjects)
-//     into a structured system prompt for personalised, data-driven insights.
+// /api/chat.js — Vercel Serverless Function
+// Phase 3 — Fixed Groq AI integration:
+//   • System prompt now strictly separates READ vs WRITE intent.
+//   • No tools are sent to Groq; the model answers from injected JSONB state.
+//   • Robust error boundary handles `failed_generation` and Groq 400/500s.
 //
-// Deploy alongside index.html. Set env vars in Vercel dashboard:
+// Env vars required in Vercel dashboard:
 //   SUPABASE_URL         = https://xirsfctsowhrsyytgcnh.supabase.co
-//   SUPABASE_SERVICE_KEY = <your service_role key>  ← NOT the anon key
-//   SUPABASE_ANON_KEY    = <your anon/public key>
-//   GROQ_API_KEY         = <your Groq API key>
+//   SUPABASE_SERVICE_KEY = <service_role key>
+//   SUPABASE_ANON_KEY    = <anon/public key>
+//   GROQ_API_KEY         = <Groq API key>
 
 import { createClient } from '@supabase/supabase-js';
 
-// ── Supabase admin client (service role — bypasses RLS for server-side ops)
+// ── Supabase admin client ──────────────────────────────────────
 function getAdminClient() {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_KEY;
-  if (!url || !key) throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_KEY env vars');
-  return createClient(url, key, {
-    auth: { persistSession: false }
-  });
+  if (!url || !key) throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_KEY');
+  return createClient(url, key, { auth: { persistSession: false } });
 }
 
-// ── Verify the JWT the browser sends and return the user id
+// ── Verify JWT, return userId ──────────────────────────────────
 async function verifyToken(authHeader) {
-  if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
+  if (!authHeader?.startsWith('Bearer ')) return null;
   const token = authHeader.slice(7);
   const sb = getAdminClient();
   const { data: { user }, error } = await sb.auth.getUser(token);
-  if (error || !user) return null;
-  return user.id;
+  return (error || !user) ? null : user.id;
 }
 
-// ── CORS headers (adjust origin in production)
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 };
 
-// ─────────────────────────────────────────────────────────────
-// SCHEMA HELPERS
-// ─────────────────────────────────────────────────────────────
+// ── Schema helpers ─────────────────────────────────────────────
 function migrateData(data) {
   if (!data || typeof data !== 'object') return data;
-
   if (!Array.isArray(data.subjects)) data.subjects = [];
   if (!Array.isArray(data.tasks))    data.tasks    = [];
   if (!Array.isArray(data.exams))    data.exams    = [];
   if (!Array.isArray(data.logs))     data.logs     = [];
   if (!Array.isArray(data.archive))  data.archive  = [];
-
-  data.subjects = data.subjects.map(s => ({
-    ...s,
-    category: s.category ?? '',
-  }));
-
+  data.subjects = data.subjects.map(s => ({ ...s, category: s.category ?? '' }));
   const todayStr = new Date().toISOString().split('T')[0];
   data.tasks = data.tasks.map(t => ({
     ...t,
-    recurring:  t.recurring  ?? false,
-    lastReset:  t.lastReset  ?? (t.recurring ? todayStr : null),
+    recurring: t.recurring ?? false,
+    lastReset: t.lastReset ?? (t.recurring ? todayStr : null),
   }));
-
   return data;
 }
 
 function buildSeedData() {
-  return {
-    subjects: [],
-    tasks:    [],
-    exams:    [],
-    logs:     [],
-    archive:  [],
-  };
+  return { subjects: [], tasks: [], exams: [], logs: [], archive: [] };
 }
 
-// ─────────────────────────────────────────────────────────────
-// PHASE 3: GROQ AI ANALYTICS HELPERS
-// Builds a rich, structured system prompt from the user's full
-// JSONB state so the LLM can reason about their academic load.
-// ─────────────────────────────────────────────────────────────
-
-/** Format minutes as human-readable Hebrew string */
+// ── Formatting helpers ─────────────────────────────────────────
 function fmtMins(m) {
   const h = Math.floor(m / 60), min = m % 60;
   if (h && min) return `${h}ש׳ ${min}ד׳`;
@@ -91,7 +65,6 @@ function fmtMins(m) {
   return `${min}ד׳`;
 }
 
-/** Days from today to a YYYY-MM-DD date string */
 function daysUntil(dateStr) {
   const today = new Date().toISOString().split('T')[0];
   return Math.ceil(
@@ -99,19 +72,17 @@ function daysUntil(dateStr) {
   );
 }
 
-/** Format YYYY-MM-DD → DD/MM/YYYY */
 function fmtDate(d) {
   if (!d) return '';
-  const dt = new Date(d + 'T00:00:00');
-  return dt.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  return new Date(d + 'T00:00:00').toLocaleDateString('he-IL', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+  });
 }
 
-/** Count total / done subtopic nodes recursively */
 function countNodes(node) {
   let total = 0, done = 0;
   function walk(n) {
-    if (!n.subtopics) return;
-    for (const c of n.subtopics) {
+    for (const c of (n.subtopics || [])) {
       total++; if (c.done) done++;
       walk(c);
     }
@@ -120,10 +91,6 @@ function countNodes(node) {
   return { total, done };
 }
 
-/**
- * Calculate an exam readiness score (0-100).
- * Weighted: 60% subtopic completion for linked subject + 40% prep traffic light.
- */
 function calcReadiness(exam, subjects) {
   const subj = subjects.find(s => s.id === exam.subjId);
   let subtopicScore = 0;
@@ -135,16 +102,13 @@ function calcReadiness(exam, subjects) {
   return Math.round(subtopicScore * 0.6 + prepScore * 0.4);
 }
 
-/**
- * Build the detailed text context that mirrors the client-side buildContext().
- * This ensures the server-side AI prompt contains identical data.
- */
+// ── Context builder ────────────────────────────────────────────
 function buildServerContext(state, userName) {
   const { subjects = [], tasks = [], exams = [], logs = [], archive = [] } = state;
   const today = new Date().toISOString().split('T')[0];
   const lines = [];
 
-  lines.push('=== נושאים ותת-נושאים ===');
+  lines.push('=== נושאים ===');
   if (!subjects.length) {
     lines.push('אין נושאים.');
   } else {
@@ -251,16 +215,12 @@ function buildServerContext(state, userName) {
   return lines.join('\n');
 }
 
-/**
- * Build computed analytics insights (study velocity, overdue analysis,
- * subject balance, priority scoring) — mirrors client-side buildAnalyticsInsights().
- */
+// ── Analytics insights builder ─────────────────────────────────
 function buildServerInsights(state) {
   const { subjects = [], tasks = [], exams = [], logs = [] } = state;
   const today = new Date().toISOString().split('T')[0];
   const lines = [];
 
-  // Exam urgency
   const upcoming = exams.filter(e => e.date >= today).sort((a, b) => a.date.localeCompare(b.date));
   if (upcoming.length) {
     lines.push('=== ניתוח דחיפות מבחנים ===');
@@ -269,13 +229,12 @@ function buildServerInsights(state) {
       const subj = subjects.find(s => s.id === e.subjId);
       const readiness = calcReadiness(e, subjects);
       const urgency = days <= 3 ? '🔴 דחוף מאוד' : days <= 7 ? '🟡 דחוף' : '🟢 יש זמן';
-      const rLabel = readiness >= 70 ? '✅ מוכן' : readiness >= 40 ? '⚠️ חלקי' : '❌ לא מוכן';
+      const rLabel  = readiness >= 70 ? '✅ מוכן' : readiness >= 40 ? '⚠️ חלקי' : '❌ לא מוכן';
       const pending = subj ? countNodes(subj).total - countNodes(subj).done : 0;
       lines.push(`  ${urgency} "${e.name}" — עוד ${days}ד | מוכנות ${readiness}% (${rLabel}) | ממתינים: ${pending} תת-נושאים`);
     });
   }
 
-  // Overdue tasks
   const overdue = tasks.filter(t => !t.done && t.dueDate && t.dueDate < today);
   if (overdue.length) {
     lines.push(`\n=== משימות באיחור (${overdue.length}) ===`);
@@ -285,7 +244,6 @@ function buildServerInsights(state) {
     });
   }
 
-  // Study velocity
   const now = new Date();
   const d7  = new Date(now); d7.setDate(d7.getDate() - 7);
   const d14 = new Date(now); d14.setDate(d14.getDate() - 14);
@@ -294,26 +252,24 @@ function buildServerInsights(state) {
   const trend = last7 > prev7 ? '📈 עולה' : last7 < prev7 ? '📉 יורד' : '➡️ יציב';
   lines.push(`\n=== קצב לימוד ===\n  שבוע אחרון: ${fmtMins(last7)} | שבוע קודם: ${fmtMins(prev7)} | מגמה: ${trend}`);
 
-  // Subject balance
   const bySubj = {};
   logs.forEach(l => { bySubj[l.subjId] = (bySubj[l.subjId] || 0) + l.minutes; });
   const totalMins = Object.values(bySubj).reduce((a, b) => a + b, 0);
   if (totalMins > 0) {
     lines.push('\n=== איזון בין נושאים ===');
     subjects.forEach(subj => {
-      const mins = bySubj[subj.id] || 0;
-      const pct  = Math.round(mins / totalMins * 100);
+      const mins    = bySubj[subj.id] || 0;
+      const pct     = Math.round(mins / totalMins * 100);
       const { total, done } = countNodes(subj);
       const compPct = total ? Math.round(done / total * 100) : 0;
       const nearExam = exams.some(e => e.subjId === subj.id && e.date >= today && daysUntil(e.date) <= 14);
-      const flag = (compPct < 40 && pct > 25) ? '⚠️ ריבוי זמן, התקדמות נמוכה'
-                 : (nearExam && compPct < 60)   ? '🚨 מבחן קרוב, הכנה לא מספקת'
-                 : '';
+      const flag =  (compPct < 40 && pct > 25) ? '⚠️ ריבוי זמן, התקדמות נמוכה'
+                  : (nearExam && compPct < 60)  ? '🚨 מבחן קרוב, הכנה לא מספקת'
+                  : '';
       lines.push(`  ${subj.name}: ${fmtMins(mins)} (${pct}%) | השלמה: ${compPct}% ${flag}`);
     });
   }
 
-  // Priority scoring: (100-readiness) * (30/days)
   lines.push('\n=== המלצת עדיפות לימוד ===');
   const scored = exams
     .filter(e => e.date >= today)
@@ -321,13 +277,7 @@ function buildServerInsights(state) {
       const days = daysUntil(e.date);
       const readiness = calcReadiness(e, subjects);
       const subj = subjects.find(s => s.id === e.subjId);
-      return {
-        name: e.name,
-        subjName: subj ? subj.name : '',
-        days,
-        readiness,
-        priority: Math.round((100 - readiness) * (30 / Math.max(days, 1))),
-      };
+      return { name: e.name, subjName: subj ? subj.name : '', days, readiness, priority: Math.round((100 - readiness) * (30 / Math.max(days, 1))) };
     })
     .sort((a, b) => b.priority - a.priority)
     .slice(0, 3);
@@ -344,10 +294,14 @@ function buildServerInsights(state) {
   return lines.join('\n');
 }
 
-/**
- * Build the full system prompt injected into the Groq API call.
- * Contains: detailed text context + computed insights + JSONB snapshot.
- */
+// ── FIXED: System prompt — strict READ-only, no tool descriptions ──
+//
+// Key changes from original:
+//  1. Explicit READ vs WRITE section with a hard rule:
+//     "Do NOT call any function. Answer ONLY from the data below."
+//  2. Removed all tool/function references from the prompt.
+//  3. Model is NOT given a `tools` array (no function calling on this endpoint).
+//  4. Conversational fallback phrases for unknown queries.
 function buildGroqSystemPrompt(state, userName) {
   const context  = buildServerContext(state, userName);
   const insights = buildServerInsights(state);
@@ -369,41 +323,55 @@ function buildGroqSystemPrompt(state, userName) {
       total: tasks.length,
       done: tasks.filter(t => t.done).length,
       overdue: tasks.filter(t => !t.done && t.dueDate && t.dueDate < today).length,
+      list: tasks.map(t => ({ id: t.id, name: t.name, done: t.done, type: t.type, dueDate: t.dueDate || null })),
     },
     studyMins: {
       today: logs.filter(l => l.date === today).reduce((s, l) => s + l.minutes, 0),
       last7days: logs.filter(l => { const d = new Date(); d.setDate(d.getDate() - 7); return new Date(l.date) >= d; }).reduce((s, l) => s + l.minutes, 0),
       total: logs.reduce((s, l) => s + l.minutes, 0),
+      bySubject: (() => {
+        const m = {};
+        logs.forEach(l => { m[l.subjId] = (m[l.subjId] || 0) + l.minutes; });
+        return Object.entries(m).map(([id, mins]) => {
+          const s = subjects.find(x => x.id === id);
+          return { subjectName: s ? s.name : id, minutes: mins, formatted: fmtMins(mins) };
+        }).sort((a, b) => b.minutes - a.minutes);
+      })(),
     },
   }, null, 2);
 
   return [
-    'אתה עוזר לימודים אישי מתקדם ומנתח נתונים. תפקידך לתת תובנות אקדמיות מעמיקות ומותאמות אישית לסטודנט, בהתבסס אך ורק על נתוני האפליקציה שלו.',
+    '## תפקידך',
+    'אתה עוזר לימודים אישי שמנתח את הנתונים של הסטודנט ועונה בעברית, קצר וברור.',
     '',
-    '## תפקידך הליבה:',
-    'אתה לא רק עונה על שאלות — אתה מנתח עומס לימודי, מזהה סיכונים, ומציע אסטרטגיית לימוד מבוססת-נתונים.',
+    '## ══ חוק ברזל — קריאה בלבד ══',
+    'אתה עונה על שאלות אינפורמטיביות מתוך הנתונים שמוזרקים למטה.',
+    'אתה **לא** מבצע שום פעולה, לא מוסיף, לא מוחק, לא משנה כלום.',
+    'אם המשתמש מבקש פעולה (הוסף / מחק / עדכן), השב: "כדי לבצע פעולה זו, השתמש בממשק האפליקציה או כתוב לי פקודה מפורשת בתוך הצ׳אט."',
     '',
-    '## כללים קריטיים:',
-    '1. ענה רק על בסיס הנתונים שלמטה — אל תמציא, אל תשער.',
-    '2. ענה בעברית, קצר וברור, עם פורמט מסודר (bullet points לרשימות).',
-    '3. כשמבקשים ניתוח — ספק: (א) מה המצב, (ב) מה הסיכון, (ג) המלצה פרקטית.',
-    '4. לשאלות חיצוניות שאינן קשורות ללימודים: "אני מנתח רק את הנתונים שלך באפליקציה."',
+    '## כללים',
+    '1. ענה אך ורק על בסיס הנתונים שלמטה — אל תמציא ואל תשער.',
+    '2. עברית בלבד. פורמט bullet points לרשימות.',
+    '3. לניתוח: (א) מצב נוכחי (ב) סיכון (ג) המלצה פרקטית.',
+    '4. לשאלות שאינן קשורות ללימודים: "אני מנתח רק את הנתונים שלך באפליקציה."',
+    '5. אם הנתון לא קיים בסנאפשוט — אמור זאת מפורשות, אל תנחש.',
     '',
-    '## נתוני האפליקציה (מפורט):',
+    '## נתוני האפליקציה:',
     context,
     '',
-    '## תובנות מחושבות אוטומטית (Computed Insights):',
+    '## תובנות מחושבות:',
     insights,
     '',
-    '## Snapshot JSON לניתוח עמוק:',
+    '## Snapshot JSON (לניתוח מדויק):',
     '```json',
     stateSnapshot,
     '```',
     '',
-    '## דוגמאות לתשובות מעולות:',
-    '- שאלה: "מה המצב שלי?" → ניתוח: אחוז השלמה + מבחנים קרובים + מצב משימות + נושא בסיכון + המלצה ל-48 שעות.',
-    '- שאלה: "על מה להתמקד?" → עדיפויות לפי: ימים למבחן × (100-מוכנות), דגש על נושאים מפגרים.',
-    '- שאלה: "איך ההתקדמות?" → השוואת קצב שבוע-לשבוע + פערי כיסוי.',
+    '## דוגמאות לתשובות טובות:',
+    '- "כמה זמן למדתי ג׳אווה?" → חפש ב-studyMins.bySubject את הנושא הרלוונטי והצג את הזמן המפורמט.',
+    '- "מה המשימות שלי?" → הצג את tasks.list מהסנאפשוט: שם, סטטוס (✓/○), סוג, תאריך יעד.',
+    '- "מה המצב שלי?" → אחוז השלמה + מבחנים קרובים + משימות ממתינות + נושא בסיכון + המלצה.',
+    '- "על מה להתמקד?" → עדיפויות לפי: ימים למבחן × (100-מוכנות).',
   ].join('\n');
 }
 
@@ -411,20 +379,14 @@ function buildGroqSystemPrompt(state, userName) {
 // MAIN HANDLER
 // ─────────────────────────────────────────────────────────────
 export default async function handler(req, res) {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return res.status(204).set(CORS).end();
   }
-
   Object.entries(CORS).forEach(([k, v]) => res.setHeader(k, v));
 
   const action = req.query.action;
 
-  // ─────────────────────────────────────────────
-  // PUBLIC: Register
-  // POST /api/chat?action=register
-  // Body: { username, password }
-  // ─────────────────────────────────────────────
+  // ── POST /api/chat?action=register ────────────────────────
   if (action === 'register') {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
     const { username, password } = req.body || {};
@@ -432,35 +394,24 @@ export default async function handler(req, res) {
 
     const email = username.includes('@') ? username : `${username}@studyapp.local`;
     const sb = getAdminClient();
-
     const { data: authData, error: authErr } = await sb.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
+      email, password, email_confirm: true,
     });
     if (authErr) {
       const msg = authErr.message || '';
-      if (msg.includes('already registered') || msg.includes('already exists')) {
+      if (msg.includes('already registered') || msg.includes('already exists'))
         return res.status(409).json({ error: 'שם משתמש כבר קיים' });
-      }
       return res.status(400).json({ error: msg });
     }
-
     const userId = authData.user.id;
-    const seedData = buildSeedData();
     await sb.from('user_data').upsert(
-      { user_id: userId, data: seedData },
+      { user_id: userId, data: buildSeedData() },
       { onConflict: 'user_id' }
     );
-
     return res.status(201).json({ ok: true, userId });
   }
 
-  // ─────────────────────────────────────────────
-  // PUBLIC: Sign in
-  // POST /api/chat?action=login
-  // Body: { username, password }
-  // ─────────────────────────────────────────────
+  // ── POST /api/chat?action=login ───────────────────────────
   if (action === 'login') {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
     const { username, password } = req.body || {};
@@ -472,7 +423,7 @@ export default async function handler(req, res) {
     if (error) return res.status(401).json({ error: 'שם משתמש או סיסמה שגויים' });
 
     return res.status(200).json({
-      ok:           true,
+      ok: true,
       accessToken:  data.session.access_token,
       refreshToken: data.session.refresh_token,
       userId:       data.user.id,
@@ -480,59 +431,38 @@ export default async function handler(req, res) {
     });
   }
 
-  // ─────────────────────────────────────────────
-  // AUTHENTICATED: Load user data
-  // GET /api/chat?action=load
-  // ─────────────────────────────────────────────
+  // ── GET /api/chat?action=load ─────────────────────────────
   if (action === 'load') {
     if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
     const userId = await verifyToken(req.headers.authorization);
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
     const sb = getAdminClient();
-    const { data, error } = await sb
-      .from('user_data')
-      .select('data')
-      .eq('user_id', userId)
-      .single();
+    const { data, error } = await sb.from('user_data').select('data').eq('user_id', userId).single();
+    if (error && error.code !== 'PGRST116') return res.status(500).json({ error: error.message });
 
-    if (error && error.code !== 'PGRST116') {
-      return res.status(500).json({ error: error.message });
-    }
-
-    const migrated = migrateData(data?.data || null);
-    return res.status(200).json({ ok: true, data: migrated });
+    return res.status(200).json({ ok: true, data: migrateData(data?.data || null) });
   }
 
-  // ─────────────────────────────────────────────
-  // AUTHENTICATED: Save user data
-  // POST /api/chat?action=save
-  // Body: { data: <full state object> }
-  // ─────────────────────────────────────────────
+  // ── POST /api/chat?action=save ────────────────────────────
   if (action === 'save') {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
     const userId = await verifyToken(req.headers.authorization);
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
     const payload = req.body?.data;
-    if (!payload || typeof payload !== 'object') {
-      return res.status(400).json({ error: 'Missing data payload' });
-    }
+    if (!payload || typeof payload !== 'object') return res.status(400).json({ error: 'Missing data payload' });
 
-    const migratedPayload = migrateData(payload);
     const sb = getAdminClient();
-    const { error } = await sb
-      .from('user_data')
-      .upsert({ user_id: userId, data: migratedPayload }, { onConflict: 'user_id' });
-
+    const { error } = await sb.from('user_data').upsert(
+      { user_id: userId, data: migrateData(payload) },
+      { onConflict: 'user_id' }
+    );
     if (error) return res.status(500).json({ error: error.message });
     return res.status(200).json({ ok: true });
   }
 
-  // ─────────────────────────────────────────────
-  // AUTHENTICATED: Delete account
-  // DELETE /api/chat?action=delete
-  // ─────────────────────────────────────────────
+  // ── DELETE /api/chat?action=delete ────────────────────────
   if (action === 'delete') {
     if (req.method !== 'DELETE') return res.status(405).json({ error: 'Method not allowed' });
     const userId = await verifyToken(req.headers.authorization);
@@ -545,16 +475,10 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true });
   }
 
-  // ─────────────────────────────────────────────
-  // AUTHENTICATED: Context-aware Groq AI Analytics
-  // POST /api/chat?action=ai
-  // Header: Authorization: Bearer <access_token>
-  // Body: { messages: [{role, content}], userState?: {...} }
-  //
-  // If userState is provided in the body, it is used directly (avoids
-  // a second DB round-trip when the client already has fresh state).
-  // Otherwise the server loads the state from Supabase itself.
-  // ─────────────────────────────────────────────
+  // ── POST /api/chat?action=ai ──────────────────────────────
+  // FIXED: No function-calling tools passed to Groq.
+  // The model reads from injected JSONB state only.
+  // Robust error handling for failed_generation and other Groq errors.
   if (action === 'ai') {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
@@ -564,60 +488,91 @@ export default async function handler(req, res) {
     const { messages = [], userState, userName = 'student' } = req.body || {};
     if (!messages.length) return res.status(400).json({ error: 'No messages provided' });
 
-    // Resolve user state
+    // Resolve user state (client-sent preferred over DB round-trip)
     let state = userState ? migrateData(userState) : null;
     if (!state) {
       try {
         const sb = getAdminClient();
-        const { data, error } = await sb
-          .from('user_data')
-          .select('data')
-          .eq('user_id', userId)
-          .single();
-        if (!error && data?.data) {
-          state = migrateData(data.data);
-        }
-      } catch (e) { /* fall through with empty state */ }
+        const { data, error } = await sb.from('user_data').select('data').eq('user_id', userId).single();
+        if (!error && data?.data) state = migrateData(data.data);
+      } catch (_) { /* fall through */ }
     }
     if (!state) state = buildSeedData();
 
     const groqApiKey = process.env.GROQ_API_KEY;
     if (!groqApiKey) return res.status(500).json({ error: 'GROQ_API_KEY not configured' });
 
-    const systemPrompt = buildGroqSystemPrompt(state, userName);
-
-    // Trim conversation history to last 10 messages to stay within context limits
+    const systemPrompt    = buildGroqSystemPrompt(state, userName);
     const trimmedMessages = messages.slice(-10);
 
+    // ── Groq call with full error boundary ────────────────
     let groqRes;
     try {
       groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
+        method:  'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type':  'application/json',
           'Authorization': `Bearer ${groqApiKey}`,
         },
         body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
-          messages: [
+          model:       'llama-3.3-70b-versatile',
+          messages:    [
             { role: 'system', content: systemPrompt },
             ...trimmedMessages,
           ],
-          temperature: 0.15,   // low temperature for analytical, fact-grounded answers
-          max_tokens: 1024,
+          temperature: 0.15,
+          max_tokens:  1024,
+          // ⚠️ NO `tools` array here — this is the root fix for false positives
+          // and failed_generation crashes. The model answers from injected data.
         }),
       });
     } catch (fetchErr) {
-      return res.status(502).json({ error: 'שגיאת רשת: לא ניתן להגיע ל-Groq API' });
+      console.error('[AI] Network error reaching Groq:', fetchErr.message);
+      return res.status(502).json({
+        ok: false,
+        reply: 'מצטער, לא הצלחתי להתחבר לשרת ה-AI. בדוק את החיבור לאינטרנט ונסה שוב.',
+      });
     }
 
+    // ── Parse Groq response ────────────────────────────────
+    let groqData;
+    try {
+      groqData = await groqRes.json();
+    } catch (_) {
+      return res.status(502).json({
+        ok: false,
+        reply: 'קיבלתי תגובה לא תקינה משרת ה-AI. אנא נסה שוב.',
+      });
+    }
+
+    // ── Handle Groq-level errors (failed_generation, etc.) ─
     if (!groqRes.ok) {
-      const errBody = await groqRes.json().catch(() => ({}));
-      return res.status(groqRes.status).json({ error: errBody.error?.message || `Groq error ${groqRes.status}` });
+      const errType = groqData?.error?.type || '';
+      const errMsg  = groqData?.error?.message || `שגיאת Groq ${groqRes.status}`;
+      console.error('[AI] Groq error:', groqRes.status, errType, errMsg);
+
+      // failed_generation: model tried (and failed) to call a tool.
+      // Return a graceful conversational fallback instead of crashing.
+      if (errType === 'failed_generation' || groqRes.status === 400) {
+        return res.status(200).json({
+          ok: true,
+          reply: 'מצטער, לא הצלחתי לעבד את הבקשה הזו. נסה לנסח מחדש את השאלה, לדוגמה: "מה המשימות הפתוחות שלי?" או "כמה זמן למדתי השבוע?"',
+        });
+      }
+
+      return res.status(200).json({
+        ok: true,
+        reply: `מצטער, שרת ה-AI החזיר שגיאה (${groqRes.status}). נסה שוב בעוד רגע.`,
+      });
     }
 
-    const groqData = await groqRes.json();
     const reply = groqData.choices?.[0]?.message?.content || '';
+    if (!reply) {
+      return res.status(200).json({
+        ok: true,
+        reply: 'לא קיבלתי תשובה מהמודל. נסה שוב.',
+      });
+    }
 
     return res.status(200).json({ ok: true, reply, usage: groqData.usage });
   }
