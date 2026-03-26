@@ -32,14 +32,14 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--txt);min-he
 #auth-screen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:9999}
 #auth-screen.hidden{display:none}
 .auth-box{background:var(--white);border:1px solid var(--border);border-radius:20px;padding:40px 36px;width:380px;max-width:92vw;box-shadow:0 4px 24px rgba(0,0,0,.08);text-align:right}
-.auth-logo{display:flex;flex-direction:column;align-items:center;gap:12px;justify-content:center;margin-bottom:28px;text-align:center}
+.auth-logo{display:flex;flex-direction:column;align-items:center;gap:10px;justify-content:center;margin:0 auto 28px;width:100%;text-align:center !important}
 .logo-icon{border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;background:transparent;padding:0}
 .logo-icon img{width:100%;height:100%;object-fit:contain;display:block;max-width:none}
 /* ── Responsive logo in sidebar ── */
 .sb-logo-img{width:64px;height:64px;object-fit:contain;flex-shrink:0;display:block}
 /* ── Auth logo: larger, crisp ── */
 .auth-logo-img{width:100%;max-width:160px;height:auto;object-fit:contain;display:block}
-.auth-logo h1{font-size:26px;font-weight:800;text-align:center}
+.auth-logo h1{font-size:24px;font-weight:700;text-align:center;color:var(--txt);margin:0}
 .auth-tabs,.tabs{display:flex;background:var(--bg);border-radius:10px;padding:4px}
 .auth-tab,.tab{flex:1;padding:9px;text-align:center;font-size:14px;cursor:pointer;border-radius:7px;transition:all .15s;color:var(--sec);font-family:'Heebo',sans-serif}
 .auth-tab.active,.tab.active{background:var(--white);color:var(--txt);font-weight:500;box-shadow:var(--shadow)}
@@ -324,10 +324,18 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
 .ai-api-note{font-size:10px;color:var(--muted);text-align:center;padding:4px 16px;flex-shrink:0}
 @media(max-width:640px){
   #ai-panel{width:100%;border-radius:20px 20px 0 0;right:0}
-  /* AI fab: right side, just above nav bar */
-  #ai-fab{bottom:70px;right:14px;width:46px;height:46px;font-size:19px}
-  /* Pomodoro fab: left of AI fab so they don't overlap */
-  #pomodoro-fab{bottom:70px;right:68px;width:46px;height:46px;font-size:20px}
+  /* AI fab — right corner, clear of nav bar + safe-area notch */
+  #ai-fab{
+    width:46px;height:46px;font-size:19px;
+    right:14px;
+    bottom:calc(62px + env(safe-area-inset-bottom, 0px) + 8px);
+  }
+  /* Pomodoro fab — exactly one fab-width + 10px gap to the left of ai-fab */
+  #pomodoro-fab{
+    width:46px;height:46px;font-size:20px;
+    right:calc(14px + 46px + 10px);
+    bottom:calc(62px + env(safe-area-inset-bottom, 0px) + 8px);
+  }
 }
 @media(min-width:641px){
   #pomodoro-fab{left:auto;right:90px}
@@ -366,8 +374,9 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
   .tl-amber { background: #3a2a10; }
   .tl-green { background: var(--gl); }
   /* quote-banner contrast */
-  .quote-banner { background: linear-gradient(135deg,#162a20,#1a3028); border-color:#2a4a38; color:#e8e8ee; }
-  .quote-author  { color: var(--g); }
+  .quote-banner { background: linear-gradient(135deg,#1a3028,#162a20) !important; border-color:#2e5040 !important; color:#e8e8ee !important; }
+  .quote-banner .quote-text   { color: #e8e8ee !important; }
+  .quote-banner .quote-author { color: #2ecc8b !important; font-weight:600; }
 }
 
 /* ── DARK MODE manual toggle ── */
@@ -382,14 +391,14 @@ body.dark-mode {
   --gm: #1e3d2e;
   --shadow: 0 1px 4px rgba(0,0,0,.3);
 }
-/* ── Dark mode: quote-banner contrast fix ── */
+/* ── Dark mode: quote-banner contrast fix (high-specificity) ── */
 body.dark-mode .quote-banner {
-  background: linear-gradient(135deg, #162a20, #1a3028);
-  border-color: #2a4a38;
-  color: var(--txt);
+  background: linear-gradient(135deg, #1a3028, #162a20) !important;
+  border-color: #2e5040 !important;
+  color: #e8e8ee !important;
 }
-body.dark-mode .quote-text  { color: var(--txt); }
-body.dark-mode .quote-author{ color: var(--g); }
+body.dark-mode .quote-banner .quote-text   { color: #e8e8ee !important; }
+body.dark-mode .quote-banner .quote-author { color: #2ecc8b !important; font-weight: 600; }
 
 /* ── CATEGORY GROUPS ── */
 .category-group { margin-bottom: 24px; }
@@ -628,8 +637,8 @@ body.dark-mode .quote-author{ color: var(--g); }
 <div id="auth-screen">
   <div class="auth-box">
     <div class="auth-logo">
+      <div class="logo-icon" style="width:120px;height:120px;border-radius:20px;margin:0 auto;overflow:hidden"><img src="logo.png" alt="לוגו מרכז למידה" class="auth-logo-img" style="width:100%;height:100%;object-fit:contain"></div>
       <h1>מרכז למידה</h1>
-      <div class="logo-icon" style="width:auto;max-width:168px;border-radius:18px;margin:0 auto"><img src="logo.png" alt="לוגו מרכז למידה" class="auth-logo-img"></div>
     </div>
     <div class="auth-tabs" id="auth-tabs">
       <div class="auth-tab active" onclick="switchAuthTab('login')">כניסה</div>
@@ -2209,6 +2218,12 @@ window.addEventListener('appinstalled', () => {
   showToast('האפליקציה הותקנה! 🎉');
 });
 
+// Dismiss button handler (must be defined globally for onclick attribute)
+function dismissInstallBanner() {
+  document.getElementById('install-banner').classList.remove('show');
+  sessionStorage.setItem('pwa_banner_dismissed', '1');
+}
+
 // ═══════════════════════════════════════════
 // INIT — restore session on page load
 // ═══════════════════════════════════════════
@@ -2694,33 +2709,31 @@ function buildSystemPrompt(){
   }, null, 2);
 
   return [
-    '## תפקידך',
-    'אתה עוזר לימודים אישי שמנתח נתונים ועונה בעברית, קצר וברור.',
+    '## זהות וכללי ברזל — קרא לפני הכל',
+    'אתה "לרן" — בוט לימודים ישראלי ישיר, חכם, וציני.',
+    'אתה עונה תמיד בעברית. אתה אף פעם לא מנומס יתר על המידה.',
     '',
-    '## ══ חוק ברזל: מצב קריאה בלבד ══',
-    'הנתונים של המשתמש מוזרקים למטה בפורמט JSON וטקסט מובנה.',
-    'אתה עונה על שאלות אינפורמטיביות מתוך הנתונים בלבד — אל תמציא ואל תשער.',
+    '## ══ חוק #1 (מוחלט) — תגובה לבקשות שאינן בסמכותך ══',
+    'כשמשתמש מבקש משהו שאינך יכול לבצע, שואל שאלות לא-לימודיות,',
+    'או מבקש פעולה שאינה נתמכת — MUST ענה באחת מהאפשרויות הבאות בדיוק,',
+    'ובחר שונה בכל פעם:',
+    '→ "נו מה אתה בא עלי עכשיו? 😤 זה לא בתחום שלי."',
+    '→ "תגיד לאמא שלך שתעשה את זה. אני מנתח מבחנים, לא עושה קסמים."',
+    '→ "אין לי כח לזה. בוא נדבר על הלימודים שלך."',
+    '→ "חביבי, אני בוט לימודים — לא גוגל. עזור לי לעזור לך."',
+    'NEVER — בשום מקרה — אל תגיב בנימוס גנרי כמו "אני מצטער" או "אינני יכול לעזור". זה אסור.',
+    '',
+    '## ══ חוק #2 — מצב קריאה בלבד ══',
+    'הנתונים של המשתמש מוזרקים למטה. ענה מהם בלבד — אל תמציא ואל תשער.',
     '⛔ אל תבצע שום פעולה (הוסף / מחק / שנה) מיוזמתך.',
-    '⛔ אל תקרא לאף tool/function כדי לענות על שאלות כגון "כמה זמן?", "מה המשימות?", "מה המצב?".',
-    '⛔ אם אין לך נתון מספיק בסנאפשוט — אמור זאת מפורשות.',
-    '',
-    '## פרסונה: עוזר לימודים ישראלי',
-    'אתה עוזר לימודים ישראלי אמיתי — ישיר, חכם, וקצת ציני ברגעים הנכונים.',
-    '',
-    '## כשהמשתמש מבקש משהו שאתה לא יכול לעשות:',
-    'בחר תגובה אחת רנדומלית מהרשימה הבאה (אל תחזור על אותה תגובה):',
-    '- "נו מה אתה בא עלי עכשיו? לחץ על הכפתור המתאים בממשק 😤"',
-    '- "תגיד לאמא שלך שתעשה את זה, אני מנתח נתונים — לא קוסם"',
-    '- "אין לי כח לזה עכשיו. כנס לאפליקציה ותעשה את זה ידנית"',
-    '- "חביבי, אני AI ולא שוליה שלך — אבל אם תנסח את זה כפקודה ברורה אולי אעזור"',
-    '- "זה לא בתפריט שלי. אבל רצינו? תכתוב: 'הוסף משימה: [שם]' ואני כבר על זה"',
-    'אל תהיה פוליטיקלי קורקט — תהיה אנושי ומצחיק.',
+    '⛔ אל תקרא לאף tool/function לשאלות כגון "כמה זמן?" / "מה המשימות?".',
+    '⛔ אם הנתון לא קיים בסנאפשוט — אמור זאת בסלנג ישראלי: "אין לי מושג, כי לא רשמת."',
     '',
     '## כללים',
     '1. ענה רק מהנתונים שלמטה.',
     '2. עברית בלבד. bullet points לרשימות.',
     '3. לניתוח: (א) מצב (ב) סיכון (ג) המלצה פרקטית.',
-    '4. לשאלות שאינן לימודיות (מזג אוויר, פוליטיקה, בישול): בחר תגובה ציניקנית מרשימת הפרסונה למעלה + הצע לחזור לנושא הלימודים.',
+    '4. שאלות לא-לימודיות → הפעל חוק #1 + הצע לחזור לנושא הלימודים.',
     '',
     '## נתוני האפליקציה (טקסט מובנה):',
     context,
@@ -3411,43 +3424,7 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-// ── PWA Install Banner ────────────────────────────────────────
-// Capture the beforeinstallprompt event so we can show it later
-let _pwaInstallEvent = null;
-
-window.addEventListener('beforeinstallprompt', e => {
-  e.preventDefault(); // Don't show the default browser mini-infobar
-  _pwaInstallEvent = e;
-
-  // Show our custom install banner (only if not already installed)
-  const banner = document.getElementById('install-banner');
-  if (banner) banner.classList.add('show');
-});
-
-// Called by the "Install" button in the banner
-window.installPWA = async function() {
-  const banner = document.getElementById('install-banner');
-  if (!_pwaInstallEvent) return;
-  _pwaInstallEvent.prompt();
-  const { outcome } = await _pwaInstallEvent.userChoice;
-  console.log('[PWA] Install prompt outcome:', outcome);
-  _pwaInstallEvent = null;
-  if (banner) banner.classList.remove('show');
-};
-
-// Called by the "×" dismiss button in the banner
-window.dismissInstallBanner = function() {
-  const banner = document.getElementById('install-banner');
-  if (banner) banner.classList.remove('show');
-  sessionStorage.setItem('pwa_banner_dismissed', '1');
-};
-
-// Hide the banner once the app is installed (standalone mode)
-window.addEventListener('appinstalled', () => {
-  const banner = document.getElementById('install-banner');
-  if (banner) banner.classList.remove('show');
-  console.log('[PWA] App installed successfully!');
-});
+// [duplicate PWA block removed]
 // ═══════════════════════════════════════════
 // DARK MODE TOGGLE
 // ═══════════════════════════════════════════
