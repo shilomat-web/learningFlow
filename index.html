@@ -740,14 +740,16 @@ body.dark-mode .quote-banner .quote-author { color: #2ecc8b !important; font-wei
     <div class="page-title"><h1>משימות</h1><p>משימות יומיות וחודשיות</p></div>
   </div>
   <div class="tabs" style="margin-bottom:20px">
-    <div class="tab active" onclick="switchTab(this,'td','tm')">יומי</div>
-    <div class="tab" onclick="switchTab(this,'tm','td')">חודשי</div>
+    <div class="tab active" onclick="switchTaskTab('td')">יומי</div>
+    <div class="tab" onclick="switchTaskTab('tw')">שבועי</div>
+    <div class="tab" onclick="switchTaskTab('tm')">חודשי</div>
   </div>
   <div id="td">
     <div class="pb-row"><span id="tasks-prog-lbl">0/0</span><span>התקדמות היום</span></div>
     <div class="thin-bar"><div class="thin-bar-fill" id="tasks-prog-bar" style="width:0%"></div></div>
     <div id="daily-list"></div>
   </div>
+  <div id="tw" style="display:none"><div id="weekly-list"></div></div>
   <div id="tm" style="display:none"><div id="monthly-list"></div></div>
 </div>
 
@@ -844,7 +846,7 @@ body.dark-mode .quote-banner .quote-author { color: #2ecc8b !important; font-wei
     <div class="fg"><label>שם המשימה</label><input class="fc" id="m-task-name" placeholder="תיאור המשימה"></div>
     <div class="fr">
       <div class="fg"><label>נושא</label><select class="fc" id="m-task-subj"></select></div>
-      <div class="fg"><label>סוג</label><select class="fc" id="m-task-type"><option value="daily">יומי</option><option value="monthly">חודשי</option></select></div>
+      <div class="fg"><label>סוג</label><select class="fc" id="m-task-type"><option value="daily">יומי</option><option value="weekly">שבועי</option><option value="monthly">חודשי</option></select></div>
     </div>
     <div class="fr">
       <div class="fg"><label>תאריך יעד</label><input class="fc" id="m-task-date" type="date"></div>
@@ -859,6 +861,39 @@ body.dark-mode .quote-banner .quote-author { color: #2ecc8b !important; font-wei
     <div class="modal-actions">
       <button class="btn btn-primary" onclick="addTask()">הוסף</button>
       <button class="btn btn-ghost" onclick="closeModal('m-task')">ביטול</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── EDIT TASK MODAL ── -->
+<div class="modal-overlay" id="m-edit-task">
+  <div class="modal">
+    <h3>ערוך משימה</h3>
+    <input type="hidden" id="et-id">
+    <div class="fg"><label>שם המשימה</label><input class="fc" id="et-name" placeholder="תיאור המשימה"></div>
+    <div class="fr">
+      <div class="fg"><label>נושא</label><select class="fc" id="et-subj"></select></div>
+      <div class="fg"><label>סוג</label>
+        <select class="fc" id="et-type">
+          <option value="daily">יומי</option>
+          <option value="weekly">שבועי</option>
+          <option value="monthly">חודשי</option>
+        </select>
+      </div>
+    </div>
+    <div class="fr">
+      <div class="fg"><label>תאריך יעד</label><input class="fc" id="et-date" type="date"></div>
+      <div class="fg"><label>שעה</label><input class="fc" id="et-time" type="time"></div>
+    </div>
+    <div class="fg" style="display:flex;align-items:center;justify-content:space-between;padding:10px 0 0">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--sec)">
+        <input type="checkbox" id="et-recurring" style="width:16px;height:16px;accent-color:var(--g)">
+        <span>איפוס אוטומטי (Recurring)</span>
+      </label>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="saveEditTask()">שמור שינויים</button>
+      <button class="btn btn-ghost" onclick="closeModal('m-edit-task')">ביטול</button>
     </div>
   </div>
 </div>
@@ -1249,10 +1284,7 @@ function openModal(id){
   
   if(id==='m-notify') renderReminders();
   if(id==='m-task') {
-    const typeSelect = document.getElementById('m-task-type');
-    if (typeSelect && typeSelect.options.length <= 2) {
-        typeSelect.innerHTML += '<option value="weekly">שבועי</option><option value="custom">לפי תאריך</option>';
-    }
+    // type options are already in the HTML
   }
   // -------------------------
 
@@ -1427,7 +1459,19 @@ function addTask(){
   const name=document.getElementById('m-task-name').value.trim();
   if(!name)return;
   const recurring=document.getElementById('m-task-recurring')?.checked||false;
-  S.tasks.push({id:uid(),name,subjId:document.getElementById('m-task-subj').value,type:document.getElementById('m-task-type').value,done:false,dueDate:document.getElementById('m-task-date').value,dueTime:document.getElementById('m-task-time').value,recurring,lastReset:recurring?today():null});
+  const _taskType=document.getElementById('m-task-type').value;
+  // For weekly tasks, lastReset = this week's Monday so first reset is correct
+  const _weekStart=(()=>{const n=new Date(),d=n.getDay(),m=new Date(n);m.setDate(n.getDate()-(d===0?6:d-1));return m.toISOString().split('T')[0];})();
+  S.tasks.push({id:uid(),name,
+    subjId:document.getElementById('m-task-subj').value,
+    type:_taskType,
+    done:false,
+    dueDate:document.getElementById('m-task-date').value,
+    dueTime:document.getElementById('m-task-time').value,
+    recurring,
+    createdDate:today(),
+    lastReset:_taskType==='daily'?(recurring?today():null):_taskType==='weekly'?_weekStart:null
+  });
   save();['m-task-name','m-task-date','m-task-time'].forEach(i=>document.getElementById(i).value='');
   if(document.getElementById('m-task-recurring'))document.getElementById('m-task-recurring').checked=false;
   closeModal('m-task');renderTasks();renderDash();showToast('משימה נוספה!');
@@ -1436,14 +1480,53 @@ function toggleTask(id){
   const t=S.tasks.find(t=>t.id===id);
   if(t){t.done=!t.done;save();renderTasks();renderDash();}
 }
+
+function deleteTaskById(id){
+  if(!confirm('למחוק משימה זו?')) return;
+  S.tasks=S.tasks.filter(t=>t.id!==id);
+  save();renderTasks();renderDash();showToast('משימה נמחקה 🗑️');
+}
+
+function editTaskById(id){
+  const t=S.tasks.find(x=>x.id===id);
+  if(!t) return;
+  // Populate the edit modal fields
+  document.getElementById('et-id').value    = t.id;
+  document.getElementById('et-name').value  = t.name;
+  document.getElementById('et-type').value  = t.type||'daily';
+  document.getElementById('et-date').value  = t.dueDate||'';
+  document.getElementById('et-time').value  = t.dueTime||'';
+  document.getElementById('et-recurring').checked = !!t.recurring;
+  // Populate subject select
+  const subjSel=document.getElementById('et-subj');
+  subjSel.innerHTML=S.subjects.map(s=>`<option value="${s.id}"${s.id===t.subjId?' selected':''}>${s.name}</option>`).join('')
+    +'<option value=""'+(t.subjId?'':' selected')+'>ללא נושא</option>';
+  openModal('m-edit-task');
+}
+
+function saveEditTask(){
+  const id=document.getElementById('et-id').value;
+  const t=S.tasks.find(x=>x.id===id);
+  if(!t) return;
+  t.name    = document.getElementById('et-name').value.trim()||t.name;
+  t.type    = document.getElementById('et-type').value;
+  t.subjId  = document.getElementById('et-subj').value;
+  t.dueDate = document.getElementById('et-date').value;
+  t.dueTime = document.getElementById('et-time').value;
+  t.recurring = document.getElementById('et-recurring').checked;
+  save();closeModal('m-edit-task');renderTasks();renderDash();showToast('משימה עודכנה ✅');
+}
 function renderTasks(){
-  const daily=S.tasks.filter(t=>t.type==='daily');
+  const daily  =S.tasks.filter(t=>t.type==='daily');
+  const weekly =S.tasks.filter(t=>t.type==='weekly');
   const monthly=S.tasks.filter(t=>t.type==='monthly');
   const dd=daily.filter(t=>t.done).length;
   const lbl=document.getElementById('tasks-prog-lbl'),bar=document.getElementById('tasks-prog-bar');
   if(lbl)lbl.textContent=`${dd}/${daily.length}`;
   if(bar)bar.style.width=(daily.length?Math.round(dd/daily.length*100):0)+'%';
-  renderTaskList('daily-list',daily);renderTaskList('monthly-list',monthly);
+  renderTaskList('daily-list',daily);
+  renderTaskList('weekly-list',weekly);
+  renderTaskList('monthly-list',monthly);
 }
 function renderTaskList(id,tasks){
   const el=document.getElementById(id);if(!el)return;
@@ -1463,9 +1546,13 @@ function renderTaskList(id,tasks){
       </div>
       <div class="task-row-right">
         ${recurIcon}
-        <span style="${t.done?'text-decoration:line-through;color:var(--muted)':isOverdue?'color:var(--red)':''}">${t.name}</span>
-        <div class="task-circle${t.done?' done':''}" onclick="toggleTask('${t.id}')">
-          ${t.done?'<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>':''}
+        <span style="${t.done?'text-decoration:line-through;color:var(--muted)':isOverdue?'color:var(--red)':''}"">${t.name}</span>
+        <div style="display:flex;gap:2px;align-items:center;margin-right:4px">
+          <button onclick="editTaskById('${t.id}')" title="ערוך" style="background:none;border:none;cursor:pointer;font-size:13px;padding:3px;color:var(--sec);line-height:1;border-radius:4px" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='none'">✏️</button>
+          <button onclick="deleteTaskById('${t.id}')" title="מחק" style="background:none;border:none;cursor:pointer;font-size:13px;padding:3px;color:var(--sec);line-height:1;border-radius:4px" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='none'">🗑️</button>
+          <div class="task-circle${t.done?' done':''}" onclick="toggleTask('${t.id}')">
+            ${t.done?'<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>':''}
+          </div>
         </div>
       </div>
     </div>`;
@@ -1486,6 +1573,17 @@ function switchTab(el,show,hide){
   el.classList.add('active');
   document.getElementById(show).style.display='block';
   document.getElementById(hide).style.display='none';
+}
+function switchTaskTab(show){
+  // 3-tab version for tasks page (daily / weekly / monthly)
+  ['td','tw','tm'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.style.display = id===show ? 'block' : 'none';
+  });
+  document.querySelectorAll('#page-tasks .tab').forEach((tab,i)=>{
+    const ids=['td','tw','tm'];
+    tab.classList.toggle('active', ids[i]===show);
+  });
 }
 
 // ═══════════════════════════════════════════
@@ -2185,31 +2283,49 @@ function renderPomo(){
 }
 
 // ═══════════════════════════════════════════
-// PWA INSTALL — works on Desktop + Mobile
+// PWA INSTALL — Desktop Chrome + Android Chrome + iOS Safari
 // ═══════════════════════════════════════════
 let deferredPrompt = null;
 
-// Already running as installed PWA? Never show the banner.
-const _isStandalone = window.matchMedia('(display-mode: standalone)').matches
-  || window.navigator.standalone === true;
+// Detect if already running as installed PWA (standalone) on any platform
+const _isStandalone =
+  window.matchMedia('(display-mode: standalone)').matches ||
+  window.matchMedia('(display-mode: fullscreen)').matches ||
+  window.navigator.standalone === true; // iOS Safari
 
+function _showInstallBanner(mode) {
+  if (_isStandalone) return;                              // already installed
+  if (sessionStorage.getItem('pwa_banner_dismissed')) return; // dismissed this session
+  const banner = document.getElementById('install-banner');
+  if (!banner) return;
+  // Update button label depending on mode
+  const btn = banner.querySelector('button[onclick="installPWA()"]');
+  if (mode === 'ios' && btn) {
+    btn.textContent = '📲 הוראות התקנה';
+  }
+  banner.classList.add('show');
+}
+
+// Chrome (Desktop + Android): beforeinstallprompt fires automatically
 window.addEventListener('beforeinstallprompt', e => {
   e.preventDefault();
   deferredPrompt = e;
-  // Only show if not already installed and user hasn't dismissed this session
-  if (!_isStandalone && !sessionStorage.getItem('pwa_banner_dismissed')) {
-    document.getElementById('install-banner').classList.add('show');
-  }
+  _showInstallBanner('chrome');
 });
 
 function installPWA() {
   if (deferredPrompt) {
-    deferredPrompt.prompt();                  // works on both Android Chrome & Desktop Chrome
+    // Chrome Desktop + Android: native install prompt
+    deferredPrompt.prompt();
     deferredPrompt.userChoice.then(result => {
       if (result.outcome === 'accepted') showToast('האפליקציה הותקנה! 🎉');
       deferredPrompt = null;
       document.getElementById('install-banner').classList.remove('show');
     });
+  } else {
+    // iOS Safari: no prompt API — show manual instruction toast
+    showToast('iOS: לחץ על כפתור השיתוף ← "הוסף למסך הבית"', 5000);
+    document.getElementById('install-banner').classList.remove('show');
   }
 }
 
@@ -2218,11 +2334,19 @@ window.addEventListener('appinstalled', () => {
   showToast('האפליקציה הותקנה! 🎉');
 });
 
-// Dismiss button handler (must be defined globally for onclick attribute)
 function dismissInstallBanner() {
   document.getElementById('install-banner').classList.remove('show');
   sessionStorage.setItem('pwa_banner_dismissed', '1');
 }
+
+// iOS Safari: no beforeinstallprompt — show banner manually after a short delay
+window.addEventListener('load', () => {
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isIOSSafari = isIOS && !('MSStream' in window);
+  if (isIOSSafari && !_isStandalone) {
+    setTimeout(() => _showInstallBanner('ios'), 3000);
+  }
+});
 
 // ═══════════════════════════════════════════
 // INIT — restore session on page load
@@ -3444,26 +3568,61 @@ function toggleDarkMode(){
 })();
 
 // ═══════════════════════════════════════════
-// DAILY RESET — recurring tasks
-// Runs at page load and checks every minute
+// DAILY / WEEKLY RESET + CLEANUP
 // ═══════════════════════════════════════════
 function resetRecurringTasks(){
   if(!CU||!S||!S.tasks)return;
   const td=today();
+  // Monday of the current week (ISO: Mon=1)
+  const now=new Date();
+  const dow=now.getDay(); // 0=Sun … 6=Sat
+  const daysToMon=dow===0?1:dow===1?0:8-dow; // days until next Mon, or 0 if today
+  const thisMonday=new Date(now);
+  thisMonday.setDate(now.getDate()-(dow===1?0:(dow===0?6:dow-1)));
+  const weekStart=thisMonday.toISOString().split('T')[0]; // YYYY-MM-DD of this week's Monday
+
   let changed=false;
+  const toDelete=[];
+
   S.tasks.forEach(t=>{
-    if(t.recurring && t.done && t.lastReset !== td){
-      t.done=false;
-      t.lastReset=td;
-      t.notified=false;
-      changed=true;
+    if(t.type==='daily'){
+      const created=t.createdDate||t.lastReset||td;
+      if(t.recurring){
+        // Recurring daily → reset done every new day
+        if(t.lastReset!==td){
+          t.done=false;
+          t.lastReset=td;
+          t.notified=false;
+          changed=true;
+        }
+      } else {
+        // Non-recurring daily → delete if created on a previous day and no future dueDate
+        if(created<td && (!t.dueDate || t.dueDate<td)){
+          toDelete.push(t.id);
+          changed=true;
+        }
+      }
+    }
+    if(t.type==='weekly'){
+      // Weekly → reset done every Monday
+      if(t.lastReset!==weekStart){
+        t.done=false;
+        t.lastReset=weekStart;
+        t.notified=false;
+        changed=true;
+      }
     }
   });
+
+  if(toDelete.length){
+    S.tasks=S.tasks.filter(t=>!toDelete.includes(t.id));
+    showToast(`${toDelete.length} משימות יומיות ישנות נמחקו 🗑️`);
+  }
   if(changed){
     save();
     renderTasks();
     renderDash();
-    showToast('משימות יומיות אופסו 🔄');
+    if(!toDelete.length) showToast('משימות אופסו 🔄');
   }
 }
 
