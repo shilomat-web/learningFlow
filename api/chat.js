@@ -10,23 +10,85 @@
 //   SUPABASE_ANON_KEY    = <anon/public key>
 //   GROQ_API_KEY         = <Groq API key>
 
-import { createClient } from '@supabase/supabase-js';
+// Zero external dependencies — all Supabase calls use plain fetch() against
+// the Supabase REST / Auth APIs directly.
 
-// ── Supabase admin client ──────────────────────────────────────
-function getAdminClient() {
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_KEY;
-  if (!url || !key) throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_KEY');
-  return createClient(url, key, { auth: { persistSession: false } });
+const SB_URL     = () => process.env.SUPABASE_URL;
+const SB_SVC_KEY = () => process.env.SUPABASE_SERVICE_KEY;
+const SB_ANON_KEY= () => process.env.SUPABASE_ANON_KEY;
+
+// ── Supabase REST helper (service-role) ───────────────────────
+async function sbFrom(table) {
+  // Returns a tiny query builder for the most-used operations
+  const base = `${SB_URL()}/rest/v1/${table}`;
+  const headers = {
+    'Content-Type': 'application/json',
+    'apikey':       SB_SVC_KEY(),
+    'Authorization':`Bearer ${SB_SVC_KEY()}`,
+    'Prefer':       'return=representation',
+  };
+  return {
+    async selectEq(col, val, single = false) {
+      const res = await fetch(`${base}?${col}=eq.${val}&select=*${single ? '&limit=1' : ''}`, { headers });
+      const json = await res.json();
+      if (!res.ok) return { data: null, error: json };
+      return { data: single ? (json[0] ?? null) : json, error: null };
+    },
+    async upsert(payload) {
+      const res = await fetch(base, {
+        method: 'POST',
+        headers: { ...headers, 'Prefer': 'resolution=merge-duplicates,return=representation' },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json();
+      return res.ok ? { data: json, error: null } : { data: null, error: json };
+    },
+    async delete(col, val) {
+      const res = await fetch(`${base}?${col}=eq.${val}`, { method: 'DELETE', headers });
+      return res.ok ? { error: null } : { error: await res.json() };
+    },
+  };
 }
 
-// ── Verify JWT, return userId ──────────────────────────────────
+// ── Auth helpers ───────────────────────────────────────────────
 async function verifyToken(authHeader) {
+  // Validate JWT using Supabase Auth REST API (no SDK needed)
   if (!authHeader?.startsWith('Bearer ')) return null;
   const token = authHeader.slice(7);
-  const sb = getAdminClient();
-  const { data: { user }, error } = await sb.auth.getUser(token);
-  return (error || !user) ? null : user.id;
+  const res = await fetch(`${SB_URL()}/auth/v1/user`, {
+    headers: { 'apikey': SB_ANON_KEY(), 'Authorization': `Bearer ${token}` },
+  });
+  if (!res.ok) return null;
+  const user = await res.json();
+  return user?.id ?? null;
+}
+
+async function adminCreateUser(email, password) {
+  const res = await fetch(`${SB_URL()}/auth/v1/admin/users`, {
+    method: 'POST',
+    headers: { 'Content-Type':'application/json', 'apikey': SB_SVC_KEY(), 'Authorization': `Bearer ${SB_SVC_KEY()}` },
+    body: JSON.stringify({ email, password, email_confirm: true }),
+  });
+  const json = await res.json();
+  return res.ok ? { data: { user: json }, error: null } : { data: null, error: json };
+}
+
+async function adminDeleteUser(userId) {
+  const res = await fetch(`${SB_URL()}/auth/v1/admin/users/${userId}`, {
+    method: 'DELETE',
+    headers: { 'apikey': SB_SVC_KEY(), 'Authorization': `Bearer ${SB_SVC_KEY()}` },
+  });
+  return res.ok ? { error: null } : { error: await res.json() };
+}
+
+async function signInWithPassword(email, password) {
+  const res = await fetch(`${SB_URL()}/auth/v1/token?grant_type=password`, {
+    method: 'POST',
+    headers: { 'Content-Type':'application/json', 'apikey': SB_ANON_KEY() },
+    body: JSON.stringify({ email, password }),
+  });
+  const json = await res.json();
+  return res.ok ? { data: json, error: null } : { data: null, error: json };
 }
 
 const CORS = {
@@ -393,21 +455,16 @@ export default async function handler(req, res) {
     if (!username || !password) return res.status(400).json({ error: 'Missing username or password' });
 
     const email = username.includes('@') ? username : `${username}@studyapp.local`;
-    const sb = getAdminClient();
-    const { data: authData, error: authErr } = await sb.auth.admin.createUser({
-      email, password, email_confirm: true,
-    });
+    const { data: authData, error: authErr } = await adminCreateUser(email, password);
     if (authErr) {
-      const msg = authErr.message || '';
-      if (msg.includes('already registered') || msg.includes('already exists'))
+      const msg = authErr.message || authErr.msg || JSON.stringify(authErr);
+      if (msg.includes('already registered') || msg.includes('already exists') || msg.includes('unique'))
         return res.status(409).json({ error: 'שם משתמש כבר קיים' });
       return res.status(400).json({ error: msg });
     }
     const userId = authData.user.id;
-    await sb.from('user_data').upsert(
-      { user_id: userId, data: buildSeedData() },
-      { onConflict: 'user_id' }
-    );
+    const ud = await sbFrom('user_data');
+    await ud.upsert({ user_id: userId, data: buildSeedData() });
     return res.status(201).json({ ok: true, userId });
   }
 
@@ -418,16 +475,16 @@ export default async function handler(req, res) {
     if (!username || !password) return res.status(400).json({ error: 'Missing fields' });
 
     const email = username.includes('@') ? username : `${username}@studyapp.local`;
-    const anonSb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
-    const { data, error } = await anonSb.auth.signInWithPassword({ email, password });
-    if (error) return res.status(401).json({ error: 'שם משתמש או סיסמה שגויים' });
+    const { data, error } = await signInWithPassword(email, password);
+    if (error || !data.access_token)
+      return res.status(401).json({ error: 'שם משתמש או סיסמה שגויים' });
 
     return res.status(200).json({
       ok: true,
-      accessToken:  data.session.access_token,
-      refreshToken: data.session.refresh_token,
-      userId:       data.user.id,
-      expiresAt:    data.session.expires_at,
+      accessToken:  data.access_token,
+      refreshToken: data.refresh_token,
+      userId:       data.user?.id,
+      expiresAt:    data.expires_at,
     });
   }
 
@@ -437,11 +494,11 @@ export default async function handler(req, res) {
     const userId = await verifyToken(req.headers.authorization);
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
-    const sb = getAdminClient();
-    const { data, error } = await sb.from('user_data').select('data').eq('user_id', userId).single();
-    if (error && error.code !== 'PGRST116') return res.status(500).json({ error: error.message });
+    const ud = await sbFrom('user_data');
+    const { data: row, error } = await ud.selectEq('user_id', userId, true);
+    if (error && error.code !== 'PGRST116') return res.status(500).json({ error: error.details || error.message || 'DB error' });
 
-    return res.status(200).json({ ok: true, data: migrateData(data?.data || null) });
+    return res.status(200).json({ ok: true, data: migrateData(row?.data || null) });
   }
 
   // ── POST /api/chat?action=save ────────────────────────────
@@ -453,12 +510,9 @@ export default async function handler(req, res) {
     const payload = req.body?.data;
     if (!payload || typeof payload !== 'object') return res.status(400).json({ error: 'Missing data payload' });
 
-    const sb = getAdminClient();
-    const { error } = await sb.from('user_data').upsert(
-      { user_id: userId, data: migrateData(payload) },
-      { onConflict: 'user_id' }
-    );
-    if (error) return res.status(500).json({ error: error.message });
+    const ud = await sbFrom('user_data');
+    const { error } = await ud.upsert({ user_id: userId, data: migrateData(payload) });
+    if (error) return res.status(500).json({ error: error.details || error.message || 'DB error' });
     return res.status(200).json({ ok: true });
   }
 
@@ -468,10 +522,10 @@ export default async function handler(req, res) {
     const userId = await verifyToken(req.headers.authorization);
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
-    const sb = getAdminClient();
-    await sb.from('user_data').delete().eq('user_id', userId);
-    const { error } = await sb.auth.admin.deleteUser(userId);
-    if (error) return res.status(500).json({ error: error.message });
+    const ud = await sbFrom('user_data');
+    await ud.delete('user_id', userId);
+    const { error } = await adminDeleteUser(userId);
+    if (error) return res.status(500).json({ error: error.message || 'Delete failed' });
     return res.status(200).json({ ok: true });
   }
 
@@ -492,9 +546,9 @@ export default async function handler(req, res) {
     let state = userState ? migrateData(userState) : null;
     if (!state) {
       try {
-        const sb = getAdminClient();
-        const { data, error } = await sb.from('user_data').select('data').eq('user_id', userId).single();
-        if (!error && data?.data) state = migrateData(data.data);
+        const ud = await sbFrom('user_data');
+        const { data: row } = await ud.selectEq('user_id', userId, true);
+        if (row?.data) state = migrateData(row.data);
       } catch (_) { /* fall through */ }
     }
     if (!state) state = buildSeedData();
