@@ -500,6 +500,9 @@ export default async function handler(req, res) {
     if (!state) state = buildSeedData();
 
     const groqApiKey = process.env.GROQ_API_KEY;
+    // ── Debug log: confirms key is loaded in Vercel without exposing it ──
+    // Check Vercel Function Logs (dashboard → Functions tab) for this line.
+    console.log('[Groq] Key loaded:', !!groqApiKey, '| Length:', groqApiKey?.length ?? 0);
     if (!groqApiKey) return res.status(500).json({ error: 'GROQ_API_KEY not configured' });
 
     const systemPrompt    = buildGroqSystemPrompt(state, userName);
