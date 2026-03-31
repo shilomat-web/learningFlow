@@ -1,6 +1,6 @@
 // sw.js — studyFlow Service Worker v4
 // Bump the cache name any time you want to force a full refresh.
-const CACHE = 'studyflow-v4';
+const CACHE = 'studyflow-v5';
 const ASSETS = [
   '/',
   '/index.html',
@@ -10,8 +10,15 @@ const ASSETS = [
 ];
 
 // ── INSTALL ───────────────────────────────────────────────────
+// Listen for SKIP_WAITING message from app (auto-update flow)
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
 self.addEventListener('install', event => {
-  self.skipWaiting(); // Activate immediately — no waiting for old tabs
+  // Do NOT auto-skipWaiting — the app controls when to activate
   event.waitUntil(
     caches.open(CACHE).then(cache =>
       Promise.allSettled(
