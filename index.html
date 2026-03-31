@@ -1040,6 +1040,32 @@ body.dark-mode .quote-banner .quote-author { color: #2ecc8b !important; font-wei
 // ═══════════════════════════════════════════
 // SUPABASE CONFIG
 // ═══════════════════════════════════════════
+// ── APP VERSION — bump this string with every release ──────────
+const APP_VERSION = '1.0.6';
+(function enforceCacheVersion() {
+  const stored = localStorage.getItem('sa_app_version');
+  if (stored !== APP_VERSION) {
+    // New version detected — wipe stale caches then reload once
+    const wipeAndReload = async () => {
+      // 1. Unregister service workers so old cache is dropped
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(r => r.unregister()));
+      }
+      // 2. Delete all Cache Storage entries
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map(k => caches.delete(k)));
+      }
+      // 3. Stamp new version so we don't loop
+      localStorage.setItem('sa_app_version', APP_VERSION);
+      // 4. Hard reload (bypass browser cache)
+      window.location.reload(true);
+    };
+    wipeAndReload();
+  }
+})();
+
 const SUPABASE_URL = 'https://xirsfctsowhrsyytgcnh.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhpcnNmY3Rzb3docnN5eXRnY25oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyODgyNzQsImV4cCI6MjA4OTg2NDI3NH0._dMzLsEdw2Br37Wrbvprs7rnEzQur_z9WFyrCt7qg8E';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -1055,7 +1081,14 @@ async function doGoogleLogin() {
       redirectTo: window.location.origin + window.location.pathname,
     }
   });
-  if (error) showToast('שגיאה בכניסה עם Google: ' + error.message, 4000);
+  if (error) {
+    const msg = error.message || '';
+    if (msg.includes('missing OAuth secret') || msg.includes('Unsupported provider')) {
+      showToast('כניסה עם Google אינה מוגדרת עדיין — פנה למנהל המערכת', 5000);
+    } else {
+      showToast('שגיאה בכניסה עם Google: ' + msg, 4000);
+    }
+  }
 }
 
 // Handle Google OAuth redirect (fires after user returns from Google)
@@ -1096,10 +1129,19 @@ async function doLogin(){
   const err = document.getElementById('l-err');
   if(!u||!p){ err.textContent='יש למלא את כל השדות'; return; }
   err.textContent = '...מתחבר';
+  // Disable all auth buttons during login
+  const authBtns = document.querySelectorAll('#auth-login button, #auth-register button');
+  authBtns.forEach(b => { b.disabled = true; b.style.opacity = '0.6'; });
+  // Safety timeout — re-enable after 10s if something hangs
+  const safetyTimer = setTimeout(() => {
+    authBtns.forEach(b => { b.disabled = false; b.style.opacity = ''; });
+    if(err.textContent === '...מתחבר') err.textContent = 'תם הזמן, נסה שוב';
+  }, 10000);
 
   // Always try Supabase first
   const { data, error } = await sb.auth.signInWithPassword({ email: toEmail(u), password: p });
   if(!error && data.user){
+    clearTimeout(safetyTimer);
     err.textContent = '';
     await loginUser({ id: data.user.id, name: u, provider: 'supabase' });
     return;
@@ -1112,18 +1154,33 @@ async function doLogin(){
   const isNetErr  = sbErrMsg.includes('fetch') || sbErrMsg.includes('network') || sbErrMsg.includes('Failed');
 
   // If Supabase rejects credentials, don't fall through — report it
-  if(isCredErr){ err.textContent = 'שם משתמש או סיסמה שגויים'; return; }
+  if(isCredErr){
+    clearTimeout(safetyTimer);
+    authBtns.forEach(b => { b.disabled = false; b.style.opacity = ''; });
+    err.textContent = 'שם משתמש או סיסמה שגויים'; return;
+  }
 
   // Network failure — fall back to localStorage-only accounts
   if(isNetErr || !sbErrMsg){
     const users = getUsers();
-    if(!users[u]){ err.textContent='שם משתמש לא קיים'; return; }
-    if(users[u].pw !== btoa(unescape(encodeURIComponent(p)))){ err.textContent='סיסמה שגויה'; return; }
+    if(!users[u]){
+      clearTimeout(safetyTimer);
+      authBtns.forEach(b => { b.disabled = false; b.style.opacity = ''; });
+      err.textContent='שם משתמש לא קיים'; return;
+    }
+    if(users[u].pw !== btoa(unescape(encodeURIComponent(p)))){
+      clearTimeout(safetyTimer);
+      authBtns.forEach(b => { b.disabled = false; b.style.opacity = ''; });
+      err.textContent='סיסמה שגויה'; return;
+    }
+    clearTimeout(safetyTimer);
     err.textContent = '';
     await loginUser({ id: u, name: u, provider: 'local' });
     return;
   }
 
+  clearTimeout(safetyTimer);
+  authBtns.forEach(b => { b.disabled = false; b.style.opacity = ''; });
   err.textContent = sbErrMsg;
 }
 
@@ -1137,11 +1194,18 @@ async function doRegister(){
   if(u.length<2){ err.textContent='שם משתמש חייב להכיל לפחות 2 תווים'; return; }
   if(p.length<4){ err.textContent='סיסמה חייבת להכיל לפחות 4 תווים'; return; }
   err.textContent = '...נרשם';
+  const authBtns = document.querySelectorAll('#auth-login button, #auth-register button');
+  authBtns.forEach(b => { b.disabled = true; b.style.opacity = '0.6'; });
+  const safetyTimer = setTimeout(() => {
+    authBtns.forEach(b => { b.disabled = false; b.style.opacity = ''; });
+    if(err.textContent === '...נרשם') err.textContent = 'תם הזמן, נסה שוב';
+  }, 10000);
 
   const { data, error } = await sb.auth.signUp({ email: toEmail(u), password: p });
 
   // If Supabase signup succeeded
   if(!error && data.user){
+    clearTimeout(safetyTimer);
     err.textContent = '';
     const session = { id: data.user.id, name: u, provider: 'supabase' };
     await seedNewUserSupabase(data.user.id, u);
@@ -1155,20 +1219,31 @@ async function doRegister(){
                      || sbErrMsg.includes('email address is already');
   const isNetErr = sbErrMsg.includes('fetch') || sbErrMsg.includes('network') || sbErrMsg.includes('Failed');
 
-  if(alreadyExists){ err.textContent = 'שם משתמש כבר קיים'; return; }
+  if(alreadyExists){
+    clearTimeout(safetyTimer);
+    authBtns.forEach(b => { b.disabled = false; b.style.opacity = ''; });
+    err.textContent = 'שם משתמש כבר קיים'; return;
+  }
 
   // Network failure only — fall back to localStorage registration
   if(isNetErr || !sbErrMsg){
     const users = getUsers();
-    if(users[u]){ err.textContent='שם משתמש כבר קיים'; return; }
+    if(users[u]){
+      clearTimeout(safetyTimer);
+      authBtns.forEach(b => { b.disabled = false; b.style.opacity = ''; });
+      err.textContent='שם משתמש כבר קיים'; return;
+    }
     users[u] = { pw: btoa(unescape(encodeURIComponent(p))) };
     saveUsers(users);
     seedNewUser(u);
+    clearTimeout(safetyTimer);
     err.textContent = '';
     await loginUser({ id: u, name: u, provider: 'local' });
     return;
   }
 
+  clearTimeout(safetyTimer);
+  authBtns.forEach(b => { b.disabled = false; b.style.opacity = ''; });
   err.textContent = sbErrMsg;
 }
 
