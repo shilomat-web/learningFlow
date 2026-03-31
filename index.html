@@ -340,6 +340,10 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
 @media(min-width:641px){
   #pomodoro-fab{left:auto;right:90px}
 }
+.btn-google{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:10px 16px;border:1.5px solid var(--border);border-radius:10px;background:var(--card);color:var(--text);font-family:'Heebo',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:background .15s,border-color .15s;margin-bottom:2px}
+.btn-google:hover{background:var(--hover);border-color:var(--accent)}
+.auth-divider{display:flex;align-items:center;gap:10px;margin:10px 0;color:var(--text-muted);font-size:12px}
+.auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:var(--border)}
 #install-banner{display:none;position:fixed;top:0;left:0;right:0;background:var(--g);color:#fff;padding:12px 16px;text-align:center;font-size:13px;z-index:10000;flex-direction:column;gap:8px;align-items:center;box-shadow:0 2px 12px rgba(0,0,0,.2)}
 #install-banner.show{display:flex}
 #install-banner .ib-row{display:flex;align-items:center;gap:10px}
@@ -645,12 +649,22 @@ body.dark-mode .quote-banner .quote-author { color: #2ecc8b !important; font-wei
       <div class="auth-tab" onclick="switchAuthTab('register')">הרשמה</div>
     </div>
     <div id="auth-login">
+      <button class="btn-google" onclick="doGoogleLogin()">
+        <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.08 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.35-8.16 2.35-6.26 0-11.57-3.59-13.46-8.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        כניסה עם Google
+      </button>
+      <div class="auth-divider"><span>או</span></div>
       <div class="fg"><label>שם משתמש</label><input class="fc" id="l-user" placeholder="שם משתמש" autocomplete="username"></div>
       <div class="fg"><label>סיסמה</label><input class="fc" id="l-pass" type="password" placeholder="סיסמה" autocomplete="current-password"></div>
       <div class="auth-err" id="l-err"></div>
       <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:8px" onclick="doLogin()">כניסה</button>
     </div>
     <div id="auth-register" style="display:none">
+      <button class="btn-google" onclick="doGoogleLogin()">
+        <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.08 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.35-8.16 2.35-6.26 0-11.57-3.59-13.46-8.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        הרשמה עם Google
+      </button>
+      <div class="auth-divider"><span>או</span></div>
       <div class="fg"><label>שם משתמש</label><input class="fc" id="r-user" placeholder="בחר שם משתמש" autocomplete="username"></div>
       <div class="fg"><label>סיסמה</label><input class="fc" id="r-pass" type="password" placeholder="בחר סיסמה" autocomplete="new-password"></div>
       <div class="fg"><label>אימות סיסמה</label><input class="fc" id="r-pass2" type="password" placeholder="חזור על הסיסמה" autocomplete="new-password"></div>
@@ -1031,8 +1045,35 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ═══════════════════════════════════════════
-// AUTH — Username only (appends @studyapp.local for Supabase)
+// AUTH — Username / Google OAuth
 // Fallback: localStorage when not logged in via Supabase
+
+async function doGoogleLogin() {
+  const { error } = await sb.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: window.location.origin + window.location.pathname,
+    }
+  });
+  if (error) showToast('שגיאה בכניסה עם Google: ' + error.message, 4000);
+}
+
+// Handle Google OAuth redirect (fires after user returns from Google)
+sb.auth.onAuthStateChange(async (event, session) => {
+  if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session && session.user) {
+    const existing = localStorage.getItem('sa_session');
+    if (existing) return; // already handled
+    const email = session.user.email || '';
+    const name = session.user.user_metadata?.full_name
+              || session.user.user_metadata?.name
+              || email.split('@')[0]
+              || 'משתמש';
+    // Check if user_data exists; if not, seed
+    const { data: ud } = await sb.from('user_data').select('user_id').eq('user_id', session.user.id).maybeSingle();
+    if (!ud) await seedNewUserSupabase(session.user.id, name);
+    await loginUser({ id: session.user.id, name, provider: 'supabase' });
+  }
+});
 // ═══════════════════════════════════════════
 const toEmail = u => u.includes('@') ? u : u + '@studyapp.local';
 const getUsers  = () => JSON.parse(localStorage.getItem('sa_users') || '{}');
@@ -1132,6 +1173,7 @@ async function doRegister(){
 }
 
 async function loginUser(session){
+  if (document.getElementById('auth-screen')?.classList.contains('hidden')) return; // already logged in
   CU = session;
   localStorage.setItem('sa_session', JSON.stringify(session));
   await loadState();
@@ -2351,9 +2393,10 @@ function installPWA() {
       document.getElementById('install-banner').classList.remove('show');
     });
   } else {
-    // iOS Safari: no prompt API — show manual instruction toast
-    showToast('iOS: לחץ על כפתור השיתוף ← "הוסף למסך הבית"', 5000);
+    // iOS Safari: show visual step-by-step modal
     document.getElementById('install-banner').classList.remove('show');
+    const modal = document.getElementById('ios-install-modal');
+    if (modal) modal.style.display = 'flex';
   }
 }
 
@@ -2372,7 +2415,11 @@ window.addEventListener('load', () => {
   const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
   const isIOSSafari = isIOS && !('MSStream' in window);
   if (isIOSSafari && !_isStandalone) {
-    setTimeout(() => _showInstallBanner('ios'), 3000);
+    setTimeout(() => {
+      if (sessionStorage.getItem('pwa_banner_dismissed')) return;
+      const modal = document.getElementById('ios-install-modal');
+      if (modal) modal.style.display = 'flex';
+    }, 2500);
   }
 });
 
@@ -3592,12 +3639,35 @@ function addAIMsg(text, classes){
   return el;
 }
 
-// ── Service Worker + PWA Install Prompt ──────────────────────
+// ── Service Worker + Auto-Update ──────────────────────
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js')
-      .then(reg => console.log('[PWA] SW registered, scope:', reg.scope))
-      .catch(err => console.warn('[PWA] SW registration failed:', err));
+    navigator.serviceWorker.register('sw.js').then(reg => {
+      console.log('[PWA] SW registered, scope:', reg.scope);
+
+      // Poll for updates every 60 seconds (catches new deployments on Android)
+      setInterval(() => reg.update(), 60000);
+
+      // When a new SW is waiting, activate it immediately and reload
+      reg.addEventListener('updatefound', () => {
+        const newWorker = reg.installing;
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            // New version ready — tell it to skip waiting, then reload
+            newWorker.postMessage({ type: 'SKIP_WAITING' });
+          }
+        });
+      });
+    }).catch(err => console.warn('[PWA] SW registration failed:', err));
+
+    // When the SW actually activates (after skip waiting), reload the page
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!refreshing) {
+        refreshing = true;
+        window.location.reload();
+      }
+    });
   });
 }
 
@@ -3744,5 +3814,19 @@ executeTool = function(name, args){
 };
 
 </script>
+
+<div id="ios-install-modal" style="display:none;position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,.5);align-items:flex-end;justify-content:center">
+  <div style="background:var(--card);border-radius:20px 20px 0 0;padding:24px 20px 36px;width:100%;max-width:480px;text-align:center;animation:slideUp .3s ease">
+    <div style="font-size:28px;margin-bottom:8px">📲</div>
+    <h3 style="margin:0 0 8px;font-size:18px">הוסף למסך הבית</h3>
+    <p style="color:var(--text-muted);font-size:14px;margin:0 0 20px">גישה מהירה לאפליקציה ישירות מהמסך הראשי</p>
+    <div style="background:var(--bg);border-radius:12px;padding:14px 16px;text-align:right;font-size:14px;line-height:2">
+      <div>1️⃣ לחץ על כפתור <strong>השיתוף</strong> <span style="background:#007AFF;color:#fff;border-radius:6px;padding:2px 8px;font-size:12px">⬆️</span> בתחתית המסך</div>
+      <div>2️⃣ גלול מטה ובחר <strong>"הוסף למסך הבית"</strong></div>
+      <div>3️⃣ לחץ <strong>"הוסף"</strong> — זהו! 🎉</div>
+    </div>
+    <button onclick="document.getElementById('ios-install-modal').style.display='none';sessionStorage.setItem('pwa_banner_dismissed','1')" style="margin-top:20px;width:100%;padding:12px;border-radius:12px;border:none;background:var(--g);color:#fff;font-family:'Heebo',sans-serif;font-size:15px;font-weight:700;cursor:pointer">הבנתי, תודה!</button>
+  </div>
+</div>
 </body>
 </html>
