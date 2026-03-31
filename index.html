@@ -6,9 +6,9 @@
 <meta name="theme-color" content="#2ecc8b">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="מרכז למידה">
+<meta name="apple-mobile-web-app-title" content="studyFlow">
 <link rel="manifest" href="manifest.json">
-<title>מרכז למידה</title>
+<title>studyFlow</title>
 <!-- ── FAVICON & PWA ICONS (using uploaded logo) ── -->
 <link rel="icon" type="image/png" sizes="64x64"   href="logo.png">
 <link rel="icon" type="image/png" sizes="32x32"   href="logo.png">
@@ -637,8 +637,8 @@ body.dark-mode .quote-banner .quote-author { color: #2ecc8b !important; font-wei
 <div id="auth-screen">
   <div class="auth-box">
     <div class="auth-logo">
-      <div class="logo-icon" style="width:120px;height:120px;border-radius:20px;margin:0 auto;overflow:hidden"><img src="logo.png" alt="לוגו מרכז למידה" class="auth-logo-img" style="width:100%;height:100%;object-fit:contain"></div>
-      <h1>מרכז למידה</h1>
+      <div class="logo-icon" style="width:120px;height:120px;border-radius:20px;margin:0 auto;overflow:hidden"><img src="logo.png" alt="לוגו studyFlow" class="auth-logo-img" style="width:100%;height:100%;object-fit:contain"></div>
+      <h1>studyFlow</h1>
     </div>
     <div class="auth-tabs" id="auth-tabs">
       <div class="auth-tab active" onclick="switchAuthTab('login')">כניסה</div>
@@ -662,7 +662,7 @@ body.dark-mode .quote-banner .quote-author { color: #2ecc8b !important; font-wei
 
 <div id="sidebar">
   <div class="sb-logo">
-    <div class="sb-logo-row"><h2>מרכז למידה</h2><div class="logo-icon" style="width:48px;height:48px;border-radius:12px"><img src="logo.png" alt="לוגו" class="sb-logo-img"></div></div>
+    <div class="sb-logo-row"><h2>studyFlow</h2><div class="logo-icon" style="width:48px;height:48px;border-radius:12px"><img src="logo.png" alt="לוגו" class="sb-logo-img"></div></div>
     <p>ניהול משימות לימודים</p>
   </div>
   <nav id="sidebar-nav">
@@ -674,7 +674,7 @@ body.dark-mode .quote-banner .quote-author { color: #2ecc8b !important; font-wei
     <div class="nav-item" onclick="showPage('studytime')"><span>זמן לימוד</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
     <div class="nav-item" onclick="showPage('archive')"><span>ארכיון מבחנים</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg></div>
   </nav>
-  <div class="sb-footer">© מרכז למידה 2025</div>
+  <div class="sb-footer">© studyFlow 2025</div>
   <div class="user-badge">
     <button class="logout-btn" onclick="doLogout()">יציאה</button>
     <span id="sb-username" style="font-weight:500;font-size:13px"></span>
@@ -701,7 +701,7 @@ body.dark-mode .quote-banner .quote-author { color: #2ecc8b !important; font-wei
 <div id="page-dashboard" class="page active">
   <div class="page-header">
     <div></div>
-    <div class="page-title"><h1>מרכז למידה</h1><p id="dash-date"></p></div>
+    <div class="page-title"><h1>studyFlow</h1><p id="dash-date"></p></div>
   </div>
   <div id="countdown-hero-wrap"></div>
   <div id="focus-card-wrap"></div>
@@ -1027,7 +1027,7 @@ body.dark-mode .quote-banner .quote-author { color: #2ecc8b !important; font-wei
 // SUPABASE CONFIG
 // ═══════════════════════════════════════════
 const SUPABASE_URL = 'https://xirsfctsowhrsyytgcnh.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_rFgIdYMxry2LJOhOcPGWLw_9eIVcHEv';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhpcnNmY3Rzb3docnN5eXRnY25oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyODgyNzQsImV4cCI6MjA4OTg2NDI3NH0._dMzLsEdw2Br37Wrbvprs7rnEzQur_z9WFyrCt7qg8E';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ═══════════════════════════════════════════
@@ -1201,7 +1201,7 @@ async function save(){
 }
 
 async function seedNewUserSupabase(userId, username){
-  const data = {subjects:[{id:uid(),name:'מתמטיקה',subtopics:MATH_TOPICS.map(t=>({id:uid(),name:t.n,done:t.d,subtopics:[]}))}],tasks:[],exams:[],logs:[],archive:[]};
+  const data = {subjects:[], tasks:[], exams:[], logs:[], archive:[]};
   try {
     await sb.from('user_data').upsert(
       { user_id: userId, data },
@@ -1237,7 +1237,7 @@ const MATH_TOPICS=[
   {n:"סטטיסטיקה והסתברות",d:false}
 ];
 function seedNewUser(u){
-  const data={subjects:[{id:uid(),name:'מתמטיקה',subtopics:MATH_TOPICS.map(t=>({id:uid(),name:t.n,done:t.d,subtopics:[]}))}],tasks:[],exams:[],logs:[],archive:[]};
+  const data={subjects:[],tasks:[],exams:[],logs:[],archive:[]};
   localStorage.setItem(userKey(u),JSON.stringify(data));
 }
 
@@ -2572,7 +2572,7 @@ setInterval(() => {
     S.tasks.forEach(t => {
         if(!t.done && t.dueDate === dStr && t.dueTime === tStr && !t.notified) {
             if("Notification" in window && Notification.permission === 'granted') {
-                new Notification('מרכז למידה: תזכורת', {body: t.name, icon: '📚'});
+                new Notification('studyFlow: תזכורת', {body: t.name, icon: '📚'});
             }
             showToast('⏰ תזכורת: ' + t.name, 5000);
             t.notified = true; // מסמן כדי לא להתריע שוב על אותה דקה
