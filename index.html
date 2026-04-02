@@ -1383,7 +1383,7 @@ function showPage(name){
   const si=PAGES.indexOf(name);
   const navItems=document.querySelectorAll('#sidebar-nav .nav-item');
   if(navItems[si])navItems[si].classList.add('active');
-  const mobOrder=['dashboard','subjects','tasks','archive','exams','studytime'];
+  const mobOrder=['dashboard','subjects','tasks','exams','archive','studytime'];
   const mi=mobOrder.indexOf(name);
   const mobItems=document.querySelectorAll('#mobile-nav .mob-item');
   if(mobItems[mi])mobItems[mi].classList.add('active');

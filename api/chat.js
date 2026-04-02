@@ -356,84 +356,182 @@ function buildServerInsights(state) {
   return lines.join('\n');
 }
 
-// ── FIXED: System prompt — strict READ-only, no tool descriptions ──
-//
-// Key changes from original:
-//  1. Explicit READ vs WRITE section with a hard rule:
-//     "Do NOT call any function. Answer ONLY from the data below."
-//  2. Removed all tool/function references from the prompt.
-//  3. Model is NOT given a `tools` array (no function calling on this endpoint).
-//  4. Conversational fallback phrases for unknown queries.
-function buildGroqSystemPrompt(state, userName) {
-  const context  = buildServerContext(state, userName);
-  const insights = buildServerInsights(state);
+// ── Intent detection ───────────────────────────────────────────
+// Classifies the last user message to inject only the relevant data slice.
+function detectIntent(messages) {
+  const last = (messages || []).filter(m => m.role === 'user').slice(-1)[0]?.content || '';
+  const q = last.toLowerCase();
+  if (/מבח|בגר|בחינ|exam|test|ציון|score|readiness|מוכנות/.test(q))   return 'exams';
+  if (/משימ|task|todo|לעשות|פתוח|מחר|איחור|due/.test(q))              return 'tasks';
+  if (/זמן|שעות|דקות|לימד|log|time|שבוע|אתמול|היום|קצב|מגמ/.test(q)) return 'studytime';
+  if (/נושא|subject|פרק|תת|subtopic|אחוז|השלמ|progress/.test(q))      return 'subjects';
+  return 'overview';
+}
+
+// ── Slim context builders (per intent) ────────────────────────
+function slimExams(state) {
+  const { subjects = [], exams = [], archive = [] } = state;
+  const today = new Date().toISOString().split('T')[0];
+  const lines = ['=== מבחנים ==='];
+  const upcoming = exams.filter(e => e.date >= today).sort((a, b) => a.date.localeCompare(b.date));
+  const past     = exams.filter(e => e.date < today).sort((a, b) => b.date.localeCompare(a.date));
+  if (!upcoming.length && !past.length) return lines.concat('אין מבחנים.').join('\n');
+  upcoming.forEach(e => {
+    const subj = subjects.find(s => s.id === e.subjId);
+    const readiness = calcReadiness(e, subjects);
+    const prepLabel = { red: 'חלש', amber: 'בינוני', green: 'מוכן' }[e.prep] || '?';
+    lines.push(`📅 "${e.name}"${subj ? ' (' + subj.name + ')' : ''} | ${fmtDate(e.date)} | עוד ${daysUntil(e.date)}ד | הכנה: ${prepLabel} | מוכנות: ${readiness}%`);
+  });
+  past.slice(0, 5).forEach(e => {
+    const subj = subjects.find(s => s.id === e.subjId);
+    lines.push(`📝 "${e.name}"${subj ? ' (' + subj.name + ')' : ''} | ${fmtDate(e.date)} | ציון: ${e.score ?? 'לא הוזן'}`);
+  });
+  if (archive.length) {
+    const scored = archive.filter(e => e.score !== null);
+    const avg = scored.length ? Math.round(scored.reduce((s, e) => s + e.score, 0) / scored.length) : null;
+    lines.push(`\nארכיון: ${archive.length} מבחנים${avg !== null ? ' | ממוצע ציון: ' + avg : ''}`);
+  }
+  return lines.join('\n');
+}
+
+function slimTasks(state) {
+  const { subjects = [], tasks = [] } = state;
+  const today = new Date().toISOString().split('T')[0];
+  if (!tasks.length) return '=== משימות ===\nאין משימות.';
+  const lines = ['=== משימות ==='];
+  const overdue = tasks.filter(t => !t.done && t.dueDate && t.dueDate < today);
+  const pending = tasks.filter(t => !t.done && !(t.dueDate && t.dueDate < today));
+  const done    = tasks.filter(t => t.done);
+  lines.push(`סה"כ: ${tasks.length} | הושלמו: ${done.length} | ממתינות: ${pending.length} | באיחור: ${overdue.length}`);
+  if (overdue.length) {
+    lines.push('\nבאיחור:');
+    overdue.forEach(t => {
+      const subj = subjects.find(s => s.id === t.subjId);
+      lines.push(`  ⚠️ "${t.name}"${subj ? ' (' + subj.name + ')' : ''} — ${Math.abs(daysUntil(t.dueDate))}ד באיחור`);
+    });
+  }
+  if (pending.length) {
+    lines.push('\nפתוחות:');
+    pending.forEach(t => {
+      const subj = subjects.find(s => s.id === t.subjId);
+      const due  = t.dueDate ? ` | יעד: ${fmtDate(t.dueDate)}` : '';
+      lines.push(`  ○ "${t.name}"${subj ? ' (' + subj.name + ')' : ''}${due}`);
+    });
+  }
+  return lines.join('\n');
+}
+
+function slimStudytime(state) {
+  const { subjects = [], logs = [] } = state;
+  const today = new Date().toISOString().split('T')[0];
+  if (!logs.length) return '=== זמן לימוד ===\nאין רשומות.';
+  const lines = ['=== זמן לימוד ==='];
+  const total = logs.reduce((s, l) => s + l.minutes, 0);
+  const todayMins = logs.filter(l => l.date === today).reduce((s, l) => s + l.minutes, 0);
+  const d7 = new Date(); d7.setDate(d7.getDate() - 7);
+  const last7 = logs.filter(l => new Date(l.date) >= d7).reduce((s, l) => s + l.minutes, 0);
+  const d14 = new Date(); d14.setDate(d14.getDate() - 14);
+  const prev7 = logs.filter(l => new Date(l.date) >= d14 && new Date(l.date) < d7).reduce((s, l) => s + l.minutes, 0);
+  const trend = last7 > prev7 ? '📈 עולה' : last7 < prev7 ? '📉 יורד' : '➡️ יציב';
+  lines.push(`היום: ${fmtMins(todayMins)} | שבוע אחרון: ${fmtMins(last7)} | סה"כ: ${fmtMins(total)} | מגמה: ${trend}`);
+  lines.push('\nלפי נושא:');
+  const bySubj = {};
+  logs.forEach(l => { bySubj[l.subjId] = (bySubj[l.subjId] || 0) + l.minutes; });
+  Object.entries(bySubj).sort((a, b) => b[1] - a[1]).forEach(([sid, m]) => {
+    const s = subjects.find(s => s.id === sid);
+    lines.push(`  ${s ? s.name : '?'}: ${fmtMins(m)}`);
+  });
+  lines.push('\nאחרונות:');
+  [...logs].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10).forEach(l => {
+    const s = subjects.find(s => s.id === l.subjId);
+    lines.push(`  ${fmtDate(l.date)} | ${s ? s.name : '?'} | ${l.minutes}ד׳${l.desc ? ' — ' + l.desc : ''}`);
+  });
+  return lines.join('\n');
+}
+
+function slimSubjects(state) {
+  const { subjects = [] } = state;
+  if (!subjects.length) return '=== נושאים ===\nאין נושאים.';
+  const lines = ['=== נושאים ==='];
+  subjects.forEach(subj => {
+    const { total, done } = countNodes(subj);
+    const pct = total ? Math.round(done / total * 100) : 0;
+    lines.push(`• "${subj.name}"${subj.category ? ' [' + subj.category + ']' : ''} | ${done}/${total} (${pct}%)`);
+    function dumpNode(node, depth) {
+      (node.subtopics || []).forEach(c => {
+        lines.push('  '.repeat(depth) + (c.done ? '✓' : '○') + ` "${c.name}"`);
+        dumpNode(c, depth + 1);
+      });
+    }
+    dumpNode(subj, 1);
+  });
+  return lines.join('\n');
+}
+
+function slimOverview(state, userName) {
   const { subjects = [], tasks = [], exams = [], logs = [] } = state;
   const today = new Date().toISOString().split('T')[0];
+  const lines = [];
+  let totSub = 0, doneSub = 0;
+  subjects.forEach(s => { const c = countNodes(s); totSub += c.total; doneSub += c.done; });
+  lines.push(`משתמש: ${userName} | תאריך: ${fmtDate(today)}`);
+  lines.push(`התקדמות כוללת: ${doneSub}/${totSub} (${totSub ? Math.round(doneSub/totSub*100) : 0}%)`);
+  const upcoming = exams.filter(e => e.date >= today).sort((a,b) => a.date.localeCompare(b.date)).slice(0, 3);
+  if (upcoming.length) {
+    lines.push('\nמבחנים קרובים:');
+    upcoming.forEach(e => {
+      const subj = subjects.find(s => s.id === e.subjId);
+      const readiness = calcReadiness(e, subjects);
+      const urgency = daysUntil(e.date) <= 3 ? '🔴' : daysUntil(e.date) <= 7 ? '🟡' : '🟢';
+      lines.push(`  ${urgency} "${e.name}"${subj ? ' (' + subj.name + ')' : ''} — עוד ${daysUntil(e.date)}ד | מוכנות ${readiness}%`);
+    });
+  }
+  const overdue = tasks.filter(t => !t.done && t.dueDate && t.dueDate < today);
+  const pending = tasks.filter(t => !t.done);
+  lines.push(`\nמשימות: ${pending.length} פתוחות${overdue.length ? ', ' + overdue.length + ' באיחור ⚠️' : ''}`);
+  const d7 = new Date(); d7.setDate(d7.getDate() - 7);
+  const last7 = logs.filter(l => new Date(l.date) >= d7).reduce((s, l) => s + l.minutes, 0);
+  const todayMins = logs.filter(l => l.date === today).reduce((s, l) => s + l.minutes, 0);
+  lines.push(`זמן לימוד: היום ${fmtMins(todayMins)} | שבוע אחרון ${fmtMins(last7)}`);
+  const scored = exams
+    .filter(e => e.date >= today)
+    .map(e => {
+      const days = daysUntil(e.date);
+      const readiness = calcReadiness(e, subjects);
+      const subj = subjects.find(s => s.id === e.subjId);
+      return { name: e.name, subjName: subj ? subj.name : '', days, readiness, priority: Math.round((100 - readiness) * (30 / Math.max(days, 1))) };
+    })
+    .sort((a, b) => b.priority - a.priority)
+    .slice(0, 2);
+  if (scored.length) {
+    lines.push('\nעדיפויות:');
+    scored.forEach((s, i) => lines.push(`  ${i+1}. ${s.subjName} — מוכנות ${s.readiness}%, עוד ${s.days}ד`));
+  }
+  return lines.join('\n');
+}
 
-  const stateSnapshot = JSON.stringify({
-    user: userName,
-    today,
-    subjects: subjects.map(subj => {
-      const { total, done } = countNodes(subj);
-      return { id: subj.id, name: subj.name, category: subj.category || '', completion: { done, total, pct: total ? Math.round(done / total * 100) : 0 } };
-    }),
-    upcomingExams: exams
-      .filter(e => e.date >= today)
-      .sort((a, b) => a.date.localeCompare(b.date))
-      .map(e => ({ id: e.id, name: e.name, date: e.date, daysUntil: daysUntil(e.date), prep: e.prep, readiness: calcReadiness(e, subjects) })),
-    tasks: {
-      total: tasks.length,
-      done: tasks.filter(t => t.done).length,
-      overdue: tasks.filter(t => !t.done && t.dueDate && t.dueDate < today).length,
-      list: tasks.map(t => ({ id: t.id, name: t.name, done: t.done, type: t.type, dueDate: t.dueDate || null })),
-    },
-    studyMins: {
-      today: logs.filter(l => l.date === today).reduce((s, l) => s + l.minutes, 0),
-      last7days: logs.filter(l => { const d = new Date(); d.setDate(d.getDate() - 7); return new Date(l.date) >= d; }).reduce((s, l) => s + l.minutes, 0),
-      total: logs.reduce((s, l) => s + l.minutes, 0),
-      bySubject: (() => {
-        const m = {};
-        logs.forEach(l => { m[l.subjId] = (m[l.subjId] || 0) + l.minutes; });
-        return Object.entries(m).map(([id, mins]) => {
-          const s = subjects.find(x => x.id === id);
-          return { subjectName: s ? s.name : id, minutes: mins, formatted: fmtMins(mins) };
-        }).sort((a, b) => b.minutes - a.minutes);
-      })(),
-    },
-  }, null, 2);
-
+// ── System prompt builder (intent-aware, slim) ─────────────────
+function buildGroqSystemPrompt(state, userName, messages) {
+  const intent = detectIntent(messages);
+  let dataSection;
+  switch (intent) {
+    case 'exams':     dataSection = slimExams(state);              break;
+    case 'tasks':     dataSection = slimTasks(state);              break;
+    case 'studytime': dataSection = slimStudytime(state);          break;
+    case 'subjects':  dataSection = slimSubjects(state);           break;
+    default:          dataSection = slimOverview(state, userName); break;
+  }
   return [
     '## תפקידך',
-    'אתה עוזר לימודים אישי שמנתח את הנתונים של הסטודנט ועונה בעברית, קצר וברור.',
+    'אתה עוזר לימודים אישי. ענה בעברית, קצר וברור.',
     '',
-    '## ══ חוק ברזל — קריאה בלבד ══',
-    'אתה עונה על שאלות אינפורמטיביות מתוך הנתונים שמוזרקים למטה.',
-    'אתה **לא** מבצע שום פעולה, לא מוסיף, לא מוחק, לא משנה כלום.',
-    'אם המשתמש מבקש פעולה (הוסף / מחק / עדכן), השב: "כדי לבצע פעולה זו, השתמש בממשק האפליקציה או כתוב לי פקודה מפורשת בתוך הצ׳אט."',
+    '## חוק ברזל — קריאה בלבד',
+    'ענה אך ורק מהנתונים שלמטה. אל תמציא.',
+    'אם מבקשים פעולה (הוסף/מחק/עדכן): "כדי לבצע פעולה זו, השתמש בממשק האפליקציה."',
+    'לשאלות שאינן קשורות ללימודים: "אני מנתח רק את הנתונים שלך באפליקציה."',
     '',
-    '## כללים',
-    '1. ענה אך ורק על בסיס הנתונים שלמטה — אל תמציא ואל תשער.',
-    '2. עברית בלבד. פורמט bullet points לרשימות.',
-    '3. לניתוח: (א) מצב נוכחי (ב) סיכון (ג) המלצה פרקטית.',
-    '4. לשאלות שאינן קשורות ללימודים: "אני מנתח רק את הנתונים שלך באפליקציה."',
-    '5. אם הנתון לא קיים בסנאפשוט — אמור זאת מפורשות, אל תנחש.',
-    '',
-    '## נתוני האפליקציה:',
-    context,
-    '',
-    '## תובנות מחושבות:',
-    insights,
-    '',
-    '## Snapshot JSON (לניתוח מדויק):',
-    '```json',
-    stateSnapshot,
-    '```',
-    '',
-    '## דוגמאות לתשובות טובות:',
-    '- "כמה זמן למדתי ג׳אווה?" → חפש ב-studyMins.bySubject את הנושא הרלוונטי והצג את הזמן המפורמט.',
-    '- "מה המשימות שלי?" → הצג את tasks.list מהסנאפשוט: שם, סטטוס (✓/○), סוג, תאריך יעד.',
-    '- "מה המצב שלי?" → אחוז השלמה + מבחנים קרובים + משימות ממתינות + נושא בסיכון + המלצה.',
-    '- "על מה להתמקד?" → עדיפויות לפי: ימים למבחן × (100-מוכנות).',
+    '## נתונים:',
+    dataSection,
   ].join('\n');
 }
 
@@ -559,7 +657,7 @@ export default async function handler(req, res) {
     console.log('[Groq] Key loaded:', !!groqApiKey, '| Length:', groqApiKey?.length ?? 0);
     if (!groqApiKey) return res.status(500).json({ error: 'GROQ_API_KEY not configured' });
 
-    const systemPrompt    = buildGroqSystemPrompt(state, userName);
+    const systemPrompt    = buildGroqSystemPrompt(state, userName, messages);
     const trimmedMessages = messages.slice(-10);
 
     // ── Groq call with full error boundary ────────────────
