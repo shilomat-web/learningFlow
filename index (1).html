@@ -298,6 +298,7 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
 }
 #ai-fab:hover{transform:scale(1.1);box-shadow:0 6px 24px rgba(46,204,139,.7)}
 #ai-fab:active{transform:scale(0.96)}
+#ai-fab.fab-hidden{display:none !important}
 #ai-panel{position:fixed;bottom:0;right:0;width:380px;height:560px;max-width:100vw;max-height:85vh;background:var(--white);border-radius:20px 0 0 0;box-shadow:-4px -4px 32px rgba(0,0,0,.15);z-index:8999;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1)}
 #ai-panel.open{transform:translateY(0)}
 .ai-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0}
@@ -2732,7 +2733,7 @@ function toggleAI(){
   document.getElementById('ai-panel').classList.toggle('open', aiOpen);
   // Hide the FAB while the panel is open so it doesn't overlap the chat UI
   const fab = document.getElementById('ai-fab');
-  if (fab) fab.style.display = aiOpen ? 'none' : 'flex';
+  if (fab) fab.classList.toggle('fab-hidden', aiOpen);
 }
 
 function askChip(q){
@@ -3854,7 +3855,7 @@ setInterval(()=>{
 const _origSeedNewUserSupabase = seedNewUserSupabase;
 seedNewUserSupabase = async function(userId, username){
   const data = {
-    subjects:[{id:uid(),name:'מתמטיקה',category:'matriculation',subtopics:MATH_TOPICS.map(t=>({id:uid(),name:t.n,done:t.d,subtopics:[]}))}],
+    subjects:[],
     tasks:[],exams:[],logs:[],archive:[]
   };
   try {
