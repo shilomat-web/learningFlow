@@ -343,10 +343,6 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
 }
 .btn-google{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:10px 16px;border:1.5px solid var(--border);border-radius:10px;background:var(--card);color:var(--text);font-family:'Heebo',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:background .15s,border-color .15s;margin-bottom:2px}
 .btn-google:hover{background:var(--hover);border-color:var(--accent)}
-.btn-apple{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:10px 16px;border:none;border-radius:10px;background:#000;color:#fff;font-family:'Heebo',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:background .15s;margin-bottom:2px}
-.btn-apple:hover{background:#333}
-.dark .btn-apple{background:#fff;color:#000}
-.dark .btn-apple:hover{background:#e0e0e0}
 .auth-divider{display:flex;align-items:center;gap:10px;margin:10px 0;color:var(--text-muted);font-size:12px}
 .auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:var(--border)}
 #install-banner{display:none;position:fixed;top:0;left:0;right:0;background:var(--g);color:#fff;padding:12px 16px;text-align:center;font-size:13px;z-index:10000;flex-direction:column;gap:8px;align-items:center;box-shadow:0 2px 12px rgba(0,0,0,.2)}
@@ -658,10 +654,6 @@ body.dark-mode .quote-banner .quote-author { color: #2ecc8b !important; font-wei
         <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.08 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.35-8.16 2.35-6.26 0-11.57-3.59-13.46-8.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
         כניסה עם Google
       </button>
-      <button class="btn-apple" onclick="doAppleLogin()">
-        <svg width="18" height="18" viewBox="0 0 814 1000"><path fill="currentColor" d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76.5 0-103.7 40.8-165.9 40.8s-105.6-57.8-155.5-127.4c-58.3-81.3-105.9-207.6-105.9-328.7 0-193.1 125.7-295.6 249.3-295.6 65.7 0 120.3 43.2 161.4 43.2 39.2 0 100.3-45.8 174.5-45.8 28.2 0 129.6 2.6 196.3 99.3zM554.1 159.4c31.1-36.9 53.1-88.1 53.1-139.4 0-7.1-.6-14.3-1.9-20.1-50.6 1.9-110.8 33.7-147.1 75.8-28.7 32.4-55.3 83.6-55.3 135.6 0 7.8.6 15.7 1.3 18.2 2.6.6 6.4 1.3 10.2 1.3 45.4 0 103.4-30.4 139.7-71.4z"/></svg>
-        כניסה עם Apple
-      </button>
       <div class="auth-divider"><span>או</span></div>
       <div class="fg"><label>שם משתמש</label><input class="fc" id="l-user" placeholder="שם משתמש" autocomplete="username"></div>
       <div class="fg"><label>סיסמה</label><input class="fc" id="l-pass" type="password" placeholder="סיסמה" autocomplete="current-password"></div>
@@ -672,10 +664,6 @@ body.dark-mode .quote-banner .quote-author { color: #2ecc8b !important; font-wei
       <button class="btn-google" onclick="doGoogleLogin()">
         <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.08 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.35-8.16 2.35-6.26 0-11.57-3.59-13.46-8.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
         הרשמה עם Google
-      </button>
-      <button class="btn-apple" onclick="doAppleLogin()">
-        <svg width="18" height="18" viewBox="0 0 814 1000"><path fill="currentColor" d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76.5 0-103.7 40.8-165.9 40.8s-105.6-57.8-155.5-127.4c-58.3-81.3-105.9-207.6-105.9-328.7 0-193.1 125.7-295.6 249.3-295.6 65.7 0 120.3 43.2 161.4 43.2 39.2 0 100.3-45.8 174.5-45.8 28.2 0 129.6 2.6 196.3 99.3zM554.1 159.4c31.1-36.9 53.1-88.1 53.1-139.4 0-7.1-.6-14.3-1.9-20.1-50.6 1.9-110.8 33.7-147.1 75.8-28.7 32.4-55.3 83.6-55.3 135.6 0 7.8.6 15.7 1.3 18.2 2.6.6 6.4 1.3 10.2 1.3 45.4 0 103.4-30.4 139.7-71.4z"/></svg>
-        הרשמה עם Apple
       </button>
       <div class="auth-divider"><span>או</span></div>
       <div class="fg"><label>שם משתמש</label><input class="fc" id="r-user" placeholder="בחר שם משתמש" autocomplete="username"></div>
@@ -1105,22 +1093,6 @@ async function doGoogleLogin() {
   }
 }
 
-async function doAppleLogin() {
-  const { error } = await sb.auth.signInWithOAuth({
-    provider: 'apple',
-    options: {
-      redirectTo: window.location.origin + '/index.html',
-    }
-  });
-  if (error) {
-    const msg = error.message || '';
-    if (msg.includes('missing OAuth secret') || msg.includes('Unsupported provider')) {
-      showToast('כניסה עם Apple אינה מוגדרת עדיין — פנה למנהל המערכת', 5000);
-    } else {
-      showToast('שגיאה בכניסה עם Apple: ' + msg, 4000);
-    }
-  }
-}
 
 // Handle OAuth redirect + session restore (fires on any auth event: Google, Apple, etc.)
 let _sbLoginInProgress = false;
