@@ -1094,7 +1094,7 @@ async function doGoogleLogin() {
 
 // Handle Google OAuth redirect (fires after user returns from Google)
 sb.auth.onAuthStateChange(async (event, session) => {
-  if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session && session.user) {
+  if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') && session && session.user) {
     const existing = localStorage.getItem('sa_session');
     if (existing) return; // already handled
     const email = session.user.email || '';
