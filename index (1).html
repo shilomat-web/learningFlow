@@ -1092,20 +1092,37 @@ async function doGoogleLogin() {
   }
 }
 
-// Handle Google OAuth redirect (fires after user returns from Google)
+// Handle Google OAuth redirect + session restore (fires on any auth event)
+let _sbLoginInProgress = false;
 sb.auth.onAuthStateChange(async (event, session) => {
-  if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') && session && session.user) {
-    const existing = localStorage.getItem('sa_session');
-    if (existing) return; // already handled
+  // Ignore sign-out and token refresh when user is already inside the app
+  if (event === 'SIGNED_OUT') return;
+  if (!session || !session.user) return;
+
+  // Already showing the app — nothing to do
+  if (document.getElementById('auth-screen')?.classList.contains('hidden')) return;
+
+  // Prevent concurrent calls (e.g. INITIAL_SESSION + SIGNED_IN firing back-to-back)
+  if (_sbLoginInProgress) return;
+  _sbLoginInProgress = true;
+
+  try {
     const email = session.user.email || '';
-    const name = session.user.user_metadata?.full_name
+    // Prefer Google display name, fall back to email username
+    const stored = localStorage.getItem('sa_session');
+    const name = (stored ? JSON.parse(stored).name : null)
+              || session.user.user_metadata?.full_name
               || session.user.user_metadata?.name
-              || email.split('@')[0]
+              || email.replace('@studyapp.local', '').split('@')[0]
               || 'משתמש';
-    // Check if user_data exists; if not, seed
+
+    // Seed data for brand-new users
     const { data: ud } = await sb.from('user_data').select('user_id').eq('user_id', session.user.id).maybeSingle();
     if (!ud) await seedNewUserSupabase(session.user.id, name);
+
     await loginUser({ id: session.user.id, name, provider: 'supabase' });
+  } finally {
+    _sbLoginInProgress = false;
   }
 });
 // ═══════════════════════════════════════════
@@ -2508,9 +2525,12 @@ window.addEventListener('load', () => {
     const { data: { session } } = await sb.auth.getSession();
     if(session && session.user){
       const stored = localStorage.getItem('sa_session');
-      const name   = stored
-        ? JSON.parse(stored).name
-        : session.user.email.replace('@studyapp.local','');
+      const email  = session.user.email || '';
+      const name   = (stored ? JSON.parse(stored).name : null)
+                  || session.user.user_metadata?.full_name
+                  || session.user.user_metadata?.name
+                  || email.replace('@studyapp.local','').split('@')[0]
+                  || 'משתמש';
       await loginUser({ id: session.user.id, name, provider: 'supabase' });
       return; // done — loginUser handles everything
     }
