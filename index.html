@@ -2522,6 +2522,50 @@ window.addEventListener('load', () => {
 // INIT — restore session on page load
 // ═══════════════════════════════════════════
 (async function(){
+  // Detect OAuth redirect: Supabase PKCE returns ?code=, implicit returns #access_token=
+  const isOAuthCallback = window.location.search.includes('code=') ||
+                          window.location.hash.includes('access_token=');
+
+  if (isOAuthCallback) {
+    // Show a spinner so the user sees something while the token exchange happens
+    const authBox = document.querySelector('.auth-box');
+    if (authBox) {
+      authBox._origHTML = authBox.innerHTML;
+      authBox.innerHTML = '<div style="text-align:center;padding:48px 0;color:var(--sec)">מתחבר עם Google…</div>';
+    }
+
+    // Poll up to 8 seconds for Supabase to complete the PKCE exchange
+    let session = null;
+    for (let i = 0; i < 16; i++) {
+      try {
+        const { data } = await sb.auth.getSession();
+        if (data.session && data.session.user) { session = data.session; break; }
+      } catch(e) {}
+      await new Promise(r => setTimeout(r, 500));
+    }
+
+    if (session) {
+      const stored = localStorage.getItem('sa_session');
+      const email  = session.user.email || '';
+      const name   = (stored ? JSON.parse(stored).name : null)
+                  || session.user.user_metadata?.full_name
+                  || session.user.user_metadata?.name
+                  || email.replace('@studyapp.local','').split('@')[0]
+                  || 'משתמש';
+      // Clean the ?code= from the URL without reloading
+      history.replaceState(null, '', window.location.pathname);
+      await loginUser({ id: session.user.id, name, provider: 'supabase' });
+      return;
+    }
+
+    // Exchange failed — restore the login form and show an error
+    const authBox2 = document.querySelector('.auth-box');
+    if (authBox2 && authBox2._origHTML) authBox2.innerHTML = authBox2._origHTML;
+    history.replaceState(null, '', window.location.pathname);
+    showToast('הכניסה עם Google נכשלה — נסה שוב', 4000);
+    return;
+  }
+
   // 1. Check Supabase for a live token (works cross-device)
   try {
     const { data: { session } } = await sb.auth.getSession();
