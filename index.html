@@ -1069,7 +1069,18 @@ const APP_VERSION = '1.0.6';
 
 const SUPABASE_URL = 'https://xirsfctsowhrsyytgcnh.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhpcnNmY3Rzb3docnN5eXRnY25oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyODgyNzQsImV4cCI6MjA4OTg2NDI3NH0._dMzLsEdw2Br37Wrbvprs7rnEzQur_z9WFyrCt7qg8E';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Use implicit flow for OAuth: token comes back in URL hash (#access_token=…),
+// no code_verifier needs to survive the redirect round-trip. This avoids the
+// "returns to login screen" bug on mobile / PWAs where the OAuth provider
+// opens in an in-app browser with separate localStorage from the returning tab.
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    flowType: 'implicit',
+    detectSessionInUrl: true,
+    persistSession: true,
+    autoRefreshToken: true,
+  }
+});
 
 // ═══════════════════════════════════════════
 // AUTH — Username / Google OAuth
