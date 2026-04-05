@@ -2534,19 +2534,41 @@ window.addEventListener('load', () => {
 // INIT — restore session on page load
 // ═══════════════════════════════════════════
 (async function(){
-  // Detect OAuth redirect: Supabase PKCE returns ?code=, implicit returns #access_token=
-  const isOAuthCallback = window.location.search.includes('code=') ||
-                          window.location.hash.includes('access_token=');
+  // Parse both ?query and #hash params (Supabase returns errors/tokens in either place)
+  const searchParams = new URLSearchParams(window.location.search);
+  const hashParams   = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  const getParam = k => searchParams.get(k) || hashParams.get(k);
+
+  // ── 1. OAuth error returned by Supabase/Google (invalid_client, access_denied, etc.)
+  const oauthError = getParam('error') || getParam('error_code');
+  if (oauthError) {
+    const desc = getParam('error_description') || '';
+    console.error('[OAuth] callback returned error:', oauthError, desc);
+    history.replaceState(null, '', window.location.pathname);
+    // Surface a clear, actionable message in Hebrew
+    let msg = 'הכניסה עם Google נכשלה';
+    if (/invalid_client|server_error|unable to exchange/i.test(desc + ' ' + oauthError)) {
+      msg = 'כניסת Google אינה מוגדרת כראוי בשרת — פנה למנהל המערכת';
+    } else if (/access_denied/i.test(oauthError)) {
+      msg = 'הכניסה עם Google בוטלה';
+    } else if (desc) {
+      msg = 'Google: ' + decodeURIComponent(desc).slice(0, 120);
+    }
+    showToast(msg, 6000);
+    return;
+  }
+
+  // ── 2. OAuth success callback (PKCE ?code= or implicit #access_token=)
+  const isOAuthCallback = searchParams.has('code') || hashParams.has('access_token');
 
   if (isOAuthCallback) {
-    // Show a spinner so the user sees something while the token exchange happens
     const authBox = document.querySelector('.auth-box');
     if (authBox) {
       authBox._origHTML = authBox.innerHTML;
       authBox.innerHTML = '<div style="text-align:center;padding:48px 0;color:var(--sec)">מתחבר עם Google…</div>';
     }
 
-    // Poll up to 8 seconds for Supabase to complete the PKCE exchange
+    // Poll up to 8 seconds for Supabase to finish processing the URL
     let session = null;
     for (let i = 0; i < 16; i++) {
       try {
@@ -2564,13 +2586,12 @@ window.addEventListener('load', () => {
                   || session.user.user_metadata?.name
                   || email.replace('@studyapp.local','').split('@')[0]
                   || 'משתמש';
-      // Clean the ?code= from the URL without reloading
       history.replaceState(null, '', window.location.pathname);
       await loginUser({ id: session.user.id, name, provider: 'supabase' });
       return;
     }
 
-    // Exchange failed — restore the login form and show an error
+    // Session never arrived — restore form and show error
     const authBox2 = document.querySelector('.auth-box');
     if (authBox2 && authBox2._origHTML) authBox2.innerHTML = authBox2._origHTML;
     history.replaceState(null, '', window.location.pathname);
