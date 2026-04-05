@@ -299,6 +299,7 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
 #ai-fab:hover{transform:scale(1.1);box-shadow:0 6px 24px rgba(46,204,139,.7)}
 #ai-fab:active{transform:scale(0.96)}
 #ai-fab.fab-hidden{display:none !important}
+#ai-panel.open~#ai-fab{display:none !important}
 #ai-panel{position:fixed;bottom:0;right:0;width:380px;height:560px;max-width:100vw;max-height:85vh;background:var(--white);border-radius:20px 0 0 0;box-shadow:-4px -4px 32px rgba(0,0,0,.15);z-index:8999;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1)}
 #ai-panel.open{transform:translateY(0)}
 .ai-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0}
@@ -590,15 +591,6 @@ body.dark-mode .quote-banner .quote-author { color: #2ecc8b !important; font-wei
 </head>
 <body>
 
-<button id="ai-fab" onclick="toggleAI()" title="עוזר לימודים AI" aria-label="פתח עוזר AI">
-  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-    <circle cx="9" cy="10" r="1" fill="currentColor" stroke="none"/>
-    <circle cx="12" cy="10" r="1" fill="currentColor" stroke="none"/>
-    <circle cx="15" cy="10" r="1" fill="currentColor" stroke="none"/>
-  </svg>
-</button>
-
 <div id="ai-panel">
   <div class="ai-header">
     <button class="ai-close" onclick="toggleAI()">✕</button>
@@ -629,6 +621,15 @@ body.dark-mode .quote-banner .quote-author { color: #2ecc8b !important; font-wei
   </div>
   <div class="ai-api-note">⚡ מופעל על ידי Groq · llama-3.3-70b | ניתוח הנתונים שלך</div>
 </div>
+
+<button id="ai-fab" onclick="toggleAI()" title="עוזר לימודים AI" aria-label="פתח עוזר AI">
+  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+    <circle cx="9" cy="10" r="1" fill="currentColor" stroke="none"/>
+    <circle cx="12" cy="10" r="1" fill="currentColor" stroke="none"/>
+    <circle cx="15" cy="10" r="1" fill="currentColor" stroke="none"/>
+  </svg>
+</button>
 
 <div id="install-banner">
   <div class="ib-row">
