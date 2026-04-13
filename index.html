@@ -36,7 +36,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--txt);min-he
 .logo-icon{border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;background:transparent;padding:0}
 .logo-icon img{width:100%;height:100%;object-fit:contain;display:block;max-width:none}
 /* ── Responsive logo in sidebar ── */
-.sb-logo-img{width:64px;height:64px;object-fit:contain;flex-shrink:0;display:block}
+.sb-logo-img{width:100%;height:100%;object-fit:contain;flex-shrink:0;display:block}
 /* ── Auth logo: larger, crisp ── */
 .auth-logo-img{width:100%;max-width:160px;height:auto;object-fit:contain;display:block}
 .auth-logo h1{font-size:24px;font-weight:700;text-align:center;color:var(--txt);margin:0}
@@ -342,6 +342,42 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
 @media(min-width:641px){
   #pomodoro-fab{left:auto;right:90px}
 }
+/* ── Study Session FAB ── */
+#study-session-fab{
+  position:fixed;bottom:168px;right:20px;
+  height:42px;min-width:130px;border-radius:21px;padding:0 16px;
+  background:var(--g);color:#fff;font-size:13px;font-weight:600;
+  border:none;cursor:pointer;
+  box-shadow:0 4px 14px rgba(46,204,139,.45);
+  z-index:200;display:flex;align-items:center;justify-content:center;
+  gap:6px;transition:all .2s;white-space:nowrap;letter-spacing:.2px;
+  font-family:'Heebo',sans-serif;
+}
+#study-session-fab:hover{transform:scale(1.04);box-shadow:0 6px 20px rgba(46,204,139,.55)}
+#study-session-fab.ss-active{background:#e74c3c;box-shadow:0 4px 14px rgba(231,76,60,.45);animation:pulse 1.5s infinite}
+@media(max-width:640px){
+  #study-session-fab{
+    bottom:calc(62px + env(safe-area-inset-bottom,0px) + 110px);
+    right:14px;height:36px;font-size:12px;padding:0 12px;min-width:auto;
+  }
+}
+@media(min-width:641px){#study-session-fab{right:160px;bottom:84px}}
+/* Active session live-timer badge on dashboard */
+#active-session-bar{
+  display:none;background:linear-gradient(135deg,#e74c3c,#c0392b);color:#fff;
+  border-radius:12px;padding:12px 16px;margin-bottom:16px;
+  align-items:center;justify-content:space-between;gap:12px;
+  font-family:'Heebo',sans-serif;
+}
+#active-session-bar.show{display:flex}
+.ss-bar-left{display:flex;align-items:center;gap:10px}
+.ss-bar-icon{font-size:22px}
+.ss-bar-info{display:flex;flex-direction:column}
+.ss-bar-title{font-size:13px;font-weight:600}
+.ss-bar-sub{font-size:11px;opacity:.85}
+#ss-bar-timer{font-size:22px;font-weight:700;letter-spacing:1px;font-variant-numeric:tabular-nums}
+.ss-bar-stop{background:rgba(255,255,255,.25);border:2px solid rgba(255,255,255,.6);color:#fff;border-radius:8px;padding:6px 14px;cursor:pointer;font-size:13px;font-weight:600;font-family:'Heebo',sans-serif;transition:background .15s}
+.ss-bar-stop:hover{background:rgba(255,255,255,.4)}
 .btn-google{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:10px 16px;border:1.5px solid var(--border);border-radius:10px;background:var(--card);color:var(--text);font-family:'Heebo',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:background .15s,border-color .15s;margin-bottom:2px}
 .btn-google:hover{background:var(--hover);border-color:var(--accent)}
 .auth-divider{display:flex;align-items:center;gap:10px;margin:10px 0;color:var(--text-muted);font-size:12px}
@@ -678,7 +714,7 @@ body.dark-mode .quote-banner .quote-author { color: #2ecc8b !important; font-wei
 
 <div id="sidebar">
   <div class="sb-logo">
-    <div class="sb-logo-row"><h2>studyFlow</h2><div class="logo-icon" style="width:48px;height:48px;border-radius:12px"><img src="logo.png" alt="לוגו" class="sb-logo-img"></div></div>
+    <div class="sb-logo-row"><h2>studyFlow</h2><div class="logo-icon" style="width:72px;height:72px;border-radius:14px"><img src="logo.png" alt="לוגו" class="sb-logo-img"></div></div>
     <p>ניהול משימות לימודים</p>
   </div>
   <nav id="sidebar-nav">
@@ -708,6 +744,7 @@ body.dark-mode .quote-banner .quote-author { color: #2ecc8b !important; font-wei
 </div>
 
 <button id="pomodoro-fab" onclick="openPomo()" title="Pomodoro Timer">🍅</button>
+<button id="study-session-fab" onclick="openStudySessionModal()" title="התחל סשן לימוד">📚 התחל סשן</button>
 <button id="dark-toggle" onclick="toggleDarkMode()" title="מצב לילה">🌙</button>
 
 <div class="toast" id="toast"></div>
@@ -718,6 +755,17 @@ body.dark-mode .quote-banner .quote-author { color: #2ecc8b !important; font-wei
   <div class="page-header">
     <div></div>
     <div class="page-title"><h1>studyFlow</h1><p id="dash-date"></p></div>
+  </div>
+  <div id="active-session-bar">
+    <div class="ss-bar-left">
+      <div class="ss-bar-icon">📚</div>
+      <div class="ss-bar-info">
+        <div class="ss-bar-title">סשן לימוד פעיל</div>
+        <div class="ss-bar-sub" id="ss-bar-subj">—</div>
+      </div>
+    </div>
+    <div id="ss-bar-timer">00:00:00</div>
+    <button class="ss-bar-stop" onclick="stopStudySession(false)">⏹ סיים</button>
   </div>
   <div id="countdown-hero-wrap"></div>
   <div id="focus-card-wrap"></div>
@@ -1036,6 +1084,39 @@ body.dark-mode .quote-banner .quote-author { color: #2ecc8b !important; font-wei
   </div>
 </div>
 
+<!-- ── STUDY SESSION MODAL ── -->
+<div class="modal-overlay" id="m-study-session">
+  <div class="modal" style="max-width:380px;text-align:right">
+    <h3 id="m-ss-title">התחל סשן לימוד</h3>
+
+    <!-- Active session view -->
+    <div id="m-ss-active" style="display:none;text-align:center;padding:8px 0 20px">
+      <div style="font-size:54px;font-weight:700;color:var(--g);letter-spacing:3px;font-variant-numeric:tabular-nums" id="ss-modal-timer">00:00:00</div>
+      <div style="color:var(--sec);margin-top:6px;font-size:14px" id="ss-modal-subj"></div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px">לחץ "סיים" לשמירה אוטומטית ביומן</div>
+    </div>
+
+    <!-- Start session form -->
+    <div id="m-ss-start">
+      <div class="fg">
+        <label>נושא לימוד</label>
+        <select class="fc" id="ss-subj-select">
+          <option value="">— ללא נושא ספציפי —</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>תיאור (אופציונלי)</label>
+        <input class="fc" id="ss-desc" placeholder="למשל: חזרה על פרק 3">
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="ss-action-btn" onclick="toggleStudySession()">▶ התחל סשן</button>
+      <button class="btn btn-ghost" onclick="closeModal('m-study-session')">סגור</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 'use strict';
@@ -1043,28 +1124,31 @@ body.dark-mode .quote-banner .quote-author { color: #2ecc8b !important; font-wei
 // SUPABASE CONFIG
 // ═══════════════════════════════════════════
 // ── APP VERSION — bump this string with every release ──────────
-const APP_VERSION = '1.0.6';
+const APP_VERSION = '1.0.8';
+// Flag: true while a version-mismatch reload is in progress — prevents
+// the rest of the script from running Supabase / login logic during the
+// brief gap between calling location.reload() and the browser acting on it.
+let _versionReloading = false;
 (function enforceCacheVersion() {
   const stored = localStorage.getItem('sa_app_version');
   if (stored !== APP_VERSION) {
-    // New version detected — wipe stale caches then reload once
-    const wipeAndReload = async () => {
-      // 1. Unregister service workers so old cache is dropped
-      if ('serviceWorker' in navigator) {
-        const regs = await navigator.serviceWorker.getRegistrations();
-        await Promise.all(regs.map(r => r.unregister()));
-      }
-      // 2. Delete all Cache Storage entries
-      if ('caches' in window) {
-        const keys = await caches.keys();
-        await Promise.all(keys.map(k => caches.delete(k)));
-      }
-      // 3. Stamp new version so we don't loop
-      localStorage.setItem('sa_app_version', APP_VERSION);
-      // 4. Hard reload (bypass browser cache)
+    _versionReloading = true;
+    // Stamp FIRST so a concurrent tab/reload won't loop
+    localStorage.setItem('sa_app_version', APP_VERSION);
+    // Cleanup must complete BEFORE reload so the old SW can't serve stale cache
+    (async () => {
+      try {
+        if ('serviceWorker' in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map(r => r.unregister()));
+        }
+        if ('caches' in window) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map(k => caches.delete(k)));
+        }
+      } catch(e) { /* best-effort */ }
       window.location.reload(true);
-    };
-    wipeAndReload();
+    })();
   }
 })();
 
@@ -1110,6 +1194,7 @@ async function doGoogleLogin() {
 let _sbLoginInProgress = false;
 sb.auth.onAuthStateChange(async (event, session) => {
   // Ignore sign-out and token refresh when user is already inside the app
+  if (_versionReloading) return; // page is about to reload — skip
   if (event === 'SIGNED_OUT') return;
   if (!session || !session.user) return;
 
@@ -1130,9 +1215,13 @@ sb.auth.onAuthStateChange(async (event, session) => {
               || email.replace('@studyapp.local', '').split('@')[0]
               || 'משתמש';
 
-    // Seed data for brand-new users
-    const { data: ud } = await sb.from('user_data').select('user_id').eq('user_id', session.user.id).maybeSingle();
-    if (!ud) await seedNewUserSupabase(session.user.id, name);
+    // Seed data for brand-new users (with timeout so a stalled query never blocks login)
+    try {
+      const seedQuery = sb.from('user_data').select('user_id').eq('user_id', session.user.id).maybeSingle();
+      const seedTimeout = new Promise(resolve => setTimeout(() => resolve({ data: null, error: null }), 5000));
+      const { data: ud } = await Promise.race([seedQuery, seedTimeout]);
+      if (!ud) await seedNewUserSupabase(session.user.id, name);
+    } catch(_) {}
 
     await loginUser({ id: session.user.id, name, provider: 'supabase' });
   } finally {
@@ -1164,15 +1253,19 @@ async function doLogin(){
   // Disable all auth buttons during login
   const authBtns = document.querySelectorAll('#auth-login button, #auth-register button');
   authBtns.forEach(b => { b.disabled = true; b.style.opacity = '0.6'; });
-  // Safety timeout — re-enable after 10s if something hangs
+  let loginDone = false;
+  // Safety timeout — re-enable after 12s if something hangs
   const safetyTimer = setTimeout(() => {
+    if(loginDone) return;
     authBtns.forEach(b => { b.disabled = false; b.style.opacity = ''; });
     if(err.textContent === '...מתחבר') err.textContent = 'תם הזמן, נסה שוב';
-  }, 10000);
+  }, 12000);
+  try {
 
   // Always try Supabase first
   const { data, error } = await sb.auth.signInWithPassword({ email: toEmail(u), password: p });
   if(!error && data.user){
+    loginDone = true;
     clearTimeout(safetyTimer);
     err.textContent = '';
     await loginUser({ id: data.user.id, name: u, provider: 'supabase' });
@@ -1187,7 +1280,7 @@ async function doLogin(){
 
   // If Supabase rejects credentials, don't fall through — report it
   if(isCredErr){
-    clearTimeout(safetyTimer);
+    loginDone = true; clearTimeout(safetyTimer);
     authBtns.forEach(b => { b.disabled = false; b.style.opacity = ''; });
     err.textContent = 'שם משתמש או סיסמה שגויים'; return;
   }
@@ -1196,24 +1289,30 @@ async function doLogin(){
   if(isNetErr || !sbErrMsg){
     const users = getUsers();
     if(!users[u]){
-      clearTimeout(safetyTimer);
+      loginDone = true; clearTimeout(safetyTimer);
       authBtns.forEach(b => { b.disabled = false; b.style.opacity = ''; });
       err.textContent='שם משתמש לא קיים'; return;
     }
     if(users[u].pw !== btoa(unescape(encodeURIComponent(p)))){
-      clearTimeout(safetyTimer);
+      loginDone = true; clearTimeout(safetyTimer);
       authBtns.forEach(b => { b.disabled = false; b.style.opacity = ''; });
       err.textContent='סיסמה שגויה'; return;
     }
-    clearTimeout(safetyTimer);
+    loginDone = true; clearTimeout(safetyTimer);
     err.textContent = '';
     await loginUser({ id: u, name: u, provider: 'local' });
     return;
   }
 
-  clearTimeout(safetyTimer);
+  loginDone = true; clearTimeout(safetyTimer);
   authBtns.forEach(b => { b.disabled = false; b.style.opacity = ''; });
   err.textContent = sbErrMsg;
+  } catch(e) {
+    loginDone = true; clearTimeout(safetyTimer);
+    authBtns.forEach(b => { b.disabled = false; b.style.opacity = ''; });
+    err.textContent = 'שגיאה בכניסה — נסה שוב';
+    console.error('[doLogin]', e);
+  }
 }
 
 async function doRegister(){
@@ -1295,10 +1394,16 @@ async function loginUser(session){
 }
 
 async function doLogout(){
+  // Stop any active study session
+  if(studySessionState && studySessionState.active) stopStudySession(true);
   if(CU && CU.provider === 'supabase') await sb.auth.signOut();
   CU = null;
   S  = {subjects:[],tasks:[],exams:[],logs:[],archive:[]};
   localStorage.removeItem('sa_session');
+  // Always re-enable auth buttons (may have been left disabled during a login attempt)
+  document.querySelectorAll('#auth-login button, #auth-register button').forEach(b => {
+    b.disabled = false; b.style.opacity = '';
+  });
   document.getElementById('auth-screen').classList.remove('hidden');
   document.getElementById('l-user').value = '';
   document.getElementById('l-pass').value = '';
@@ -1315,10 +1420,16 @@ async function loadState(){
   if(!CU) return;
   if(CU.provider === 'supabase'){
     try {
-      const { data, error } = await sb.from('user_data')
+      // Wrap the Supabase query with a 6-second timeout so a stalled
+      // network/auth-state race can never freeze the login screen forever.
+      const queryPromise = sb.from('user_data')
         .select('data')
         .eq('user_id', CU.id)
         .single();
+      const timeoutPromise = new Promise(resolve =>
+        setTimeout(() => resolve({ data: null, error: { message: 'timeout' } }), 6000)
+      );
+      const { data, error } = await Promise.race([queryPromise, timeoutPromise]);
       if(!error && data && data.data){
         S = data.data;
         if(!S.archive) S.archive = [];
@@ -2460,6 +2571,157 @@ function renderPomo(){
 }
 
 // ═══════════════════════════════════════════
+// STUDY SESSION — Track study time with one click
+// ═══════════════════════════════════════════
+let studySessionState = {
+  active: false,
+  startTime: null,
+  subjId: null,
+  subjName: null,
+  desc: '',
+  timerInterval: null
+};
+
+function openStudySessionModal() {
+  // Populate subject dropdown
+  const sel = document.getElementById('ss-subj-select');
+  if (sel) {
+    sel.innerHTML = '<option value="">— ללא נושא ספציפי —</option>' +
+      (S.subjects || []).map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+  }
+
+  if (studySessionState.active) {
+    // Show active-session view
+    document.getElementById('m-ss-start').style.display  = 'none';
+    document.getElementById('m-ss-active').style.display = 'block';
+    document.getElementById('m-ss-title').textContent    = 'סשן לימוד פעיל ⏱';
+    document.getElementById('ss-action-btn').textContent = '⏹ סיים ושמור';
+    document.getElementById('ss-modal-subj').textContent = studySessionState.subjName || 'ללא נושא';
+    _updateModalTimer();
+  } else {
+    // Show start-session form
+    document.getElementById('m-ss-start').style.display  = 'block';
+    document.getElementById('m-ss-active').style.display = 'none';
+    document.getElementById('m-ss-title').textContent    = 'התחל סשן לימוד 📚';
+    document.getElementById('ss-action-btn').textContent = '▶ התחל סשן';
+    const descEl = document.getElementById('ss-desc');
+    if (descEl) descEl.value = '';
+    if (sel) sel.value = '';
+  }
+  openModal('m-study-session');
+}
+
+function _updateModalTimer() {
+  if (!studySessionState.active || !studySessionState.startTime) return;
+  const sec = Math.floor((Date.now() - studySessionState.startTime) / 1000);
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  const fmt = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  const el = document.getElementById('ss-modal-timer');
+  if (el) el.textContent = fmt;
+}
+
+function _updateFABAndBar() {
+  const fab = document.getElementById('study-session-fab');
+  const bar = document.getElementById('active-session-bar');
+
+  if (studySessionState.active && studySessionState.startTime) {
+    const sec = Math.floor((Date.now() - studySessionState.startTime) / 1000);
+    const m   = Math.floor(sec / 60);
+    const s   = sec % 60;
+    const timerStr = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+
+    if (fab) {
+      fab.classList.add('ss-active');
+      fab.textContent = `⏹ ${timerStr}`;
+    }
+    // Update dashboard active-session bar
+    if (bar) {
+      bar.classList.add('show');
+      const timerEl = document.getElementById('ss-bar-timer');
+      if (timerEl) {
+        const hh = Math.floor(sec / 3600);
+        timerEl.textContent = hh > 0
+          ? `${String(hh).padStart(2,'0')}:${String(m % 60).padStart(2,'0')}:${String(s).padStart(2,'0')}`
+          : `${timerStr}`;
+      }
+      const subjEl = document.getElementById('ss-bar-subj');
+      if (subjEl) subjEl.textContent = studySessionState.subjName || 'ללא נושא';
+    }
+    // Update modal timer if open
+    _updateModalTimer();
+  } else {
+    if (fab) { fab.classList.remove('ss-active'); fab.textContent = '📚 התחל סשן'; }
+    if (bar) bar.classList.remove('show');
+  }
+}
+
+function toggleStudySession() {
+  if (studySessionState.active) {
+    stopStudySession(false);
+  } else {
+    startStudySession();
+  }
+}
+
+function startStudySession() {
+  const sel    = document.getElementById('ss-subj-select');
+  const descEl = document.getElementById('ss-desc');
+  const subjId = sel ? sel.value : '';
+  const desc   = descEl ? descEl.value.trim() : '';
+  const subj   = S.subjects.find(s => s.id === subjId);
+
+  studySessionState = {
+    active: true,
+    startTime: Date.now(),
+    subjId:   subjId || null,
+    subjName: subj ? subj.name : 'ללא נושא',
+    desc:     desc,
+    timerInterval: setInterval(_updateFABAndBar, 1000)
+  };
+
+  closeModal('m-study-session');
+  _updateFABAndBar();
+  showToast('📚 סשן לימוד התחיל!');
+}
+
+function stopStudySession(silent) {
+  if (!studySessionState.active) return;
+
+  const elapsedMs = Date.now() - studySessionState.startTime;
+  const minutes   = Math.max(1, Math.round(elapsedMs / 60000));
+
+  clearInterval(studySessionState.timerInterval);
+
+  // Save log entry
+  if (!silent) {
+    S.logs.push({
+      id:      uid(),
+      subjId:  studySessionState.subjId || '',
+      date:    today(),
+      minutes: minutes,
+      desc:    studySessionState.desc || 'סשן לימוד'
+    });
+    save();
+  }
+
+  const subjName = studySessionState.subjName || 'ללא נושא';
+  studySessionState = { active:false, startTime:null, subjId:null, subjName:null, desc:'', timerInterval:null };
+
+  closeModal('m-study-session');
+  _updateFABAndBar();
+
+  if (!silent) {
+    showToast(`🎉 סשן הסתיים! ${fmtMins(minutes)} — ${subjName}`, 4500);
+    // Refresh study time page if it's open
+    if (document.getElementById('page-studytime').classList.contains('active')) renderStudyTime();
+    // Refresh dashboard stat
+    renderDash();
+  }
+}
+
+// ═══════════════════════════════════════════
 // PWA INSTALL — Desktop Chrome + Android Chrome + iOS Safari
 // ═══════════════════════════════════════════
 let deferredPrompt = null;
@@ -2534,6 +2796,7 @@ window.addEventListener('load', () => {
 // INIT — restore session on page load
 // ═══════════════════════════════════════════
 (async function(){
+  if (_versionReloading) return; // page is about to reload — skip init
   // Parse both ?query and #hash params (Supabase returns errors/tokens in either place)
   const searchParams = new URLSearchParams(window.location.search);
   const hashParams   = new URLSearchParams(window.location.hash.replace(/^#/, ''));
@@ -3720,8 +3983,23 @@ async function sendAI(){
     if (API_BASE) {
       // ── PRODUCTION: secure server-side call ──
       // Get the current Supabase JWT so the server can verify the user
-      const { data: sessionData } = await sb.auth.getSession();
+      let { data: sessionData } = await sb.auth.getSession();
+      // If session is missing, try a silent refresh once before giving up
+      if (!sessionData?.session) {
+        const refreshed = await sb.auth.refreshSession().catch(() => ({}));
+        if (refreshed?.data?.session) sessionData = refreshed.data;
+      }
       const jwt = sessionData?.session?.access_token || '';
+
+      if (!jwt) {
+        thinkingEl.remove();
+        const noAuthMsg = 'הצ\'אט דורש כניסה לחשבון Supabase — נסה להתנתק ולהתחבר מחדש.';
+        addAIMsg(noAuthMsg, 'bot');
+        aiHistory.pop();
+        aiTyping = false;
+        document.getElementById('ai-send-btn').disabled = false;
+        return;
+      }
 
       response = await fetch(`${API_BASE}?action=ai`, {
         method: 'POST',
@@ -3846,10 +4124,14 @@ if ('serviceWorker' in navigator) {
       });
     }).catch(err => console.warn('[PWA] SW registration failed:', err));
 
-    // When the SW actually activates (after skip waiting), reload the page
+    // When the SW actually activates (after skip waiting), reload the page.
+    // Only reload when REPLACING an existing controller (= update).
+    // On first install clients.claim() also fires controllerchange, but
+    // reloading then causes an infinite loop.
+    const hadController = !!navigator.serviceWorker.controller;
     let refreshing = false;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (!refreshing) {
+      if (hadController && !refreshing) {
         refreshing = true;
         window.location.reload();
       }
