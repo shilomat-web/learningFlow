@@ -1206,6 +1206,11 @@ sb.auth.onAuthStateChange(async (event, session) => {
   _sbLoginInProgress = true;
 
   try {
+    // Persist JWT manually — supabase-js sometimes fails to store it
+    if (session.access_token) {
+      localStorage.setItem('sa_jwt', session.access_token);
+      localStorage.setItem('sa_refresh', session.refresh_token || '');
+    }
     const email = session.user.email || '';
     // Prefer Google display name, fall back to email username
     const stored = localStorage.getItem('sa_session');
@@ -1268,6 +1273,11 @@ async function doLogin(){
     loginDone = true;
     clearTimeout(safetyTimer);
     err.textContent = '';
+    // Persist JWT manually — supabase-js sometimes fails to store it
+    if (data.session?.access_token) {
+      localStorage.setItem('sa_jwt', data.session.access_token);
+      localStorage.setItem('sa_refresh', data.session.refresh_token || '');
+    }
     await loginUser({ id: data.user.id, name: u, provider: 'supabase' });
     return;
   }
@@ -3983,25 +3993,27 @@ async function sendAI(){
     if (API_BASE) {
       // ── PRODUCTION: secure server-side call ──
       // Get the current Supabase JWT so the server can verify the user.
-      // Try multiple retrieval methods — getSession() can return null after
-      // page reload if supabase-js hasn't finished restoring from storage.
+      // Try multiple retrieval methods for maximum reliability.
       let jwt = '';
+      // Method 1: supabase-js getSession (preferred)
       try {
         const { data: sd } = await sb.auth.getSession();
         jwt = sd?.session?.access_token || '';
       } catch(_){}
-      // Fallback 1: silent refresh
-      if (!jwt) {
-        try {
-          const { data: rd } = await sb.auth.refreshSession();
-          jwt = rd?.session?.access_token || '';
-        } catch(_){}
-      }
-      // Fallback 2: read from supabase-js internal localStorage key
+      // Method 2: manually saved JWT from login (most reliable)
+      if (!jwt) jwt = localStorage.getItem('sa_jwt') || '';
+      // Method 3: supabase-js internal storage key
       if (!jwt) {
         try {
           const raw = localStorage.getItem('sb-xirsfctsowhrsyytgcnh-auth-token');
           if (raw) jwt = JSON.parse(raw).access_token || '';
+        } catch(_){}
+      }
+      // Method 4: force refresh as last resort
+      if (!jwt) {
+        try {
+          const { data: rd } = await sb.auth.refreshSession();
+          jwt = rd?.session?.access_token || '';
         } catch(_){}
       }
 
