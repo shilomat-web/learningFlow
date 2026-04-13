@@ -1124,7 +1124,7 @@ body.dark-mode .quote-banner .quote-author { color: #2ecc8b !important; font-wei
 // SUPABASE CONFIG
 // ═══════════════════════════════════════════
 // ── APP VERSION — bump this string with every release ──────────
-const APP_VERSION = '1.0.8';
+const APP_VERSION = '1.0.9';
 // Flag: true while a version-mismatch reload is in progress — prevents
 // the rest of the script from running Supabase / login logic during the
 // brief gap between calling location.reload() and the browser acting on it.
@@ -3982,18 +3982,32 @@ async function sendAI(){
 
     if (API_BASE) {
       // ── PRODUCTION: secure server-side call ──
-      // Get the current Supabase JWT so the server can verify the user
-      let { data: sessionData } = await sb.auth.getSession();
-      // If session is missing, try a silent refresh once before giving up
-      if (!sessionData?.session) {
-        const refreshed = await sb.auth.refreshSession().catch(() => ({}));
-        if (refreshed?.data?.session) sessionData = refreshed.data;
+      // Get the current Supabase JWT so the server can verify the user.
+      // Try multiple retrieval methods — getSession() can return null after
+      // page reload if supabase-js hasn't finished restoring from storage.
+      let jwt = '';
+      try {
+        const { data: sd } = await sb.auth.getSession();
+        jwt = sd?.session?.access_token || '';
+      } catch(_){}
+      // Fallback 1: silent refresh
+      if (!jwt) {
+        try {
+          const { data: rd } = await sb.auth.refreshSession();
+          jwt = rd?.session?.access_token || '';
+        } catch(_){}
       }
-      const jwt = sessionData?.session?.access_token || '';
+      // Fallback 2: read from supabase-js internal localStorage key
+      if (!jwt) {
+        try {
+          const raw = localStorage.getItem('sb-xirsfctsowhrsyytgcnh-auth-token');
+          if (raw) jwt = JSON.parse(raw).access_token || '';
+        } catch(_){}
+      }
 
       if (!jwt) {
         thinkingEl.remove();
-        const noAuthMsg = 'הצ\'אט דורש כניסה לחשבון Supabase — נסה להתנתק ולהתחבר מחדש.';
+        const noAuthMsg = 'הצ\'אט דורש כניסה מחדש — נסה להתנתק ולהתחבר שוב.';
         addAIMsg(noAuthMsg, 'bot');
         aiHistory.pop();
         aiTyping = false;
