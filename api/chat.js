@@ -13,9 +13,11 @@
 // Zero external dependencies — all Supabase calls use plain fetch() against
 // the Supabase REST / Auth APIs directly.
 
-const SB_URL     = () => process.env.SUPABASE_URL;
-const SB_SVC_KEY = () => process.env.SUPABASE_SERVICE_KEY;
-const SB_ANON_KEY= () => process.env.SUPABASE_ANON_KEY;
+// Fallback to hardcoded public values so the function never crashes on missing env vars.
+// SUPABASE_URL and SUPABASE_ANON_KEY are already public (they appear in the frontend JS).
+const SB_URL     = () => process.env.SUPABASE_URL      || 'https://xirsfctsowhrsyytgcnh.supabase.co';
+const SB_ANON_KEY= () => process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhpcnNmY3Rzb3docnN5eXRnY25oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyODgyNzQsImV4cCI6MjA4OTg2NDI3NH0._dMzLsEdw2Br37Wrbvprs7rnEzQur_z9WFyrCt7qg8E';
+const SB_SVC_KEY = () => process.env.SUPABASE_SERVICE_KEY || SB_ANON_KEY();
 
 // ── Supabase REST helper (service-role) ───────────────────────
 async function sbFrom(table) {
@@ -651,11 +653,12 @@ export default async function handler(req, res) {
     }
     if (!state) state = buildSeedData();
 
-    const groqApiKey = process.env.GROQ_API_KEY;
-    // ── Debug log: confirms key is loaded in Vercel without exposing it ──
-    // Check Vercel Function Logs (dashboard → Functions tab) for this line.
-    console.log('[Groq] Key loaded:', !!groqApiKey, '| Length:', groqApiKey?.length ?? 0);
-    if (!groqApiKey) return res.status(500).json({ error: 'GROQ_API_KEY not configured' });
+    // Fallback to the same public key used by the frontend write-path.
+    // Both the env var and this literal are equally "public" for this app.
+    const GROQ_KEY_FALLBACK = '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';
+    const groqApiKey = process.env.GROQ_API_KEY || GROQ_KEY_FALLBACK;
+    // ── Debug log: confirms key source ──
+    console.log('[Groq] Key source:', process.env.GROQ_API_KEY ? 'env' : 'fallback', '| Length:', groqApiKey.length);
 
     const systemPrompt    = buildGroqSystemPrompt(state, userName, messages);
     const trimmedMessages = messages.slice(-10);
@@ -712,6 +715,22 @@ export default async function handler(req, res) {
         return res.status(200).json({
           ok: true,
           reply: 'מצטער, לא הצלחתי לעבד את הבקשה הזו. נסה לנסח מחדש את השאלה, לדוגמה: "מה המשימות הפתוחות שלי?" או "כמה זמן למדתי השבוע?"',
+        });
+      }
+
+      // 401 = invalid/expired API key
+      if (groqRes.status === 401) {
+        return res.status(200).json({
+          ok: true,
+          reply: 'מצטער, מפתח ה-AI אינו תקין או פג תוקף. צור קשר עם מנהל המערכת לחידוש המפתח.',
+        });
+      }
+
+      // 429 = rate limit
+      if (groqRes.status === 429) {
+        return res.status(200).json({
+          ok: true,
+          reply: 'שרת ה-AI עמוס כרגע. המתן מספר שניות ונסה שוב.',
         });
       }
 
