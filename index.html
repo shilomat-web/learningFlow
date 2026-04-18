@@ -247,6 +247,13 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
 /* ── TOAST ── */
 .toast{position:fixed;bottom:72px;left:50%;transform:translateX(-50%) translateY(20px);background:#1a1a1a;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;opacity:0;transition:all .3s;z-index:2000;pointer-events:none;white-space:nowrap}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.sync-badge{position:fixed;top:14px;left:14px;background:#b45309;color:#fff;padding:6px 12px 6px 10px;border-radius:18px;font-size:12px;font-weight:600;z-index:1500;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.2);display:flex;align-items:center;gap:6px;transition:transform .2s,opacity .2s;opacity:0;transform:translateY(-8px);pointer-events:none}
+.sync-badge.visible{opacity:1;transform:translateY(0);pointer-events:auto}
+.sync-badge:hover{background:#92400e}
+.sync-badge.syncing{background:#1d4ed8}
+.sync-badge .dot{width:8px;height:8px;border-radius:50%;background:#fbbf24;box-shadow:0 0 0 0 rgba(251,191,36,.7);animation:syncPulse 1.4s infinite}
+.sync-badge.syncing .dot{background:#93c5fd;animation:none}
+@keyframes syncPulse{0%{box-shadow:0 0 0 0 rgba(251,191,36,.7)}70%{box-shadow:0 0 0 6px rgba(251,191,36,0)}100%{box-shadow:0 0 0 0 rgba(251,191,36,0)}}
 
 /* ── MOBILE ── */
 @media(max-width:640px){
@@ -748,6 +755,7 @@ body.dark-mode .quote-banner .quote-author { color: #2ecc8b !important; font-wei
 <button id="dark-toggle" onclick="toggleDarkMode()" title="מצב לילה">🌙</button>
 
 <div class="toast" id="toast"></div>
+<div class="sync-badge" id="sync-badge" onclick="flushSyncQueue(true)" title="יש שינויים שלא סונכרנו. לחץ כדי לנסות סנכרון עכשיו"><span class="dot"></span><span id="sync-badge-text">שינויים לא מסונכרנים</span></div>
 
 <div id="main">
 
@@ -1401,6 +1409,10 @@ async function loginUser(session){
     b.disabled = false; b.style.opacity = '';
   });
   showPage('dashboard');
+  // Offline-first: show badge if anything was queued from a previous session,
+  // then attempt an auto-flush.
+  updateSyncBadge();
+  flushSyncQueue(false);
 }
 
 async function doLogout(){
@@ -1456,42 +1468,169 @@ async function loadState(){
   if(S.subjects) S.subjects.forEach(s=>{ if(s.category===undefined)s.category=''; });
 }
 
-async function save(){
-  if(!CU) return;
-  // Always keep a local sync copy for instant reads
-  localStorage.setItem(userKey(CU.id), JSON.stringify(S));
-  if(CU.provider !== 'supabase') return;
+// ═══════════════════════════════════════════
+// OFFLINE-FIRST SAVE ARCHITECTURE
+// ───────────────────────────────────────────
+// Strict rules:
+//   1. localStorage is always the FIRST write — never lost.
+//   2. Every save tries Supabase with an explicit .error check + timeout.
+//   3. On failure (error, timeout, offline, RLS mismatch), the payload is
+//      pushed to a per-user `sync_queue` in localStorage.
+//   4. A visible badge tells the user the queue is non-empty.
+//   5. flushSyncQueue() drains the queue on load, focus, online event,
+//      and manual click. Entries are removed ONLY after a 200/201 OK.
+// ═══════════════════════════════════════════
 
-  // CRITICAL: supabase-js upsert() returns { error } on failure, it does NOT throw.
-  // Previously this entire block only had a try/catch and never inspected .error,
-  // so every RLS denial (e.g. JWT uid != CU.id after an account switch) was lost
-  // silently and the user thought their data was saved when it wasn't.
+const SAVE_TIMEOUT_MS = 10000;
+const syncQueueKey = uid => 'sa_sync_queue_' + uid;
+
+function readSyncQueue(){
+  if(!CU) return [];
+  try { return JSON.parse(localStorage.getItem(syncQueueKey(CU.id)) || '[]'); }
+  catch(_){ return []; }
+}
+function writeSyncQueue(q){
+  if(!CU) return;
+  localStorage.setItem(syncQueueKey(CU.id), JSON.stringify(q));
+  updateSyncBadge();
+}
+function enqueuePayload(payload, reason){
+  const q = readSyncQueue();
+  q.push({ ts: Date.now(), reason: reason || 'unknown', payload });
+  // Cap the queue: we only ever need to push the NEWEST snapshot,
+  // but keep up to 20 entries for audit/debug if something goes wrong.
+  while (q.length > 20) q.shift();
+  writeSyncQueue(q);
+}
+function updateSyncBadge(){
+  const badge = document.getElementById('sync-badge');
+  if(!badge) return;
+  const q = readSyncQueue();
+  const txt = document.getElementById('sync-badge-text');
+  if(q.length === 0){
+    badge.classList.remove('visible');
+    return;
+  }
+  badge.classList.add('visible');
+  if (txt) txt.textContent = q.length === 1
+    ? 'שינוי אחד ממתין לסנכרון'
+    : `${q.length} שינויים ממתינים לסנכרון`;
+}
+
+// Race an awaitable against a timeout. Resolves with { error: {timeout} } on timeout.
+function withTimeout(promise, ms, label){
+  return Promise.race([
+    promise,
+    new Promise(resolve => setTimeout(() => resolve({
+      data: null,
+      error: { message: 'timeout', code: 'TIMEOUT', label }
+    }), ms))
+  ]);
+}
+
+// Core write: returns { ok:true } on success, { ok:false, error } otherwise.
+// Never throws. Always inspects .error explicitly.
+async function writeToSupabase(payload){
   try {
-    // Re-sync CU.id to whichever auth user the current JWT actually belongs to.
-    // Fixes the duplicate-email case where the browser thinks it is user A but
-    // the session token now resolves to user B, causing RLS to deny every write.
+    // Re-align CU.id to the JWT's actual auth.uid so duplicate-email
+    // drift doesn't silently trigger an RLS denial.
     const { data: sess } = await sb.auth.getSession();
     const authUid = sess?.session?.user?.id;
     if (authUid && authUid !== CU.id) {
-      console.warn('[save] CU.id mismatch, realigning:', CU.id, '→', authUid);
+      console.warn('[save] CU.id drift, realigning:', CU.id, '→', authUid);
       CU.id = authUid;
       localStorage.setItem('sa_session', JSON.stringify(CU));
     }
-
-    const { error } = await sb.from('user_data').upsert(
-      { user_id: CU.id, data: S },
-      { onConflict: 'user_id' }
-    );
-    if (error) {
-      console.error('[save] Supabase write FAILED:', error);
-      showToast('⚠️ שמירה נכשלה — הנתונים נשמרו מקומית בלבד. נסה להתחבר מחדש.', 5000);
-      return;
+    if (!authUid) {
+      return { ok:false, error: { message:'no-session', code:'NO_SESSION' } };
     }
+
+    const { error } = await withTimeout(
+      sb.from('user_data').upsert(
+        { user_id: CU.id, data: payload },
+        { onConflict: 'user_id' }
+      ),
+      SAVE_TIMEOUT_MS,
+      'upsert'
+    );
+    if (error) return { ok:false, error };
+    return { ok:true };
   } catch(e){
-    console.error('[save] Network error:', e);
-    showToast('⚠️ אין חיבור — הנתונים נשמרו מקומית בלבד.', 4000);
+    return { ok:false, error: { message: e?.message || 'exception', code:'EXCEPTION' } };
   }
 }
+
+// Pessimistic save: await the DB before declaring success. On any failure,
+// enqueue to sync queue and surface a persistent error toast.
+async function save(){
+  if(!CU) return { ok:false, error:'no-user' };
+  // 1. Local write — can never fail silently. This is the source of truth.
+  const snapshot = JSON.parse(JSON.stringify(S));
+  try { localStorage.setItem(userKey(CU.id), JSON.stringify(snapshot)); }
+  catch(e){ console.error('[save] localStorage write failed', e); }
+
+  if(CU.provider !== 'supabase') return { ok:true };
+
+  // 2. Try the DB write with timeout + explicit error inspection.
+  const result = await writeToSupabase(snapshot);
+  if (result.ok){
+    // If anything was waiting, drain it now (opportunistic flush).
+    if (readSyncQueue().length > 0) flushSyncQueue(false);
+    return { ok:true };
+  }
+
+  // 3. Failure path — queue the payload and alert the user LOUDLY.
+  enqueuePayload(snapshot, result.error?.code || result.error?.message || 'error');
+  console.error('[save] Write failed — queued for later', result.error);
+  const msg = navigator.onLine === false
+    ? '🔌 אין חיבור — השינויים נשמרו מקומית וימוסכנכו אוטומטית.'
+    : '⚠️ שמירה בענן נכשלה — השינויים בתור סנכרון. נסה ללחוץ על התג בראש המסך.';
+  showToast(msg, 6000);
+  return { ok:false, error: result.error };
+}
+
+// Drain the queue. Returns when queue is empty or the first attempt fails.
+// Only removes an item after a confirmed ok:true from writeToSupabase.
+let _flushing = false;
+async function flushSyncQueue(manual){
+  if (!CU || CU.provider !== 'supabase') return;
+  if (_flushing) return;
+  const badge = document.getElementById('sync-badge');
+  let q = readSyncQueue();
+  if (q.length === 0) { updateSyncBadge(); return; }
+
+  _flushing = true;
+  if (badge) badge.classList.add('syncing');
+  try {
+    // We only need to replay the MOST RECENT snapshot, since each queued
+    // payload is a complete user_data blob and later ones supersede earlier
+    // ones. So take the newest, try it, and on success clear the whole queue.
+    const newest = q[q.length - 1];
+    const result = await writeToSupabase(newest.payload);
+    if (result.ok){
+      writeSyncQueue([]);
+      if (manual) showToast('✅ כל השינויים סונכרנו', 2500);
+    } else {
+      if (manual){
+        const reason = result.error?.message || 'שגיאה לא ידועה';
+        showToast(`❌ סנכרון נכשל: ${reason}`, 5000);
+      }
+    }
+  } finally {
+    _flushing = false;
+    if (badge) badge.classList.remove('syncing');
+    updateSyncBadge();
+  }
+}
+
+// ── Auto-recovery hooks ──
+window.addEventListener('focus',  () => flushSyncQueue(false));
+window.addEventListener('online', () => flushSyncQueue(false));
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') flushSyncQueue(false);
+});
+// Also attempt a flush on boot, once the session is known.
+setTimeout(() => { if (CU) { updateSyncBadge(); flushSyncQueue(false); } }, 1500);
 
 async function seedNewUserSupabase(userId, username){
   const data = {subjects:[], tasks:[], exams:[], logs:[], archive:[]};
