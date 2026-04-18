@@ -1460,13 +1460,36 @@ async function save(){
   if(!CU) return;
   // Always keep a local sync copy for instant reads
   localStorage.setItem(userKey(CU.id), JSON.stringify(S));
-  if(CU.provider === 'supabase'){
-    try {
-      await sb.from('user_data').upsert(
-        { user_id: CU.id, data: S },
-        { onConflict: 'user_id' }
-      );
-    } catch(e){ /* localStorage already written above */ }
+  if(CU.provider !== 'supabase') return;
+
+  // CRITICAL: supabase-js upsert() returns { error } on failure, it does NOT throw.
+  // Previously this entire block only had a try/catch and never inspected .error,
+  // so every RLS denial (e.g. JWT uid != CU.id after an account switch) was lost
+  // silently and the user thought their data was saved when it wasn't.
+  try {
+    // Re-sync CU.id to whichever auth user the current JWT actually belongs to.
+    // Fixes the duplicate-email case where the browser thinks it is user A but
+    // the session token now resolves to user B, causing RLS to deny every write.
+    const { data: sess } = await sb.auth.getSession();
+    const authUid = sess?.session?.user?.id;
+    if (authUid && authUid !== CU.id) {
+      console.warn('[save] CU.id mismatch, realigning:', CU.id, '→', authUid);
+      CU.id = authUid;
+      localStorage.setItem('sa_session', JSON.stringify(CU));
+    }
+
+    const { error } = await sb.from('user_data').upsert(
+      { user_id: CU.id, data: S },
+      { onConflict: 'user_id' }
+    );
+    if (error) {
+      console.error('[save] Supabase write FAILED:', error);
+      showToast('⚠️ שמירה נכשלה — הנתונים נשמרו מקומית בלבד. נסה להתחבר מחדש.', 5000);
+      return;
+    }
+  } catch(e){
+    console.error('[save] Network error:', e);
+    showToast('⚠️ אין חיבור — הנתונים נשמרו מקומית בלבד.', 4000);
   }
 }
 
