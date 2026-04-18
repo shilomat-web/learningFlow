@@ -1124,7 +1124,7 @@ body.dark-mode .quote-banner .quote-author { color: #2ecc8b !important; font-wei
 // SUPABASE CONFIG
 // ═══════════════════════════════════════════
 // ── APP VERSION — bump this string with every release ──────────
-const APP_VERSION = '1.0.9';
+const APP_VERSION = '1.1.1';
 // Flag: true while a version-mismatch reload is in progress — prevents
 // the rest of the script from running Supabase / login logic during the
 // brief gap between calling location.reload() and the browser acting on it.
@@ -1515,7 +1515,8 @@ function seedNewUser(u){
 // HELPERS
 // ═══════════════════════════════════════════
 function uid(){return Date.now().toString(36)+Math.random().toString(36).substr(2);}
-function today(){return new Date().toISOString().split('T')[0];}
+function localDateStr(d){d=d||new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function today(){return localDateStr();}
 function fmtDate(d){if(!d)return'';const dt=new Date(d+'T00:00:00');return dt.toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'numeric'});}
 function fmtMins(m){const h=Math.floor(m/60),min=m%60;if(h&&min)return`${h}ש׳ ${min}ד׳`;if(h)return`${h}ש׳`;return`${min}ד׳`;}
 function daysUntil(d){return Math.ceil((new Date(d+'T00:00:00')-new Date(today()+'T00:00:00'))/(86400000));}
@@ -1759,7 +1760,7 @@ function addTask(){
   const recurring=document.getElementById('m-task-recurring')?.checked||false;
   const _taskType=document.getElementById('m-task-type').value;
   // For weekly tasks, lastReset = this week's Monday so first reset is correct
-  const _weekStart=(()=>{const n=new Date(),d=n.getDay(),m=new Date(n);m.setDate(n.getDate()-(d===0?6:d-1));return m.toISOString().split('T')[0];})();
+  const _weekStart=(()=>{const n=new Date(),d=n.getDay(),m=new Date(n);m.setDate(n.getDate()-(d===0?6:d-1));return localDateStr(m);})();
   S.tasks.push({id:uid(),name,
     subjId:document.getElementById('m-task-subj').value,
     type:_taskType,
@@ -2271,8 +2272,8 @@ function setTimeTab(el,tab){timeTab=tab;el.closest('.tabs').querySelectorAll('.t
 function renderStudyTime(){
   const td=today();
   const tm=S.logs.filter(l=>l.date===td).reduce((s,l)=>s+l.minutes,0);
-  const d14=new Date();d14.setDate(d14.getDate()-14);
-  const t14=S.logs.filter(l=>new Date(l.date)>=d14).reduce((s,l)=>s+l.minutes,0);
+  const _d14=new Date();_d14.setDate(_d14.getDate()-14);const d14s=localDateStr(_d14);
+  const t14=S.logs.filter(l=>l.date>=d14s).reduce((s,l)=>s+l.minutes,0);
   const bys={};S.logs.forEach(l=>{bys[l.subjId]=(bys[l.subjId]||0)+l.minutes;});
   const top=Object.entries(bys).sort((a,b)=>b[1]-a[1])[0];
   document.getElementById('t-today').textContent=fmtMins(tm);
@@ -2281,10 +2282,10 @@ function renderStudyTime(){
   const q=QUOTES[Math.floor(Math.random()*QUOTES.length)];
   document.getElementById('quote-area').innerHTML=`<div class="quote-banner"><div class="quote-text">"${q.t}"</div><div class="quote-author">— ${q.a}</div></div>`;
   const totalAll = S.logs.reduce((s,l)=>s+l.minutes, 0);
-  const d7 = new Date(); d7.setDate(d7.getDate()-7);
-  const total7 = S.logs.filter(l=>new Date(l.date)>=d7).reduce((s,l)=>s+l.minutes, 0);
-  const d30 = new Date(); d30.setDate(d30.getDate()-30);
-  const total30 = S.logs.filter(l=>new Date(l.date)>=d30).reduce((s,l)=>s+l.minutes, 0);
+  const _d7=new Date();_d7.setDate(_d7.getDate()-7);const d7s=localDateStr(_d7);
+  const total7 = S.logs.filter(l=>l.date>=d7s).reduce((s,l)=>s+l.minutes, 0);
+  const _d30=new Date();_d30.setDate(_d30.getDate()-30);const d30s=localDateStr(_d30);
+  const total30 = S.logs.filter(l=>l.date>=d30s).reduce((s,l)=>s+l.minutes, 0);
   
   let summaryEl = document.getElementById('time-summary-extra');
   if(!summaryEl) {
@@ -2303,11 +2304,11 @@ function renderTimeChart(){
   
   if(timeView === 'h'){
     const days = [];
-    // חישוב 7 ימים אחרונים
+    // חישוב 7 ימים אחרונים (תאריכים מקומיים)
     for(let i=6; i>=0; i--){
       const d = new Date();
       d.setDate(d.getDate()-i);
-      const ds = d.toISOString().split('T')[0];
+      const ds = localDateStr(d);
       const m = S.logs.filter(l => l.date === ds).reduce((s,l) => s+l.minutes, 0);
       days.push({lbl: d.toLocaleDateString('he-IL',{weekday:'short'}), m: m, ds: ds});
     }
@@ -2430,7 +2431,7 @@ function renderDash(){
   const todayTasks=S.tasks.filter(t=>t.type==='daily').slice(0,4);
   if(ttel)ttel.innerHTML=todayTasks.length?todayTasks.map(t=>{const s=S.subjects.find(s=>s.id===t.subjId);return`<div class="task-row"><div>${s&&s.name!=='__other__'?`<span class="task-tag">${s.name}</span>`:''}</div><div class="task-row-right"><span style="${t.done?'text-decoration:line-through;color:var(--muted)':''}">${t.name}</span><div class="task-circle${t.done?' done':''}" onclick="toggleTask('${t.id}')">${t.done?'<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>':''}</div></div></div>`;}).join(''):'<div class="empty" style="padding:12px">אין משימות</div>';
   // 7-day deadlines
-  const in7=new Date();in7.setDate(in7.getDate()+7);const in7s=in7.toISOString().split('T')[0];
+  const in7=new Date();in7.setDate(in7.getDate()+7);const in7s=localDateStr(in7);
   const deadlines=[
     ...S.tasks.filter(t=>t.dueDate&&t.dueDate>=td&&t.dueDate<=in7s&&!t.done).map(t=>({name:t.name,date:t.dueDate,type:'task'})),
     ...S.exams.filter(e=>e.date>=td&&e.date<=in7s).map(e=>({name:e.name,date:e.date,type:'exam'}))
@@ -3260,10 +3261,10 @@ function buildAnalyticsInsights(){
   }
 
   // Study velocity: last 7 vs previous 7 days
-  const d7  = new Date(); d7.setDate(d7.getDate()-7);
-  const d14 = new Date(); d14.setDate(d14.getDate()-14);
-  const last7 = S.logs.filter(l=>new Date(l.date)>=d7).reduce((s,l)=>s+l.minutes,0);
-  const prev7 = S.logs.filter(l=>new Date(l.date)>=d14 && new Date(l.date)<d7).reduce((s,l)=>s+l.minutes,0);
+  const _a7=new Date();_a7.setDate(_a7.getDate()-7);const a7s=localDateStr(_a7);
+  const _a14=new Date();_a14.setDate(_a14.getDate()-14);const a14s=localDateStr(_a14);
+  const last7 = S.logs.filter(l=>l.date>=a7s).reduce((s,l)=>s+l.minutes,0);
+  const prev7 = S.logs.filter(l=>l.date>=a14s && l.date<a7s).reduce((s,l)=>s+l.minutes,0);
   const velocityTrend = last7>prev7?'📈 עולה':last7<prev7?'📉 יורד':'➡️ יציב';
   lines.push('\n=== קצב לימוד ===');
   lines.push('  שבוע אחרון: '+fmtMins(last7)+' | שבוע קודם: '+fmtMins(prev7)+' | מגמה: '+velocityTrend);
@@ -3353,7 +3354,7 @@ function buildSystemPrompt(){
     },
     studyMins:{
       today:  (S.logs||[]).filter(l=>l.date===today()).reduce((s,l)=>s+l.minutes,0),
-      last7days: (S.logs||[]).filter(l=>{const d=new Date();d.setDate(d.getDate()-7);return new Date(l.date)>=d;}).reduce((s,l)=>s+l.minutes,0),
+      last7days: (S.logs||[]).filter(l=>{const d=new Date();d.setDate(d.getDate()-7);return l.date>=localDateStr(d);}).reduce((s,l)=>s+l.minutes,0),
       total:  (S.logs||[]).reduce((s,l)=>s+l.minutes,0),
       bySubject: studyBySubjectNamed
     }
@@ -3379,6 +3380,7 @@ function buildSystemPrompt(){
     '⛔ אל תבצע שום פעולה (הוסף / מחק / שנה) מיוזמתך.',
     '⛔ אל תקרא לאף tool/function לשאלות כגון "כמה זמן?" / "מה המשימות?".',
     '⛔ אם הנתון לא קיים בסנאפשוט — אמור זאת בסלנג ישראלי: "אין לי מושג, כי לא רשמת."',
+    '💡 אם המשתמש מבקש להוסיף/למחוק/לעדכן משהו — אמור לו לנסח עם פועל ציווי בתחילת המשפט, לדוגמה: "הוסף משימה: ..." או "תוסיף לי משימה ...".',
     '',
     '## כללים',
     '1. ענה רק מהנתונים שלמטה.',
@@ -3592,7 +3594,7 @@ const AI_TOOLS = [
         properties: {
           name: { type: 'string', description: 'תיאור המשימה' },
           subject_id: { type: 'string', description: 'ID של הנושא (אם הוגדר)' },
-          type: { type: 'string', description: 'daily או monthly', enum: ['daily', 'monthly'] },
+          type: { type: 'string', description: 'daily, weekly או monthly', enum: ['daily', 'weekly', 'monthly'] },
           due_date: { type: 'string', description: 'תאריך יעד YYYY-MM-DD' }
         },
         required: ['name']
@@ -3641,6 +3643,22 @@ const AI_TOOLS = [
         type: 'object',
         properties: { task_id: { type: 'string', description: 'ID של המשימה' } },
         required: ['task_id']
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: 'subtract_log',
+      description: 'מפחית דקות מזמן לימוד קיים. משמש כשמבקשים להוריד/להפחית/לשנות דקות.',
+      parameters: {
+        type: 'object',
+        properties: {
+          subject_id: { type: 'string', description: 'ID של הנושא (אם ידוע). אם לא צוין, מפחית מהרשומה הראשונה של התאריך.' },
+          minutes:    { type: 'number', description: 'כמה דקות להפחית' },
+          date:       { type: 'string', description: 'תאריך YYYY-MM-DD (ברירת מחדל: היום)' }
+        },
+        required: ['minutes']
       }
     }
   }
@@ -3737,14 +3755,19 @@ function executeTool(name, args){
       return `✅ הנושא "${args.name}" נוסף בהצלחה.`;
     }
     case 'add_task': {
+      const _type = args.type || 'daily';
+      const _weekStart = (()=>{const n=new Date(),d=n.getDay(),m=new Date(n);m.setDate(n.getDate()-(d===0?6:d-1));return localDateStr(m);})();
       S.tasks.push({
-        id: uid(), 
-        name: args.name, 
-        subjId: args.subject_id || '', 
-        type: args.type || 'daily', 
-        done: false, 
-        dueDate: args.due_date || '', 
-        dueTime: ''
+        id: uid(),
+        name: args.name,
+        subjId: args.subject_id || '',
+        type: _type,
+        done: false,
+        dueDate: args.due_date || '',
+        dueTime: '',
+        recurring: false,
+        createdDate: today(),
+        lastReset: _type==='weekly' ? _weekStart : null
       });
       save(); renderTasks(); renderDash();
       return `✅ המשימה "${args.name}" נוספה בהצלחה.`;
@@ -3784,6 +3807,27 @@ function executeTool(name, args){
       t.done = !t.done;
       save(); renderTasks(); renderDash();
       return `✅ המשימה "${t.name}" סומנה כ${t.done ? 'הושלמה' : 'לא הושלמה'}.`;
+    }
+    case 'subtract_log': {
+      const date = args.date || today();
+      const mins = Number(args.minutes);
+      if(!mins || mins <= 0) return '❌ מספר דקות לא תקין.';
+      let logEntry;
+      if(args.subject_id){
+        logEntry = S.logs.find(l => l.subjId === args.subject_id && l.date === date);
+      } else {
+        logEntry = S.logs.find(l => l.date === date);
+      }
+      if(!logEntry) return '❌ לא נמצאה רשומת לימוד לתאריך זה.';
+      const subjName = (S.subjects||[]).find(s=>s.id===logEntry.subjId)?.name || '';
+      const oldMins = logEntry.minutes;
+      logEntry.minutes = Math.max(0, logEntry.minutes - mins);
+      if(logEntry.minutes === 0){
+        S.logs = S.logs.filter(l => l.id !== logEntry.id);
+      }
+      save(); renderStudyTime(); renderDash();
+      const actualSubtracted = oldMins - (logEntry.minutes || 0);
+      return `✅ הופחתו ${actualSubtracted} דקות מזמן הלימוד${subjName ? ' ב' + subjName : ''} (${fmtDate(date)}). ${logEntry.minutes > 0 ? 'נשארו ' + logEntry.minutes + ' דקות.' : 'הרשומה נמחקה.'}`;
     }
     default:
       return `❌ פעולה לא מוכרת: ${name}`;
@@ -3850,22 +3894,95 @@ function buildConfirmText(name, args){
 // WRITE commands → local executeTool() / showConfirmCard()
 // ═══════════════════════════════════════════
 
+// Build system prompt for WRITE path — tells the AI it CAN and SHOULD use tools
+function buildWriteSystemPrompt(){
+  if(!CU || !S) return 'אין נתונים זמינים.';
+  const subjectsList = (S.subjects||[]).map(s => `- ${s.name} (id: ${s.id})`).join('\n');
+  const todayStr = today();
+
+  return [
+    '## זהות',
+    'אתה "לרן" — בוט לימודים ישראלי. עברית בלבד.',
+    '',
+    '## ══ מצב כתיבה — אתה חייב להשתמש ב-tools ══',
+    'המשתמש ביקש לבצע פעולה (הוספה / מחיקה / עדכון).',
+    'אתה חייב לקרוא ל-tool המתאים. אל תגיד "השתמש במשק האפליקציה" — אתה המשק.',
+    '',
+    '## כללים:',
+    '1. זהה מה המשתמש רוצה ובחר את ה-tool הנכון.',
+    '2. אם המשתמש לא ציין תאריך — השתמש בתאריך של היום: ' + todayStr,
+    '3. אם המשתמש ציין נושא — מצא את ה-ID המתאים מהרשימה למטה.',
+    '4. אם לא הצלחת לזהות — קרא ל-add_task עם הטקסט כ-name.',
+    '5. לסוג המשימה: ברירת מחדל "daily" אלא אם המשתמש אמר "שבועי"/"weekly" או "חודשי"/"monthly".',
+    '',
+    '## נושאים קיימים:',
+    subjectsList || '(אין נושאים)',
+    '',
+    '## לוגי לימוד של היום:',
+    (()=>{
+      const todayLogs = (S.logs||[]).filter(l => l.date === todayStr);
+      if(!todayLogs.length) return '(אין לוגים היום)';
+      return todayLogs.map(l => {
+        const subj = (S.subjects||[]).find(s => s.id === l.subjId);
+        return `- ${subj ? subj.name : '?'} (subject_id: ${l.subjId}): ${l.minutes} דקות (log_id: ${l.id})`;
+      }).join('\n');
+    })(),
+    '',
+    '## תאריך היום: ' + todayStr
+  ].join('\n');
+}
+
 // Intent classification — returns 'read' or 'write'
 // Default is ALWAYS 'read'. Only explicit imperative commands go to 'write'.
 // When in doubt → 'read' (answer from data, never crash from missing tool).
 function classifyIntent(q) {
   const w = q.trim();
 
-  // ── WRITE: only explicit imperative action verbs at start of sentence ──
-  // Must start with an action verb OR contain a clear action phrase.
+  // ── WRITE: imperative verbs, polite/future forms, and natural Hebrew phrasing ──
   const writePatterns = [
+    // Imperative forms (ציווי)
     /^הוסף\s/,  /^צור\s/,   /^רשום\s/,  /^סמן\s/,   /^עדכן\s/,
     /^מחק\s/,   /^הסר\s/,   /^בטל\s/,   /^ערוך\s/,
+    /^הורד\s/,  /^הפחת\s/,  /^הקטן\s/,  /^שנה\s/,   /^קבע\s/,
+
+    // Future/polite forms (תוסיף, תרשום, תמחק, תצור...)
+    /^תוסיף\b/, /^תרשום\b/, /^תסמן\b/,  /^תעדכן\b/, /^תמחק\b/,
+    /^תסיר\b/,  /^תבטל\b/,  /^תערוך\b/, /^תצור\b/,  /^תכניס\b/,
+    /^תכתוב\b/, /^תשנה\b/,  /^תעשה\b/,
+    /^תוריד\b/, /^תפחית\b/, /^תקטין\b/, /^תקבע\b/,
+
+    // Natural phrasing with "לי" or anywhere in sentence
+    /תוסיף לי/,  /תרשום לי/,  /תמחק לי/,  /תסמן לי/,
+    /תכניס לי/,  /תעדכן לי/,  /תצור לי/,  /תעשה לי/,
+    /תוריד לי/,  /תפחית לי/, /תשנה לי/,  /תקבע לי/,
+
+    // "אני רוצה / אפשר / צריך / בוא" + action
+    /רוצה להוסיף/,  /רוצה לרשום/,   /רוצה למחוק/,   /רוצה לעדכן/,
+    /רוצה להוריד/,  /רוצה להפחית/,  /רוצה לשנות/,
+    /אפשר להוסיף/,  /אפשר לרשום/,   /אפשר למחוק/,   /אפשר לעדכן/,
+    /אפשר להוריד/,  /אפשר להפחית/,
+    /צריך להוסיף/,  /צריך לרשום/,    /צריך למחוק/,    /צריך לעדכן/,
+    /צריך להוריד/,  /צריך להפחית/,
+    /בוא נוסיף/,    /בוא נרשום/,     /בוא נמחק/,
+    /בוא נוריד/,    /בוא נפחית/,
+
+    // Action + object phrases (anywhere in sentence)
     /הוסף משימה/, /הוסף נושא/, /הוסף מבחן/, /הוסף זמן לימוד/,
+    /תוסיף משימה/,/תוסיף נושא/,/תוסיף מבחן/,
+    /משימה חדשה/,  /נושא חדש/,  /מבחן חדש/,
     /רשום זמן/,  /רשום לימוד/, /מחק משימה/, /מחק נושא/,  /מחק מבחן/,
     /סמן כהושלם/, /סמן כגמור/, /עדכן ציון/, /שנה ציון/,
-    /add task/,  /add exam/,  /add subject/, /add log/,
-    /log time/,  /mark done/, /mark complete/
+    /הורד דקות/,  /הורד דקה/,  /הפחת דקות/, /הפחת זמן/,
+    /הורד.*דקות/, /הורד.*מלוג/, /הפחת.*דקות/, /הפחת.*מלוג/,
+
+    // "תכניס" / "תוסיף" + "משימה" anywhere
+    /תכניס\s.*משימה/, /תכניס\s.*נושא/, /תכניס\s.*מבחן/,
+
+    // English
+    /add task/i,  /add exam/i,  /add subject/i, /add log/i,
+    /log time/i,  /mark done/i, /mark complete/i, /create task/i,
+    /new task/i,  /delete task/i, /remove task/i,
+    /subtract/i,  /remove time/i, /reduce time/i
   ];
   if (writePatterns.some(p => p.test(w))) return 'write';
 
@@ -3894,12 +4011,16 @@ async function sendAI(){
   // ── WRITE path: use local function-calling (no Groq tools API) ──
   if(intent === 'write'){
     try {
+      const writePrompt = buildWriteSystemPrompt();
       const messages = [
-        { role: 'system', content: buildSystemPrompt() },
+        { role: 'system', content: writePrompt },
         ...aiHistory.slice(-10)
       ];
+      const wAc = new AbortController();
+      const wT = setTimeout(() => wAc.abort(), 25000);
       const response = await fetch(AI_URL, {
         method: 'POST',
+        signal: wAc.signal,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${AI_API_KEY}`
@@ -3908,10 +4029,11 @@ async function sendAI(){
           model: AI_MODEL,
           messages,
           tools: AI_TOOLS,
-          tool_choice: 'required',
+          tool_choice: 'auto',
           temperature: 0.05
         })
       });
+      clearTimeout(wT);
 
       let data;
       try {
@@ -3949,7 +4071,7 @@ async function sendAI(){
           try { args = JSON.parse(toolCall.function.arguments); }
           catch(_){ args = {}; }
 
-          const safeTools = ['mark_subtopic_done','add_archive_entry','add_subject','add_task','add_exam','add_log','toggle_task','set_subject_category'];
+          const safeTools = ['mark_subtopic_done','add_archive_entry','add_subject','add_task','add_exam','add_log','toggle_task','set_subject_category','subtract_log'];
           if(safeTools.includes(name)){
             const result = executeTool(name, args);
             addAIMsg(result, 'bot');
@@ -3967,11 +4089,13 @@ async function sendAI(){
     } catch(e) {
       thinkingEl.remove();
       let msg = `שגיאה: ${e.message}`;
-      if(e.message.includes('API_KEY_INVALID') || e.message.includes('Unauthorized'))
+      if(e.name === 'AbortError')
+        msg = '⏱️ הבקשה ארכה יותר מדי זמן. נסה שוב.';
+      else if(e.message.includes('API_KEY_INVALID') || e.message.includes('Unauthorized'))
         msg = '❌ API Key שגוי.';
-      if(e.message.includes('insufficient_quota') || e.message.includes('Payment Required'))
+      else if(e.message.includes('insufficient_quota') || e.message.includes('Payment Required'))
         msg = '⏳ חרגת ממגבלת הקרדיט.';
-      if(e.message.includes('Failed to fetch'))
+      else if(e.message.includes('Failed to fetch'))
         msg = '🌐 שגיאת רשת — בדוק חיבור לאינטרנט.';
       addAIMsg(msg, 'bot');
       aiHistory.pop();
@@ -3979,7 +4103,6 @@ async function sendAI(){
       aiTyping = false;
       document.getElementById('ai-send-btn').disabled = false;
     }
-          aiTyping = false; document.getElementById('ai-send-btn').disabled = false;
     return;
   }
 
@@ -4027,8 +4150,15 @@ async function sendAI(){
         return;
       }
 
+      const ac1 = new AbortController();
+      // 35s covers the full round-trip: server maxDuration is 30s, plus network.
+      // NOTE: we intentionally DO NOT clearTimeout(t1) until AFTER response.json()
+      // returns, so if the response body hangs (Vercel killed mid-stream) the
+      // abort still fires and the UI doesn't get stuck on "חושב...".
+      var t1 = setTimeout(() => ac1.abort(), 35000);
       response = await fetch(`${API_BASE}?action=ai`, {
         method: 'POST',
+        signal: ac1.signal,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${jwt}`   // verified by verifyToken() in chat.js
@@ -4041,8 +4171,11 @@ async function sendAI(){
       });
     } else {
       // ── LOCALHOST DEV FALLBACK: direct Groq call ──
+      const ac2 = new AbortController();
+      const t2 = setTimeout(() => ac2.abort(), 25000);
       response = await fetch(AI_URL, {
         method: 'POST',
+        signal: ac2.signal,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${AI_API_KEY}`
@@ -4057,6 +4190,7 @@ async function sendAI(){
           max_tokens: 1024
         })
       });
+      clearTimeout(t2);
     }
 
     let data;
@@ -4064,6 +4198,9 @@ async function sendAI(){
       data = await response.json();
     } catch(_) {
       throw new Error('תגובה לא תקינה מהשרת — ייתכן שגיאת רשת.');
+    } finally {
+      // Disarm the abort only after body is fully read (or failed).
+      if (typeof t1 !== 'undefined') clearTimeout(t1);
     }
 
     // Handle non-2xx from either path
@@ -4096,9 +4233,11 @@ async function sendAI(){
   } catch(e) {
     thinkingEl.remove();
     let msg = `שגיאה: ${e.message}`;
-    if (e.message.includes('Failed to fetch') || e.message.includes('NetworkError'))
+    if (e.name === 'AbortError')
+      msg = '⏱️ הבקשה ארכה יותר מדי זמן. נסה שוב או נסח את השאלה אחרת.';
+    else if (e.message.includes('Failed to fetch') || e.message.includes('NetworkError'))
       msg = '🌐 שגיאת רשת — בדוק חיבור לאינטרנט.';
-    if (e.message.includes('401') || e.message.includes('Unauthorized'))
+    else if (e.message.includes('401') || e.message.includes('Unauthorized'))
       msg = '❌ שגיאת אימות — נסה להתנתק ולהתחבר מחדש.';
     addAIMsg(msg, 'bot');
     aiHistory.pop();
@@ -4111,7 +4250,20 @@ async function sendAI(){
 function addAIMsg(text, classes){
   const el = document.createElement('div');
   el.className = 'ai-msg ' + classes;
-  el.textContent = text;
+  if(classes.includes('bot')){
+    // Escape HTML to prevent XSS, then render basic markdown
+    const escaped = text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+    const html = escaped
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/^[-•]\s+/gm, '• ')
+      .replace(/\n/g, '<br>');
+    el.innerHTML = html;
+  } else {
+    el.textContent = text;
+  }
   const msgs = document.getElementById('ai-messages');
   msgs.appendChild(el);
   msgs.scrollTop = msgs.scrollHeight;
@@ -4196,7 +4348,7 @@ function resetRecurringTasks(){
   const daysToMon=dow===0?1:dow===1?0:8-dow; // days until next Mon, or 0 if today
   const thisMonday=new Date(now);
   thisMonday.setDate(now.getDate()-(dow===1?0:(dow===0?6:dow-1)));
-  const weekStart=thisMonday.toISOString().split('T')[0]; // YYYY-MM-DD of this week's Monday
+  const weekStart=localDateStr(thisMonday); // YYYY-MM-DD of this week's Monday
 
   let changed=false;
   const toDelete=[];

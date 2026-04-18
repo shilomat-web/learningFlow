@@ -4,5 +4,8 @@
   "private": true,
   "engines": {
     "node": "20.x"
+  },
+  "dependencies": {
+    "docx": "^9.6.1"
   }
 }

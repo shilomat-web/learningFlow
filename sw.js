@@ -1,6 +1,6 @@
-// sw.js — studyFlow Service Worker v5
+// sw.js — studyFlow Service Worker v6
 // Bump the cache name any time you want to force a full refresh.
-const CACHE = 'studyflow-v7';
+const CACHE = 'studyflow-v10';
 const ASSETS = [
   '/',
   '/index.html',
@@ -86,7 +86,22 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // App shell → cache-first with network fallback
+  // Navigation requests (HTML pages) → network-first so updates are instant
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request)
+        .then(response => {
+          if (response && response.status === 200) {
+            caches.open(CACHE).then(cache => cache.put(request, response.clone()));
+          }
+          return response;
+        })
+        .catch(() => caches.match(request).then(c => c || caches.match('/index.html')))
+    );
+    return;
+  }
+
+  // Static assets → cache-first with network fallback
   event.respondWith(
     caches.match(request).then(cached => {
       if (cached) return cached;
@@ -104,12 +119,7 @@ self.addEventListener('fetch', event => {
           }
           return response;
         })
-        .catch(() => {
-          // Offline fallback: serve index.html for page navigations
-          if (request.mode === 'navigate') {
-            return caches.match('/index.html');
-          }
-        });
+        .catch(() => undefined);
     })
   );
 });

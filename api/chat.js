@@ -13,6 +13,12 @@
 // Zero external dependencies — all Supabase calls use plain fetch() against
 // the Supabase REST / Auth APIs directly.
 
+// Extend the function timeout beyond the 10s Hobby default so the Groq call
+// (which can take 10–20s on cold starts) has room to complete before Vercel
+// kills the function mid-stream. Without this, the client's response.json()
+// hangs forever because the response body never finishes flushing.
+export const config = { maxDuration: 30 };
+
 // Fallback to hardcoded public values so the function never crashes on missing env vars.
 // SUPABASE_URL and SUPABASE_ANON_KEY are already public (they appear in the frontend JS).
 const SB_URL     = () => process.env.SUPABASE_URL      || 'https://xirsfctsowhrsyytgcnh.supabase.co';
@@ -197,10 +203,10 @@ function buildServerContext(state, userName) {
     const done = tasks.filter(t => t.done).length;
     const overdue = tasks.filter(t => !t.done && t.dueDate && t.dueDate < today);
     lines.push(`סה"כ: ${tasks.length} | הושלמו: ${done} | ממתינות: ${tasks.length - done} | באיחור: ${overdue.length}`);
-    ['daily', 'monthly'].forEach(type => {
+    ['daily', 'weekly', 'monthly'].forEach(type => {
       const grp = tasks.filter(t => t.type === type);
       if (!grp.length) return;
-      lines.push(type === 'daily' ? 'יומיות:' : 'חודשיות:');
+      lines.push(type === 'daily' ? 'יומיות:' : type === 'weekly' ? 'שבועיות:' : 'חודשיות:');
       grp.forEach(t => {
         const subj = subjects.find(s => s.id === t.subjId);
         const due = t.dueDate ? ` | יעד: ${fmtDate(t.dueDate)}${t.dueTime ? ' ' + t.dueTime : ''}` : '';
@@ -542,7 +548,8 @@ function buildGroqSystemPrompt(state, userName, messages) {
 // ─────────────────────────────────────────────────────────────
 export default async function handler(req, res) {
   if (req.method === 'OPTIONS') {
-    return res.status(204).set(CORS).end();
+    Object.entries(CORS).forEach(([k, v]) => res.setHeader(k, v));
+    return res.status(204).end();
   }
   Object.entries(CORS).forEach(([k, v]) => res.setHeader(k, v));
 
@@ -666,8 +673,11 @@ export default async function handler(req, res) {
     // ── Groq call with full error boundary ────────────────
     let groqRes;
     try {
+      const ac = new AbortController();
+      const tout = setTimeout(() => ac.abort(), 25000); // 25s — paired with maxDuration:30 above
       groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method:  'POST',
+        signal:  ac.signal,
         headers: {
           'Content-Type':  'application/json',
           'Authorization': `Bearer ${groqApiKey}`,
@@ -684,6 +694,7 @@ export default async function handler(req, res) {
           // and failed_generation crashes. The model answers from injected data.
         }),
       });
+      clearTimeout(tout);
     } catch (fetchErr) {
       console.error('[AI] Network error reaching Groq:', fetchErr.message);
       return res.status(502).json({
