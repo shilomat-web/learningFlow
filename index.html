@@ -255,6 +255,19 @@ nav{flex:1;padding:12px 8px;overflow-y:auto}
 .sync-badge.syncing .dot{background:#93c5fd;animation:none}
 @keyframes syncPulse{0%{box-shadow:0 0 0 0 rgba(251,191,36,.7)}70%{box-shadow:0 0 0 6px rgba(251,191,36,0)}100%{box-shadow:0 0 0 0 rgba(251,191,36,0)}}
 
+/* ── SYNC QUEUE DETAILS MODAL ── */
+.sync-queue-summary{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin:10px 0 14px;font-size:13px;line-height:1.5}
+.sync-queue-summary .sq-countdown{color:var(--g);font-weight:600}
+.sync-queue-summary .sq-countdown.soon{color:#b45309}
+.sync-queue-list{max-height:280px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;background:var(--white)}
+.sync-queue-item{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:10px 12px;border-bottom:1px solid var(--border);font-size:13px}
+.sync-queue-item:last-child{border-bottom:none}
+.sync-queue-item .sq-left{flex:1;min-width:0}
+.sync-queue-item .sq-title{font-weight:600;color:var(--txt);margin-bottom:2px}
+.sync-queue-item .sq-reason{font-size:11px;color:var(--muted);word-break:break-word}
+.sync-queue-item .sq-time{font-size:11px;color:var(--sec);white-space:nowrap;flex-shrink:0}
+.sync-queue-empty{padding:18px;text-align:center;color:var(--muted);font-size:13px}
+
 /* ── MOBILE ── */
 @media(max-width:640px){
   #sidebar{display:none}
@@ -755,7 +768,19 @@ body.dark-mode .quote-banner .quote-author { color: #2ecc8b !important; font-wei
 <button id="dark-toggle" onclick="toggleDarkMode()" title="מצב לילה">🌙</button>
 
 <div class="toast" id="toast"></div>
-<div class="sync-badge" id="sync-badge" onclick="flushSyncQueue(true)" title="יש שינויים שלא סונכרנו. לחץ כדי לנסות סנכרון עכשיו"><span class="dot"></span><span id="sync-badge-text">שינויים לא מסונכרנים</span></div>
+<div class="sync-badge" id="sync-badge" onclick="openSyncQueueModal()" title="יש שינויים שלא סונכרנו. לחץ לפרטים ולסנכרון"><span class="dot"></span><span id="sync-badge-text">שינויים לא מסונכרנים</span></div>
+
+<div class="modal-overlay" id="m-sync-queue">
+  <div class="modal" style="max-width:480px">
+    <h3>שינויים ממתינים לסנכרון</h3>
+    <div class="sync-queue-summary" id="sq-summary"></div>
+    <div class="sync-queue-list" id="sq-list"></div>
+    <div class="modal-actions" style="margin-top:14px">
+      <button class="btn btn-primary" id="sq-sync-now" onclick="flushSyncQueue(true)">סנכרן עכשיו</button>
+      <button class="btn btn-ghost" onclick="closeModal('m-sync-queue')">סגור</button>
+    </div>
+  </div>
+</div>
 
 <div id="main">
 
@@ -904,10 +929,12 @@ body.dark-mode .quote-banner .quote-author { color: #2ecc8b !important; font-wei
 <div class="modal-overlay" id="m-subtopic">
   <div class="modal">
     <h3 id="m-sub-title">הוספת תת-נושא</h3>
-    <div class="fg"><label>שם</label><input class="fc" id="m-sub-name" placeholder="תת-נושא"></div>
+    <div id="m-sub-added-count" style="font-size:12px;color:var(--muted);margin:-4px 0 10px;display:none"></div>
+    <div class="fg"><label>שם</label><input class="fc" id="m-sub-name" placeholder="תת-נושא" onkeydown="if(event.key==='Enter'){event.preventDefault();addSubtopic();}"></div>
+    <div style="font-size:12px;color:var(--muted);margin-top:-4px;margin-bottom:10px">הוסף כמה שתרצה — החלון נשאר פתוח עד שתלחץ "סיום".</div>
     <div class="modal-actions">
       <button class="btn btn-primary" onclick="addSubtopic()">הוסף</button>
-      <button class="btn btn-ghost" onclick="closeModal('m-subtopic')">ביטול</button>
+      <button class="btn btn-ghost" onclick="closeSubtopicModal()">סיום</button>
     </div>
   </div>
 </div>
@@ -1132,7 +1159,7 @@ body.dark-mode .quote-banner .quote-author { color: #2ecc8b !important; font-wei
 // SUPABASE CONFIG
 // ═══════════════════════════════════════════
 // ── APP VERSION — bump this string with every release ──────────
-const APP_VERSION = '1.1.1';
+const APP_VERSION = '1.2.0';
 // Flag: true while a version-mismatch reload is in progress — prevents
 // the rest of the script from running Supabase / login logic during the
 // brief gap between calling location.reload() and the browser acting on it.
@@ -1494,13 +1521,69 @@ function writeSyncQueue(q){
   localStorage.setItem(syncQueueKey(CU.id), JSON.stringify(q));
   updateSyncBadge();
 }
+// Build a short, human-readable summary of what's inside a snapshot so the
+// user can see *what* is waiting, not just that *something* is waiting.
+function summarizePayload(payload){
+  if(!payload || typeof payload !== 'object') return 'נתונים לא זמינים';
+  const parts = [];
+  const n = (arr) => Array.isArray(arr) ? arr.length : 0;
+  const subs = n(payload.subjects);
+  const tasks = n(payload.tasks);
+  const exams = n(payload.exams);
+  const logs = n(payload.logs);
+  const archive = n(payload.archive);
+  if (subs)    parts.push(subs + ' נושאים');
+  if (tasks)   parts.push(tasks + ' משימות');
+  if (exams)   parts.push(exams + ' מבחנים');
+  if (logs)    parts.push(logs + ' רשומות זמן');
+  if (archive) parts.push(archive + ' ארכיון');
+  if (!parts.length) return 'snapshot ריק';
+  // Also count completed sub-topics across subjects as a quick progress hint
+  let doneSubs = 0, totalSubs = 0;
+  if (Array.isArray(payload.subjects)){
+    const walk = (n) => { (n.subtopics||[]).forEach(c=>{ totalSubs++; if(c.done)doneSubs++; walk(c); }); };
+    payload.subjects.forEach(walk);
+  }
+  const prog = totalSubs ? ` · התקדמות ${doneSubs}/${totalSubs} תת-נושאים` : '';
+  return parts.join(' · ') + prog;
+}
+
+// Humanize a failure reason so the user sees something actionable, not a code.
+function humanizeReason(r){
+  const s = String(r || '').toLowerCase();
+  if (!s || s === 'unknown') return 'שגיאה לא ידועה';
+  if (s.includes('timeout')) return 'התחברות לשרת איטית מדי — ניסיון חוזר אוטומטית';
+  if (s.includes('no-session') || s.includes('no_session')) return 'אין חיבור מאומת — נדרשת כניסה מחדש';
+  if (s.includes('failed to fetch') || s.includes('networkerror') || s.includes('network')) return 'אין חיבור לאינטרנט';
+  if (s.includes('exception')) return 'שגיאה פנימית — ננסה שוב';
+  if (s.startsWith('pgrst') || s.includes('rls') || s.includes('permission')) return 'שגיאת הרשאות — בדוק שאתה מחובר עם החשבון הנכון';
+  return r;
+}
+
+function fmtAgo(ts){
+  const sec = Math.max(0, Math.floor((Date.now() - ts)/1000));
+  if (sec < 60)   return 'לפני ' + sec + ' שניות';
+  const min = Math.floor(sec/60);
+  if (min < 60)   return 'לפני ' + min + ' דקות';
+  const hr = Math.floor(min/60);
+  if (hr < 24)    return 'לפני ' + hr + ' שעות';
+  const d = Math.floor(hr/24);
+  return 'לפני ' + d + ' ימים';
+}
+
 function enqueuePayload(payload, reason){
   const q = readSyncQueue();
-  q.push({ ts: Date.now(), reason: reason || 'unknown', payload });
+  q.push({
+    ts: Date.now(),
+    reason: reason || 'unknown',
+    summary: summarizePayload(payload),
+    payload
+  });
   // Cap the queue: we only ever need to push the NEWEST snapshot,
   // but keep up to 20 entries for audit/debug if something goes wrong.
   while (q.length > 20) q.shift();
   writeSyncQueue(q);
+  scheduleQueueAutoRetry();
 }
 function updateSyncBadge(){
   const badge = document.getElementById('sync-badge');
@@ -1509,12 +1592,116 @@ function updateSyncBadge(){
   const txt = document.getElementById('sync-badge-text');
   if(q.length === 0){
     badge.classList.remove('visible');
+    // Also refresh the details modal if it's open
+    if (document.getElementById('m-sync-queue')?.classList.contains('open')) {
+      renderSyncQueueModal();
+    }
     return;
   }
   badge.classList.add('visible');
   if (txt) txt.textContent = q.length === 1
     ? 'שינוי אחד ממתין לסנכרון'
     : `${q.length} שינויים ממתינים לסנכרון`;
+  // Live-refresh the open modal whenever the queue changes
+  if (document.getElementById('m-sync-queue')?.classList.contains('open')) {
+    renderSyncQueueModal();
+  }
+}
+
+// ── Auto-retry scheduling ──
+// When something goes into the queue, we schedule a retry with backoff.
+// The modal uses this to show the user "next attempt in X seconds".
+let _nextRetryAt = 0;
+let _retryTimer  = null;
+let _retryAttempts = 0;
+function scheduleQueueAutoRetry(){
+  // Exponential backoff: 5s, 10s, 20s, 40s, 60s cap
+  const delays = [5000, 10000, 20000, 40000, 60000];
+  const delay = delays[Math.min(_retryAttempts, delays.length - 1)];
+  _nextRetryAt = Date.now() + delay;
+  if (_retryTimer) clearTimeout(_retryTimer);
+  _retryTimer = setTimeout(async () => {
+    _retryAttempts++;
+    const q0 = readSyncQueue();
+    if (q0.length === 0) { _retryAttempts = 0; return; }
+    await flushSyncQueue(false);
+    const q1 = readSyncQueue();
+    if (q1.length > 0) {
+      scheduleQueueAutoRetry(); // still failing — keep trying
+    } else {
+      _retryAttempts = 0;
+      _nextRetryAt = 0;
+    }
+  }, delay);
+}
+
+// ── Sync-queue details modal ──
+let _sqModalTimer = null;
+function openSyncQueueModal(){
+  renderSyncQueueModal();
+  openModal('m-sync-queue');
+  // Live-tick countdown every second while open
+  if (_sqModalTimer) clearInterval(_sqModalTimer);
+  _sqModalTimer = setInterval(() => {
+    if (!document.getElementById('m-sync-queue').classList.contains('open')){
+      clearInterval(_sqModalTimer); _sqModalTimer = null; return;
+    }
+    renderSyncQueueModal(true); // tick-only, don't rebuild list
+  }, 1000);
+}
+function renderSyncQueueModal(tickOnly){
+  const summary = document.getElementById('sq-summary');
+  const list = document.getElementById('sq-list');
+  const btn = document.getElementById('sq-sync-now');
+  if (!summary || !list) return;
+  const q = readSyncQueue();
+
+  // Countdown: time until next automatic retry.
+  let countdownHtml = '';
+  if (q.length > 0 && _nextRetryAt > Date.now()){
+    const secs = Math.max(0, Math.ceil((_nextRetryAt - Date.now())/1000));
+    const cls = secs <= 5 ? ' soon' : '';
+    countdownHtml = `<div>⏱️ ניסיון אוטומטי הבא: <span class="sq-countdown${cls}">בעוד ${secs} שניות</span></div>`;
+  } else if (q.length > 0 && _flushing){
+    countdownHtml = `<div>🔄 <span class="sq-countdown">מסנכרן עכשיו…</span></div>`;
+  } else if (q.length > 0){
+    countdownHtml = `<div>⏱️ <span class="sq-countdown">ניסיון אוטומטי ייצא בקרוב</span></div>`;
+  }
+
+  if (q.length === 0){
+    summary.innerHTML = '✅ הכל מסונכרן. אין שינויים ממתינים.';
+    list.innerHTML = '<div class="sync-queue-empty">התור ריק</div>';
+    if (btn) btn.disabled = true;
+    return;
+  }
+
+  if (btn) btn.disabled = !!_flushing;
+
+  summary.innerHTML = `
+    <div><strong>${q.length}</strong> ${q.length === 1 ? 'שינוי ממתין' : 'שינויים ממתינים'} לעלות לשרת</div>
+    ${countdownHtml}
+    <div style="font-size:12px;color:var(--muted);margin-top:4px">
+      כל הנתונים שמורים אצלך במכשיר. ברגע שהחיבור/השרת יחזור — הם יועלו אוטומטית.
+    </div>
+  `;
+
+  if (tickOnly) return; // only the countdown needs to update every second
+
+  // Newest first
+  const items = [...q].reverse();
+  list.innerHTML = items.map(entry => `
+    <div class="sync-queue-item">
+      <div class="sq-left">
+        <div class="sq-title">${escapeHtml(entry.summary || summarizePayload(entry.payload))}</div>
+        <div class="sq-reason">סיבה: ${escapeHtml(humanizeReason(entry.reason))}</div>
+      </div>
+      <div class="sq-time">${fmtAgo(entry.ts)}</div>
+    </div>
+  `).join('');
+}
+function escapeHtml(s){
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 // Race an awaitable against a timeout. Resolves with { error: {timeout} } on timeout.
@@ -1601,6 +1788,8 @@ async function flushSyncQueue(manual){
 
   _flushing = true;
   if (badge) badge.classList.add('syncing');
+  // Refresh modal to show "syncing" state
+  if (document.getElementById('m-sync-queue')?.classList.contains('open')) renderSyncQueueModal();
   try {
     // We only need to replay the MOST RECENT snapshot, since each queued
     // payload is a complete user_data blob and later ones supersede earlier
@@ -1609,10 +1798,15 @@ async function flushSyncQueue(manual){
     const result = await writeToSupabase(newest.payload);
     if (result.ok){
       writeSyncQueue([]);
+      _retryAttempts = 0;
+      _nextRetryAt = 0;
+      if (_retryTimer) { clearTimeout(_retryTimer); _retryTimer = null; }
       if (manual) showToast('✅ כל השינויים סונכרנו', 2500);
     } else {
+      // Schedule an automatic retry with backoff
+      scheduleQueueAutoRetry();
       if (manual){
-        const reason = result.error?.message || 'שגיאה לא ידועה';
+        const reason = humanizeReason(result.error?.message || result.error?.code || 'שגיאה לא ידועה');
         showToast(`❌ סנכרון נכשל: ${reason}`, 5000);
       }
     }
@@ -1765,20 +1959,48 @@ function addSubject(){
   if(document.getElementById('m-subj-category'))document.getElementById('m-subj-category').value='';
   closeModal('m-subject');renderSubjects();showToast('נושא נוסף!');
 }
+let _subtopicAddedThisSession = 0;
 function openAddSub(subjId,path,parentName){
   pendingSubjParent={subjId,path};
   document.getElementById('m-sub-title').textContent=`הוספת תת-נושא תחת "${parentName}"`;
   document.getElementById('m-sub-name').value='';
+  _subtopicAddedThisSession = 0;
+  const counter = document.getElementById('m-sub-added-count');
+  if (counter) counter.style.display = 'none';
   openModal('m-subtopic');
+  // Autofocus so the user can just start typing
+  setTimeout(()=>document.getElementById('m-sub-name')?.focus(), 50);
 }
 function addSubtopic(){
-  const name=document.getElementById('m-sub-name').value.trim();
+  const input = document.getElementById('m-sub-name');
+  const name = input.value.trim();
   if(!name||!pendingSubjParent)return;
   const node=getNode(pendingSubjParent.subjId,pendingSubjParent.path);
   if(!node)return;
   if(!node.subtopics)node.subtopics=[];
   node.subtopics.push({id:uid(),name,done:false,subtopics:[]});
-  save();closeModal('m-subtopic');renderSubjects();showToast('תת-נושא נוסף!');
+  save();
+  // Keep the modal open — user returns to main view manually by pressing "סיום".
+  renderSubjects();
+  _subtopicAddedThisSession++;
+  const counter = document.getElementById('m-sub-added-count');
+  if (counter){
+    counter.style.display = '';
+    counter.textContent = _subtopicAddedThisSession === 1
+      ? 'נוסף: ' + name
+      : `נוספו ${_subtopicAddedThisSession} תת-נושאים · אחרון: ${name}`;
+  }
+  input.value = '';
+  input.focus();
+}
+function closeSubtopicModal(){
+  closeModal('m-subtopic');
+  if (_subtopicAddedThisSession > 0){
+    showToast(_subtopicAddedThisSession === 1
+      ? 'תת-נושא נוסף! ✨'
+      : `${_subtopicAddedThisSession} תת-נושאים נוספו ✨`);
+  }
+  _subtopicAddedThisSession = 0;
 }
 function getNode(subjId,path){
   const s=S.subjects.find(s=>s.id===subjId);
@@ -4269,75 +4491,87 @@ async function sendAI(){
   }
 
   // ── READ path ──────────────────────────────────────────────────
-  // On Vercel (API_BASE = '/api/chat'): route through the serverless
-  //   function so GROQ_API_KEY never touches the browser.
-  // On localhost (API_BASE = null): call Groq directly for dev convenience.
+  // Hardened flow:
+  //   1. Cancel any in-flight chat request before starting a new one.
+  //   2. Proactively refresh JWT if expiring soon (avoids 401 mid-flight).
+  //   3. On 401, refresh JWT once and retry.
+  //   4. Central finally{} ALWAYS removes the "חושב..." bubble — no code
+  //      path can leak it.
+  //   5. Upgrade the bubble to "עדיין חושב…" after 8s so the user sees progress.
+  const state = { aborted: false, replied: false };
+  // Cancel previous in-flight request (if user sent two in a row)
+  if (window._aiActiveCtrl){
+    try { window._aiActiveCtrl.abort(); } catch(_){}
+  }
+  const ctrl = new AbortController();
+  window._aiActiveCtrl = ctrl;
+
+  // Progress updates
+  const progressT1 = setTimeout(() => {
+    if (thinkingEl && !state.replied) thinkingEl.textContent = 'עדיין חושב… (שרת ה-AI איטי)';
+  }, 8000);
+  const progressT2 = setTimeout(() => {
+    if (thinkingEl && !state.replied) thinkingEl.textContent = 'המתן… שרת ה-AI קר, זה יכול לקחת עד 30 שניות';
+  }, 18000);
+  // Hard ceiling: 32 seconds. Server has maxDuration:30, so 32 gives a small
+  // grace window but still guarantees the UI unsticks.
+  const hardTimeout = setTimeout(() => {
+    state.aborted = true;
+    try { ctrl.abort(); } catch(_){}
+  }, 32000);
+
   try {
     let response;
 
     if (API_BASE) {
       // ── PRODUCTION: secure server-side call ──
-      // Get the current Supabase JWT so the server can verify the user.
-      // Try multiple retrieval methods for maximum reliability.
-      let jwt = '';
-      // Method 1: supabase-js getSession (preferred)
-      try {
-        const { data: sd } = await sb.auth.getSession();
-        jwt = sd?.session?.access_token || '';
-      } catch(_){}
-      // Method 2: manually saved JWT from login (most reliable)
-      if (!jwt) jwt = localStorage.getItem('sa_jwt') || '';
-      // Method 3: supabase-js internal storage key
+      const jwt = await getFreshJwt();
       if (!jwt) {
-        try {
-          const raw = localStorage.getItem('sb-xirsfctsowhrsyytgcnh-auth-token');
-          if (raw) jwt = JSON.parse(raw).access_token || '';
-        } catch(_){}
-      }
-      // Method 4: force refresh as last resort
-      if (!jwt) {
-        try {
-          const { data: rd } = await sb.auth.refreshSession();
-          jwt = rd?.session?.access_token || '';
-        } catch(_){}
-      }
-
-      if (!jwt) {
-        thinkingEl.remove();
-        const noAuthMsg = 'הצ\'אט דורש כניסה מחדש — נסה להתנתק ולהתחבר שוב.';
-        addAIMsg(noAuthMsg, 'bot');
+        state.replied = true;
+        if (thinkingEl) thinkingEl.remove();
+        addAIMsg('הצ\'אט דורש כניסה מחדש — נסה להתנתק ולהתחבר שוב.', 'bot');
         aiHistory.pop();
-        aiTyping = false;
-        document.getElementById('ai-send-btn').disabled = false;
         return;
       }
 
-      const ac1 = new AbortController();
-      // 35s covers the full round-trip: server maxDuration is 30s, plus network.
-      // NOTE: we intentionally DO NOT clearTimeout(t1) until AFTER response.json()
-      // returns, so if the response body hangs (Vercel killed mid-stream) the
-      // abort still fires and the UI doesn't get stuck on "חושב...".
-      var t1 = setTimeout(() => ac1.abort(), 35000);
       response = await fetch(`${API_BASE}?action=ai`, {
         method: 'POST',
-        signal: ac1.signal,
+        signal: ctrl.signal,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${jwt}`   // verified by verifyToken() in chat.js
+          'Authorization': `Bearer ${jwt}`
         },
         body: JSON.stringify({
           messages:  aiHistory.slice(-10),
-          userState: S,                        // current state snapshot
+          userState: S,
           userName:  CU?.name || 'student'
         })
       });
+
+      // If 401, the JWT was rejected. Force-refresh once and retry.
+      if (response.status === 401){
+        const freshJwt = await forceRefreshJwt();
+        if (freshJwt && freshJwt !== jwt){
+          response = await fetch(`${API_BASE}?action=ai`, {
+            method: 'POST',
+            signal: ctrl.signal,
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${freshJwt}`
+            },
+            body: JSON.stringify({
+              messages:  aiHistory.slice(-10),
+              userState: S,
+              userName:  CU?.name || 'student'
+            })
+          });
+        }
+      }
     } else {
       // ── LOCALHOST DEV FALLBACK: direct Groq call ──
-      const ac2 = new AbortController();
-      const t2 = setTimeout(() => ac2.abort(), 25000);
       response = await fetch(AI_URL, {
         method: 'POST',
-        signal: ac2.signal,
+        signal: ctrl.signal,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${AI_API_KEY}`
@@ -4352,39 +4586,48 @@ async function sendAI(){
           max_tokens: 1024
         })
       });
-      clearTimeout(t2);
     }
 
-    let data;
+    // Parse body defensively — Vercel may return truncated body on timeout kill.
+    let data = null;
+    const contentType = response.headers.get('content-type') || '';
     try {
-      data = await response.json();
-    } catch(_) {
-      throw new Error('תגובה לא תקינה מהשרת — ייתכן שגיאת רשת.');
-    } finally {
-      // Disarm the abort only after body is fully read (or failed).
-      if (typeof t1 !== 'undefined') clearTimeout(t1);
+      if (contentType.includes('application/json')) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        try { data = JSON.parse(text); }
+        catch(_){ data = { error: text?.slice(0, 300) || `HTTP ${response.status}` }; }
+      }
+    } catch(parseErr){
+      // Body stream died mid-flight (Vercel maxDuration kill).
+      throw new Error('השרת ניתק את החיבור — ייתכן שהשאלה מורכבת מדי או שהשרת עמוס. נסה שוב.');
     }
 
-    // Handle non-2xx from either path
     if (!response.ok) {
       const errType = data?.error?.type || '';
       const errMsg  = data?.error?.message || data?.error || `HTTP ${response.status}`;
       if (errType === 'failed_generation' || response.status === 400) {
-        thinkingEl.remove();
+        state.replied = true;
+        if (thinkingEl) thinkingEl.remove();
         const fb = 'לא הצלחתי לזהות את הנתון. נסה לשאול אחרת, לדוגמה: "כמה דקות למדתי השבוע?"';
         addAIMsg(fb, 'bot');
         aiHistory.push({ role: 'assistant', content: fb });
-        aiTyping = false;
-        document.getElementById('ai-send-btn').disabled = false;
         return;
       }
-      throw new Error(errMsg);
+      if (response.status === 401) {
+        throw new Error('שגיאת אימות — נסה להתנתק ולהתחבר מחדש.');
+      }
+      if (response.status === 502 || response.status === 503 || response.status === 504) {
+        throw new Error('שרת ה-AI אינו זמין כרגע. נסה שוב בעוד רגע.');
+      }
+      throw new Error(typeof errMsg === 'string' ? errMsg : JSON.stringify(errMsg));
     }
-
-    thinkingEl.remove();
 
     // Server returns { ok, reply }; direct Groq returns { choices[0].message.content }
     const reply = data?.reply || data?.choices?.[0]?.message?.content || '';
+    state.replied = true;
+    if (thinkingEl) thinkingEl.remove();
     if (reply) {
       addAIMsg(reply, 'bot');
       aiHistory.push({ role: 'assistant', content: reply });
@@ -4393,20 +4636,75 @@ async function sendAI(){
     }
 
   } catch(e) {
-    thinkingEl.remove();
-    let msg = `שגיאה: ${e.message}`;
-    if (e.name === 'AbortError')
-      msg = '⏱️ הבקשה ארכה יותר מדי זמן. נסה שוב או נסח את השאלה אחרת.';
-    else if (e.message.includes('Failed to fetch') || e.message.includes('NetworkError'))
+    state.replied = true;
+    if (thinkingEl && thinkingEl.parentNode) thinkingEl.remove();
+    let msg;
+    if (state.aborted || e.name === 'AbortError') {
+      msg = '⏱️ חרגנו מ-30 שניות. נסה שוב או נסח את השאלה בקצרה.';
+    } else if (e.message?.includes('Failed to fetch') || e.message?.includes('NetworkError')) {
       msg = '🌐 שגיאת רשת — בדוק חיבור לאינטרנט.';
-    else if (e.message.includes('401') || e.message.includes('Unauthorized'))
+    } else if (e.message?.includes('401') || e.message?.toLowerCase().includes('unauthorized')) {
       msg = '❌ שגיאת אימות — נסה להתנתק ולהתחבר מחדש.';
+    } else {
+      msg = 'שגיאה: ' + (e.message || 'שגיאה לא ידועה');
+    }
     addAIMsg(msg, 'bot');
     aiHistory.pop();
   } finally {
+    // BULLETPROOF cleanup — no matter what path we took.
+    clearTimeout(progressT1);
+    clearTimeout(progressT2);
+    clearTimeout(hardTimeout);
+    if (thinkingEl && thinkingEl.parentNode && !state.replied){
+      thinkingEl.remove();
+    }
+    if (window._aiActiveCtrl === ctrl) window._aiActiveCtrl = null;
     aiTyping = false;
     document.getElementById('ai-send-btn').disabled = false;
   }
+}
+
+// ── JWT helpers for chat ──
+// Returns a current JWT. If the token is expiring in < 2 min, refresh first.
+async function getFreshJwt(){
+  // Check sa_jwt first (most reliable — manually persisted on login)
+  let jwt = localStorage.getItem('sa_jwt') || '';
+  try {
+    const { data: sd } = await sb.auth.getSession();
+    if (sd?.session?.access_token) jwt = sd.session.access_token;
+  } catch(_){}
+  if (!jwt) {
+    try {
+      const raw = localStorage.getItem('sb-xirsfctsowhrsyytgcnh-auth-token');
+      if (raw) jwt = JSON.parse(raw).access_token || '';
+    } catch(_){}
+  }
+  if (!jwt) return await forceRefreshJwt();
+
+  // Decode exp claim from JWT payload (no validation — just to read expiry)
+  try {
+    const payload = JSON.parse(atob(jwt.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+    const expMs = (payload.exp || 0) * 1000;
+    const msLeft = expMs - Date.now();
+    if (msLeft < 120000) { // less than 2 minutes — refresh proactively
+      const fresh = await forceRefreshJwt();
+      if (fresh) return fresh;
+    }
+  } catch(_){ /* ignore parse errors — fall through with existing jwt */ }
+  return jwt;
+}
+
+async function forceRefreshJwt(){
+  try {
+    const { data: rd } = await sb.auth.refreshSession();
+    const fresh = rd?.session?.access_token;
+    if (fresh) {
+      localStorage.setItem('sa_jwt', fresh);
+      if (rd.session.refresh_token) localStorage.setItem('sa_refresh', rd.session.refresh_token);
+      return fresh;
+    }
+  } catch(_){}
+  return '';
 }
 
 function addAIMsg(text, classes){
