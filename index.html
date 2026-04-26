@@ -4515,9 +4515,21 @@ async function sendAI(){
   }, 18000);
   // Hard ceiling: 32 seconds. Server has maxDuration:30, so 32 gives a small
   // grace window but still guarantees the UI unsticks.
+  // Belt-and-suspenders: ctrl.abort() only cancels the fetch. If anything ELSE
+  // (JWT lookup, JSON parse, etc.) is what's stuck, we also forcibly resolve
+  // the UI here so the user always gets feedback.
   const hardTimeout = setTimeout(() => {
     state.aborted = true;
     try { ctrl.abort(); } catch(_){}
+    if (!state.replied){
+      state.replied = true;
+      if (thinkingEl && thinkingEl.parentNode) thinkingEl.remove();
+      addAIMsg('⏱️ חרגנו מ-30 שניות. נסה שוב או נסח את השאלה בקצרה.', 'bot');
+      aiHistory.pop();
+      aiTyping = false;
+      const sb_ = document.getElementById('ai-send-btn');
+      if (sb_) sb_.disabled = false;
+    }
   }, 32000);
 
   try {
@@ -4665,20 +4677,39 @@ async function sendAI(){
 }
 
 // ── JWT helpers for chat ──
-// Returns a current JWT. If the token is expiring in < 2 min, refresh first.
-async function getFreshJwt(){
-  // Check sa_jwt first (most reliable — manually persisted on login)
+// CRITICAL: every supabase auth call here is wrapped in a hard timeout race.
+// Without these, sb.auth.getSession()/refreshSession() can hang indefinitely
+// (e.g. on slow network or a stuck supabase-js internal lock), which makes the
+// chat sit on "חושב..." forever because the JWT step runs BEFORE the fetch
+// AbortController and is not cancelable by ctrl.abort().
+function _withTimeout(promise, ms, fallback){
+  return Promise.race([
+    promise.catch(() => fallback),
+    new Promise(resolve => setTimeout(() => resolve(fallback), ms)),
+  ]);
+}
+
+function _readCachedJwt(){
   let jwt = localStorage.getItem('sa_jwt') || '';
-  try {
-    const { data: sd } = await sb.auth.getSession();
-    if (sd?.session?.access_token) jwt = sd.session.access_token;
-  } catch(_){}
   if (!jwt) {
     try {
       const raw = localStorage.getItem('sb-xirsfctsowhrsyytgcnh-auth-token');
       if (raw) jwt = JSON.parse(raw).access_token || '';
     } catch(_){}
   }
+  return jwt;
+}
+
+// Returns a current JWT. If the token is expiring in < 2 min, refresh first.
+// Capped at ~3.5s total — if anything in supabase-js stalls, we fall back to
+// the cached JWT and let the server decide. Never hangs.
+async function getFreshJwt(){
+  let jwt = _readCachedJwt();
+
+  // Try to get a fresher session, but never wait more than 2s for it.
+  const sd = await _withTimeout(sb.auth.getSession(), 2000, null);
+  if (sd?.data?.session?.access_token) jwt = sd.data.session.access_token;
+
   if (!jwt) return await forceRefreshJwt();
 
   // Decode exp claim from JWT payload (no validation — just to read expiry)
@@ -4686,25 +4717,24 @@ async function getFreshJwt(){
     const payload = JSON.parse(atob(jwt.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
     const expMs = (payload.exp || 0) * 1000;
     const msLeft = expMs - Date.now();
-    if (msLeft < 120000) { // less than 2 minutes — refresh proactively
+    if (msLeft < 120000) {
       const fresh = await forceRefreshJwt();
       if (fresh) return fresh;
     }
-  } catch(_){ /* ignore parse errors — fall through with existing jwt */ }
+  } catch(_){}
   return jwt;
 }
 
+// Capped at 2.5s. If refresh stalls, return whatever we already had cached.
 async function forceRefreshJwt(){
-  try {
-    const { data: rd } = await sb.auth.refreshSession();
-    const fresh = rd?.session?.access_token;
-    if (fresh) {
-      localStorage.setItem('sa_jwt', fresh);
-      if (rd.session.refresh_token) localStorage.setItem('sa_refresh', rd.session.refresh_token);
-      return fresh;
-    }
-  } catch(_){}
-  return '';
+  const rd = await _withTimeout(sb.auth.refreshSession(), 2500, null);
+  const fresh = rd?.data?.session?.access_token;
+  if (fresh) {
+    localStorage.setItem('sa_jwt', fresh);
+    if (rd.data.session.refresh_token) localStorage.setItem('sa_refresh', rd.data.session.refresh_token);
+    return fresh;
+  }
+  return _readCachedJwt();
 }
 
 function addAIMsg(text, classes){
