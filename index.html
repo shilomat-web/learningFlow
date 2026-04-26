@@ -1717,33 +1717,75 @@ function withTimeout(promise, ms, label){
 
 // Core write: returns { ok:true } on success, { ok:false, error } otherwise.
 // Never throws. Always inspects .error explicitly.
+//
+// HARDENED: every supabase-js call here is wrapped in its own timeout race.
+// supabase-js's internal Web Lock can wedge sb.auth.getSession() indefinitely
+// (we have seen this in production), which used to make save() hang forever
+// and the sync queue stay stuck on "מסנכרן עכשיו...". Now every step has a
+// hard ceiling and falls through to the next strategy if it stalls.
 async function writeToSupabase(payload){
   try {
-    // Re-align CU.id to the JWT's actual auth.uid so duplicate-email
-    // drift doesn't silently trigger an RLS denial.
-    const { data: sess } = await sb.auth.getSession();
-    const authUid = sess?.session?.user?.id;
+    // Step 1: try to re-align CU.id from the live session, but don't wait
+    // more than 2s for it. If supabase-js stalls, fall back to CU.id.
+    const sessRes = await Promise.race([
+      sb.auth.getSession().catch(() => null),
+      new Promise(resolve => setTimeout(() => resolve(null), 2000)),
+    ]);
+    const authUid = sessRes?.data?.session?.user?.id;
     if (authUid && authUid !== CU.id) {
       console.warn('[save] CU.id drift, realigning:', CU.id, '→', authUid);
       CU.id = authUid;
       localStorage.setItem('sa_session', JSON.stringify(CU));
     }
-    if (!authUid) {
+
+    // Step 2: ensure we actually have a JWT we can use. If getSession
+    // didn't give us one, try the manually-persisted token from localStorage.
+    let jwt = sessRes?.data?.session?.access_token || '';
+    if (!jwt) {
+      jwt = localStorage.getItem('sa_jwt') || '';
+      if (!jwt) {
+        try {
+          const raw = localStorage.getItem('sb-xirsfctsowhrsyytgcnh-auth-token');
+          if (raw) jwt = JSON.parse(raw).access_token || '';
+        } catch(_){}
+      }
+    }
+    if (!jwt) {
       return { ok:false, error: { message:'no-session', code:'NO_SESSION' } };
     }
 
-    const { error } = await withTimeout(
-      sb.from('user_data').upsert(
-        { user_id: CU.id, data: payload },
-        { onConflict: 'user_id' }
-      ),
-      SAVE_TIMEOUT_MS,
-      'upsert'
-    );
-    if (error) return { ok:false, error };
-    return { ok:true };
+    // Step 3: bypass the supabase-js client (which internally calls getSession
+    // again and can re-trigger the same lock stall). Use plain fetch with the
+    // JWT we already have. This is a single round-trip with a hard timeout.
+    const res = await Promise.race([
+      fetch(SUPABASE_URL + '/rest/v1/user_data?on_conflict=user_id', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey':       SUPABASE_ANON_KEY,
+          'Authorization':'Bearer ' + jwt,
+          'Prefer':       'resolution=merge-duplicates,return=minimal',
+        },
+        body: JSON.stringify({ user_id: CU.id, data: payload }),
+      }),
+      new Promise((_, reject) => setTimeout(
+        () => reject(new Error('timeout')), SAVE_TIMEOUT_MS
+      )),
+    ]);
+
+    if (res.ok) return { ok:true };
+
+    // Try to extract a useful error
+    let errBody;
+    try { errBody = await res.json(); } catch(_){ errBody = { message: 'HTTP ' + res.status }; }
+    return { ok:false, error: {
+      message: errBody.message || ('HTTP ' + res.status),
+      code:    errBody.code || ('HTTP_' + res.status),
+      status:  res.status,
+    }};
   } catch(e){
-    return { ok:false, error: { message: e?.message || 'exception', code:'EXCEPTION' } };
+    const msg = e?.message || 'exception';
+    return { ok:false, error: { message: msg, code: msg === 'timeout' ? 'TIMEOUT' : 'EXCEPTION' } };
   }
 }
 

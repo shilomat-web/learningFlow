@@ -1,6 +1,6 @@
 // sw.js — studyFlow Service Worker v6
 // Bump the cache name any time you want to force a full refresh.
-const CACHE = 'studyflow-v13';
+const CACHE = 'studyflow-v14';
 const ASSETS = [
   '/',
   '/index.html',

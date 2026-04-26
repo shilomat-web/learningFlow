@@ -21,9 +21,15 @@ export const config = { maxDuration: 30 };
 
 // Fallback to hardcoded public values so the function never crashes on missing env vars.
 // SUPABASE_URL and SUPABASE_ANON_KEY are already public (they appear in the frontend JS).
-const SB_URL     = () => process.env.SUPABASE_URL      || 'https://xirsfctsowhrsyytgcnh.supabase.co';
-const SB_ANON_KEY= () => process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhpcnNmY3Rzb3docnN5eXRnY25oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyODgyNzQsImV4cCI6MjA4OTg2NDI3NH0._dMzLsEdw2Br37Wrbvprs7rnEzQur_z9WFyrCt7qg8E';
-const SB_SVC_KEY = () => process.env.SUPABASE_SERVICE_KEY || SB_ANON_KEY();
+//
+// CRITICAL: env vars in Vercel can have trailing whitespace/\n if they were
+// set incorrectly via the dashboard. We .trim() every read so a stray newline
+// never silently corrupts the Authorization header (which surfaces as a 401
+// "Invalid API Key" — has happened in production with this very project).
+const _trim = (v) => (v || '').trim();
+const SB_URL     = () => _trim(process.env.SUPABASE_URL)      || 'https://xirsfctsowhrsyytgcnh.supabase.co';
+const SB_ANON_KEY= () => _trim(process.env.SUPABASE_ANON_KEY) || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhpcnNmY3Rzb3docnN5eXRnY25oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyODgyNzQsImV4cCI6MjA4OTg2NDI3NH0._dMzLsEdw2Br37Wrbvprs7rnEzQur_z9WFyrCt7qg8E';
+const SB_SVC_KEY = () => _trim(process.env.SUPABASE_SERVICE_KEY) || SB_ANON_KEY();
 
 // ── Supabase REST helper (service-role) ───────────────────────
 async function sbFrom(table) {
@@ -661,9 +667,17 @@ export default async function handler(req, res) {
     if (!state) state = buildSeedData();
 
     // Fallback to the same public key used by the frontend write-path.
-    // Both the env var and this literal are equally "public" for this app.
+    // CRITICAL: trim() — env vars from `vercel env add` have included literal
+    // \n in the past, which corrupts the Authorization header and yields a
+    // bogus "Invalid API Key" response from Groq. Belt-and-suspenders.
     const GROQ_KEY_FALLBACK = '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';
-    const groqApiKey = process.env.GROQ_API_KEY || GROQ_KEY_FALLBACK;
+    const groqApiKey = (process.env.GROQ_API_KEY || GROQ_KEY_FALLBACK).trim();
+    if (!groqApiKey) {
+      return res.status(200).json({
+        ok: true,
+        reply: 'מצטער, מפתח ה-AI לא מוגדר בשרת. צור קשר עם מנהל המערכת.',
+      });
+    }
     // ── Debug log: confirms key source ──
     console.log('[Groq] Key source:', process.env.GROQ_API_KEY ? 'env' : 'fallback', '| Length:', groqApiKey.length);
 
