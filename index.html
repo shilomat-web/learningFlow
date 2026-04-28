@@ -2159,7 +2159,6 @@ function deleteSubject(id){
   S.subjects=S.subjects.filter(x=>x.id!==id);
   S.tasks =S.tasks.filter(t=>t.subjId!==id);
   S.exams =S.exams.filter(e=>e.subjId!==id);
-  S.logs  =S.logs.filter(l=>l.subjId!==id);
   save();renderSubjects();renderDash();showToast(`הנושא "${s.name}" נמחק 🗑️`);
 }
 
