@@ -864,7 +864,7 @@ body.dark-mode .quote-banner .quote-author { color: #2ecc8b !important; font-wei
 
 <div id="page-exams" class="page">
   <div class="page-header">
-    <div class="header-actions"><button class="btn btn-primary" onclick="openModal('m-exam')">+ מבחן חדש</button></div>
+    <div class="header-actions"><button class="btn btn-primary" onclick="openAddExam()">+ מבחן חדש</button></div>
     <div class="page-title"><h1>מבחנים</h1><p>מבחנים קרובים</p></div>
   </div>
   <div class="section-sep">מבחנים קרובים</div><div id="upcoming-exams"></div>
@@ -999,7 +999,7 @@ body.dark-mode .quote-banner .quote-author { color: #2ecc8b !important; font-wei
 
 <div class="modal-overlay" id="m-exam">
   <div class="modal">
-    <h3>מבחן חדש</h3>
+    <h3 id="m-exam-title">מבחן חדש</h3>
     <div class="fg"><label>שם המבחן</label><input class="fc" id="m-exam-name" placeholder="למשל: בגרות מתמטיקה"></div>
     <div class="fr">
       <div class="fg">
@@ -1024,7 +1024,7 @@ body.dark-mode .quote-banner .quote-author { color: #2ecc8b !important; font-wei
       </div>
     </div>
     <div class="modal-actions">
-      <button class="btn btn-primary" onclick="addExam()">הוסף</button>
+      <button class="btn btn-primary" id="m-exam-submit" onclick="submitExam()">הוסף</button>
       <button class="btn btn-ghost" onclick="closeModal('m-exam')">ביטול</button>
     </div>
   </div>
@@ -1159,7 +1159,7 @@ body.dark-mode .quote-banner .quote-author { color: #2ecc8b !important; font-wei
 // SUPABASE CONFIG
 // ═══════════════════════════════════════════
 // ── APP VERSION — bump this string with every release ──────────
-const APP_VERSION = '1.2.0';
+const APP_VERSION = '1.3.0';
 // Flag: true while a version-mismatch reload is in progress — prevents
 // the rest of the script from running Supabase / login logic during the
 // brief gap between calling location.reload() and the browser acting on it.
@@ -1442,13 +1442,18 @@ async function loginUser(session){
   flushSyncQueue(false);
 }
 
-async function doLogout(){
+function doLogout(){
   // Stop any active study session
   if(studySessionState && studySessionState.active) stopStudySession(true);
-  if(CU && CU.provider === 'supabase') await sb.auth.signOut();
+  // Fire-and-forget: never await signOut — a stalled network call must not freeze logout
+  if(CU && CU.provider === 'supabase'){
+    try { sb.auth.signOut({ scope:'local' }).catch(()=>{}); } catch(_){}
+  }
   CU = null;
   S  = {subjects:[],tasks:[],exams:[],logs:[],archive:[]};
   localStorage.removeItem('sa_session');
+  localStorage.removeItem('sa_jwt');
+  localStorage.removeItem('sa_refresh');
   // Always re-enable auth buttons (may have been left disabled during a login attempt)
   document.querySelectorAll('#auth-login button, #auth-register button').forEach(b => {
     b.disabled = false; b.style.opacity = '';
@@ -1741,14 +1746,15 @@ async function writeToSupabase(payload){
     // Step 2: ensure we actually have a JWT we can use. If getSession
     // didn't give us one, try the manually-persisted token from localStorage.
     let jwt = sessRes?.data?.session?.access_token || '';
-    if (!jwt) {
-      jwt = localStorage.getItem('sa_jwt') || '';
-      if (!jwt) {
-        try {
-          const raw = localStorage.getItem('sb-xirsfctsowhrsyytgcnh-auth-token');
-          if (raw) jwt = JSON.parse(raw).access_token || '';
-        } catch(_){}
-      }
+    if (!jwt) jwt = _readCachedJwt();
+
+    // If the token we have is expired/expiring, refresh once before sending —
+    // otherwise PostgREST rejects it as a permissions error and the queue loops
+    // forever. If we still can't get a live token, treat it as no-session so the
+    // user is clearly told to log in again instead of seeing endless retries.
+    if (_jwtExpired(jwt)) {
+      const fresh = await forceRefreshJwt();
+      jwt = (!_jwtExpired(fresh)) ? fresh : '';
     }
     if (!jwt) {
       return { ok:false, error: { message:'no-session', code:'NO_SESSION' } };
@@ -2314,20 +2320,65 @@ function switchTaskTab(show){
 // ═══════════════════════════════════════════
 // EXAMS
 // ═══════════════════════════════════════════
-function addExam(){
+let editingExamId=null;
+function openAddExam(){
+  editingExamId=null;
+  document.getElementById('m-exam-title').textContent='מבחן חדש';
+  document.getElementById('m-exam-submit').textContent='הוסף';
+  ['m-exam-name','m-exam-date','m-exam-time','m-exam-custom'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
+  document.getElementById('m-exam-custom-wrap').style.display='none';
+  openModal('m-exam');
+}
+function editExam(id){
+  const ex=S.exams.find(e=>e.id===id);
+  if(!ex)return;
+  editingExamId=id;
+  openModal('m-exam');
+  document.getElementById('m-exam-title').textContent='עריכת מבחן';
+  document.getElementById('m-exam-submit').textContent='שמור';
+  document.getElementById('m-exam-name').value=ex.name||'';
+  document.getElementById('m-exam-date').value=ex.date||'';
+  document.getElementById('m-exam-time').value=ex.time||'';
+  document.getElementById('m-exam-subj').value=ex.subjId||'';
+  document.getElementById('m-exam-custom-wrap').style.display='none';
+  setTL(ex.prep||'red');
+}
+function submitExam(){ return editingExamId?saveEditExam():addExam(); }
+function readExamForm(){
   const name=document.getElementById('m-exam-name').value.trim();
   const date=document.getElementById('m-exam-date').value;
-  if(!name||!date)return;
+  if(!name||!date)return null;
   let subjId=document.getElementById('m-exam-subj').value;
   if(subjId==='__other__'){
     const custom=document.getElementById('m-exam-custom').value.trim();
     if(custom){const ns={id:uid(),name:custom,subtopics:[]};S.subjects.push(ns);subjId=ns.id;}
-    else{showToast('יש להכניס שם נושא');return;}
+    else{showToast('יש להכניס שם נושא');return null;}
   }
-  S.exams.push({id:uid(),name,subjId,date,time:document.getElementById('m-exam-time').value,score:null,prep:currentTL});
+  return {name,date,subjId};
+}
+function addExam(){
+  const f=readExamForm();if(!f)return;
+  S.exams.push({id:uid(),name:f.name,subjId:f.subjId,date:f.date,time:document.getElementById('m-exam-time').value,score:null,prep:currentTL});
   save();['m-exam-name','m-exam-date','m-exam-time'].forEach(i=>document.getElementById(i).value='');
   document.getElementById('m-exam-custom-wrap').style.display='none';
   closeModal('m-exam');renderExams();renderDash();showToast('מבחן נוסף!');
+}
+function saveEditExam(){
+  const ex=S.exams.find(e=>e.id===editingExamId);
+  if(!ex){editingExamId=null;closeModal('m-exam');return;}
+  const f=readExamForm();if(!f)return;
+  ex.name=f.name;ex.date=f.date;ex.subjId=f.subjId;
+  ex.time=document.getElementById('m-exam-time').value;
+  ex.prep=currentTL;
+  save();editingExamId=null;
+  ['m-exam-name','m-exam-date','m-exam-time'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('m-exam-custom-wrap').style.display='none';
+  closeModal('m-exam');renderExams();renderDash();showToast('מבחן עודכן ✅');
+}
+function deleteExam(id){
+  if(!confirm('למחוק מבחן זה?'))return;
+  S.exams=S.exams.filter(e=>e.id!==id);
+  save();renderExams();renderDash();showToast('מבחן נמחק 🗑️');
 }
 function openScore(id){
   pendingScoreId=id;
@@ -2372,6 +2423,11 @@ function renderExams(){
       <div class="readiness-bar"><div class="readiness-bar-fill" style="width:${readiness}%;background:${rColor}"></div></div>
       <span class="readiness-pct" style="color:${rColor}">${readiness}%</span>
     </div>`;
+    const _abtn='background:none;border:none;cursor:pointer;font-size:14px;padding:4px;color:var(--sec);line-height:1;border-radius:4px';
+    const actionsHTML=`<div style="display:flex;gap:2px;align-items:center">
+      <button onclick="editExam('${e.id}')" title="ערוך" style="${_abtn}">✏️</button>
+      <button onclick="deleteExam('${e.id}')" title="מחק" style="${_abtn}">🗑️</button>
+    </div>`;
     return`<div class="exam-card">
       <div style="display:flex;gap:8px;align-items:center;flex-direction:column;align-items:flex-start">
         ${past
@@ -2381,6 +2437,7 @@ function renderExams(){
         }
         ${prepDot}
         ${!past?readinessHTML:''}
+        ${actionsHTML}
       </div>
       <div class="exam-card-right">
         <div><div class="exam-name">${e.name}</div><div class="exam-date">${fmtDate(e.date)}${timeStr}</div></div>
@@ -4740,6 +4797,19 @@ function _readCachedJwt(){
     } catch(_){}
   }
   return jwt;
+}
+
+// True if the JWT is missing, malformed, or expiring within 5s.
+// An expired token sent to PostgREST returns 401/PGRST301, which the sync
+// queue would otherwise misread as a permanent "permissions error" and retry
+// forever. Detecting expiry lets us refresh first, or ask the user to re-login.
+function _jwtExpired(jwt){
+  if (!jwt) return true;
+  try {
+    const payload = JSON.parse(atob(jwt.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+    const expMs = (payload.exp || 0) * 1000;
+    return (expMs - Date.now()) < 5000;
+  } catch(_){ return true; }
 }
 
 // Returns a current JWT. If the token is expiring in < 2 min, refresh first.
