@@ -2158,15 +2158,26 @@ function toggleSub(childId,chevId){
 function escQ(s){return(s||'').replace(/'/g,"\\'").replace(/"/g,'&quot;');}
 
 // ── Delete subject (entire subject + all its sub-topics) ──
+// Resolve a subject's display name from its id. Falls back to the name we
+// stamped onto its study logs when the subject itself was deleted, so past
+// study-time records stay labeled in the logs list, day view and AI context.
+function subjNameById(id){
+  const s=S.subjects.find(x=>x.id===id);
+  if(s) return s.name;
+  const l=S.logs.find(l=>l.subjId===id && l.subjName);
+  return l ? l.subjName : null;
+}
+
 function deleteSubject(id){
   const s=S.subjects.find(x=>x.id===id);
   if(!s) return;
-  if(!confirm(`האם אתה בטוח שברצונך למחוק את הנושא "${s.name}"?\nכל תת-הנושאים שלו יימחקו גם כן.`)) return;
+  if(!confirm(`האם אתה בטוח שברצונך למחוק את הנושא "${s.name}"?\nתת-הנושאים, המשימות והמבחנים שלו יימחקו, אבל רישומי זמן הלמידה יישמרו.`)) return;
+  // Preserve study-time records: stamp the name onto the logs, then keep them.
+  S.logs.forEach(l=>{ if(l.subjId===id) l.subjName=s.name; });
   S.subjects=S.subjects.filter(x=>x.id!==id);
   S.tasks =S.tasks.filter(t=>t.subjId!==id);
   S.exams =S.exams.filter(e=>e.subjId!==id);
-  S.logs  =S.logs.filter(l=>l.subjId!==id);
-  save();renderSubjects();renderDash();showToast(`הנושא "${s.name}" נמחק 🗑️`);
+  save();renderSubjects();renderDash();showToast(`הנושא "${s.name}" נמחק 🗑️ (זמני הלמידה נשמרו)`);
 }
 
 // ── Delete a sub-topic node by its path inside a subject ──
@@ -2761,7 +2772,7 @@ function renderStudyTime(){
   const top=Object.entries(bys).sort((a,b)=>b[1]-a[1])[0];
   document.getElementById('t-today').textContent=fmtMins(tm);
   document.getElementById('t-14').textContent=fmtMins(t14);
-  document.getElementById('t-top').textContent=top?(S.subjects.find(s=>s.id===top[0])?.name||'—'):'—';
+  document.getElementById('t-top').textContent=top?(subjNameById(top[0])||'—'):'—';
   const q=QUOTES[Math.floor(Math.random()*QUOTES.length)];
   document.getElementById('quote-area').innerHTML=`<div class="quote-banner"><div class="quote-text">"${q.t}"</div><div class="quote-author">— ${q.a}</div></div>`;
   const totalAll = S.logs.reduce((s,l)=>s+l.minutes, 0);
@@ -2814,7 +2825,7 @@ function renderTimeChart(){
     // גרף לפי נושאים (נשאר ללא שינוי)
     const bys = {}; S.logs.forEach(l => {bys[l.subjId] = (bys[l.subjId]||0)+l.minutes;});
     const entries = Object.entries(bys).sort((a,b) => b[1]-a[1]); const mx = entries[0]?entries[0][1]:1;
-    el.innerHTML = `<div class="chart-wrap"><div style="font-size:13px;font-weight:500;text-align:right;margin-bottom:4px">זמן לפי נושא</div><div class="subj-chart">${entries.map(([sid,m])=>{const n=S.subjects.find(s=>s.id===sid)?.name||'?';return`<div class="subj-bar-row"><div class="subj-bar-val">${fmtMins(m)}</div><div class="subj-bar-track"><div class="subj-bar-fill" style="width:${Math.round(m/mx*100)}%"></div></div><div class="subj-bar-lbl">${n}</div></div>`}).join('')||'<div class="empty">אין נתונים</div>'}</div></div>`;
+    el.innerHTML = `<div class="chart-wrap"><div style="font-size:13px;font-weight:500;text-align:right;margin-bottom:4px">זמן לפי נושא</div><div class="subj-chart">${entries.map(([sid,m])=>{const n=subjNameById(sid)||'?';return`<div class="subj-bar-row"><div class="subj-bar-val">${fmtMins(m)}</div><div class="subj-bar-track"><div class="subj-bar-fill" style="width:${Math.round(m/mx*100)}%"></div></div><div class="subj-bar-lbl">${n}</div></div>`}).join('')||'<div class="empty">אין נתונים</div>'}</div></div>`;
   }
 }
 function renderLogsList(){
@@ -2822,12 +2833,12 @@ function renderLogsList(){
   const sorted=[...S.logs].sort((a,b)=>b.date.localeCompare(a.date));
   if(!sorted.length){el.innerHTML='<div class="empty">אין רשומות</div>';return;}
   el.innerHTML=sorted.map(l=>{
-    const s=S.subjects.find(s=>s.id===l.subjId);
+    const nm=S.subjects.find(s=>s.id===l.subjId)?.name||l.subjName;
     return `<div class="log-row">
       <div style="display:flex;gap:12px;align-items:center">
         <div class="log-dur">${fmtMins(l.minutes)}</div>
         <div>
-          ${s?`<span class="log-tag">${s.name}</span>`:''}
+          ${nm?`<span class="log-tag">${nm}</span>`:''}
           ${l.desc?`<div style="font-size:11px;color:var(--sec);margin-top:2px">${l.desc}</div>`:''}
         </div>
       </div>
@@ -3498,8 +3509,7 @@ window.showDayLogs = function(dateStr) {
 
         let html = `<div style="margin-bottom:12px; font-weight:bold; font-size:16px;">סה"כ למידה: ${fmtMins(total)}</div>`;
         html += Object.entries(bySubj).map(([sid, m]) => {
-            const s = S.subjects.find(sub => sub.id === sid);
-            const name = s ? s.name : 'נושא לא ידוע';
+            const name = subjNameById(sid) || 'נושא לא ידוע';
             return `<div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border);">
                 <span>${name}</span>
                 <strong style="color:var(--g);">${fmtMins(m)}</strong>
@@ -3671,7 +3681,7 @@ function buildContext(){
     const bySubj={};
     S.logs.forEach(l=>{bySubj[l.subjId]=(bySubj[l.subjId]||0)+l.minutes;});
     lines.push('לפי נושא:');
-    Object.entries(bySubj).sort((a,b)=>b[1]-a[1]).forEach(([sid,m])=>{const s=S.subjects.find(s=>s.id===sid);lines.push(`  ${s?s.name:'?'}: ${fmtMins(m)}`);});
+    Object.entries(bySubj).sort((a,b)=>b[1]-a[1]).forEach(([sid,m])=>{lines.push(`  ${subjNameById(sid)||'?'}: ${fmtMins(m)}`);});
     
     // הוספת רשומות לימוד אחרונות (עם ID כדי שה-AI יוכל למחוק אותן)
     lines.push('רשומות אחרונות:');
@@ -3814,8 +3824,7 @@ function buildSystemPrompt(){
   const studyBySubject = {};
   (S.logs||[]).forEach(l=>{ studyBySubject[l.subjId]=(studyBySubject[l.subjId]||0)+l.minutes; });
   const studyBySubjectNamed = Object.entries(studyBySubject).map(([id,mins])=>{
-    const s=(S.subjects||[]).find(x=>x.id===id);
-    return { subjectId:id, subjectName:s?s.name:id, minutes:mins, formatted:fmtMins(mins) };
+    return { subjectId:id, subjectName:subjNameById(id)||id, minutes:mins, formatted:fmtMins(mins) };
   }).sort((a,b)=>b.minutes-a.minutes);
 
   const stateSnapshot = JSON.stringify({
@@ -4166,12 +4175,13 @@ function executeTool(name, args){
     case 'delete_subject': {
       const idx = S.subjects.findIndex(s=>s.id===args.subject_id);
       if(idx===-1) return `❌ נושא לא נמצא: ${args.subject_name}`;
+      const _delName = S.subjects[idx].name;
+      S.logs.forEach(l=>{ if(l.subjId===args.subject_id) l.subjName=_delName; });
       S.subjects.splice(idx,1);
       S.tasks  = S.tasks.filter(t=>t.subjId!==args.subject_id);
       S.exams  = S.exams.filter(e=>e.subjId!==args.subject_id);
-      S.logs   = S.logs.filter(l=>l.subjId!==args.subject_id);
       save(); renderSubjects(); renderDash();
-      return `✅ הנושא "${args.subject_name}" נמחק בהצלחה (כולל כל תת-הנושאים, המשימות והמבחנים הקשורים).`;
+      return `✅ הנושא "${args.subject_name}" נמחק בהצלחה (תת-הנושאים, המשימות והמבחנים נמחקו; רישומי זמן הלמידה נשמרו).`;
     }
     case 'delete_subtopic': {
       const subj = S.subjects.find(s=>s.id===args.subject_id);
