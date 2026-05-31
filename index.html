@@ -3827,6 +3827,26 @@ function buildSystemPrompt(){
     return { subjectId:id, subjectName:subjNameById(id)||id, minutes:mins, formatted:fmtMins(mins) };
   }).sort((a,b)=>b.minutes-a.minutes);
 
+  // Full study-time history so the AI can answer "how much did I study LAST
+  // week / the week before / in March / total". Logs are never auto-deleted,
+  // so this is the complete record.
+  // Rolling 7-day windows: weeksAgo 0 = this week, 1 = previous week, …
+  const studyByWeek = [];
+  for(let w=0; w<12; w++){
+    const hi=new Date(); hi.setDate(hi.getDate()-(w*7));
+    const lo=new Date(); lo.setDate(lo.getDate()-(w*7)-6);
+    const his=localDateStr(hi), los=localDateStr(lo);
+    const mins=(S.logs||[]).filter(l=>l.date>=los && l.date<=his).reduce((s,l)=>s+l.minutes,0);
+    studyByWeek.push({ weeksAgo:w, from:los, to:his, minutes:mins, formatted:fmtMins(mins) });
+  }
+  // All-time per calendar month (YYYY-MM)
+  const byMonthMap = {};
+  (S.logs||[]).forEach(l=>{ const m=(l.date||'').slice(0,7); if(m) byMonthMap[m]=(byMonthMap[m]||0)+l.minutes; });
+  const studyByMonth = Object.entries(byMonthMap).sort((a,b)=>b[0].localeCompare(a[0]))
+    .map(([month,mins])=>({ month, minutes:mins, formatted:fmtMins(mins) }));
+  const _d30=new Date(); _d30.setDate(_d30.getDate()-29);
+  const last30days = (S.logs||[]).filter(l=>l.date>=localDateStr(_d30)).reduce((s,l)=>s+l.minutes,0);
+
   const stateSnapshot = JSON.stringify({
     user: CU ? CU.name : 'unknown',
     today: today(),
@@ -3847,8 +3867,11 @@ function buildSystemPrompt(){
     studyMins:{
       today:  (S.logs||[]).filter(l=>l.date===today()).reduce((s,l)=>s+l.minutes,0),
       last7days: (S.logs||[]).filter(l=>{const d=new Date();d.setDate(d.getDate()-7);return l.date>=localDateStr(d);}).reduce((s,l)=>s+l.minutes,0),
+      last30days: last30days,
       total:  (S.logs||[]).reduce((s,l)=>s+l.minutes,0),
-      bySubject: studyBySubjectNamed
+      bySubject: studyBySubjectNamed,
+      byWeek: studyByWeek,
+      byMonth: studyByMonth
     }
   }, null, 2);
 
@@ -3900,6 +3923,10 @@ function buildSystemPrompt(){
     '|------|-----------|',
     '| "כמה זמן למדתי היום" | studyMins.today (דקות) |',
     '| "כמה זמן למדתי השבוע" | studyMins.last7days (דקות) |',
+    '| "כמה זמן למדתי שבוע שעבר / שבוע קודם" | studyMins.byWeek → weeksAgo===1 |',
+    '| "כמה זמן למדתי לפני X שבועות" | studyMins.byWeek → weeksAgo===X |',
+    '| "כמה זמן למדתי ב-30 יום" | studyMins.last30days (דקות) |',
+    '| "כמה זמן למדתי בחודש [חודש]/ינואר/2026-03" | studyMins.byMonth → התאם month (YYYY-MM) |',
     '| "כמה זמן למדתי סה\"כ" | studyMins.total (דקות) |',
     '| "כמה זמן למדתי [נושא]" | studyMins.bySubject → מצא לפי subjectName |',
     '| "מה המשימות שלי" | tasks.list (id, name, done, type, dueDate) |',
